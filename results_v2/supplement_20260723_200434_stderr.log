@@ -1,0 +1,11 @@
+{错误使用 ()
+Unable to perform assignment because value of type 'string' is not convertible to 'cell'.
+
+出错 rerun_unstable_1s (第 60 行)
+    combined_summary(match,:) = rerun_summary(i,:);
+
+原因:
+    错误使用 cell
+    无法从 string 转换为 cell。
+} 
+ERROR: MATLAB error Exit Status: 0x00000001

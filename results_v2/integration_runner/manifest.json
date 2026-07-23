@@ -1,0 +1,17 @@
+{
+  "schema_version": "2.0",
+  "config_hash": "495135baeeb6",
+  "profile": "smoke",
+  "status": "running",
+  "created_at": "2026-07-22T23:49:20***",
+  "matlab_version": "23.2.0.2365128 (R2023b)",
+  "computer": "PCWIN64",
+  "output_dir": "C:\\Users\\01\\Desktop\\delay2.0\\delay2.0\\results_v2\\integration_runner",
+  "material_passport": {
+    "origin_skill": "experiment-agent",
+    "origin_mode": "run",
+    "origin_date": "2026-07-22",
+    "verification_status": "UNVERIFIED",
+    "version_label": "exp_result_v2"
+  }
+}

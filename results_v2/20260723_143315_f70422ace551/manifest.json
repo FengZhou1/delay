@@ -1,0 +1,20 @@
+{
+  "schema_version": "2.0",
+  "config_hash": "f70422ace551",
+  "code_fingerprint": "57101d45323bc83c",
+  "profile": "analysis",
+  "status": "crashed",
+  "created_at": "2026-07-23T14:33:35",
+  "matlab_version": "23.2.0.2365128 (R2023b)",
+  "computer": "PCWIN64",
+  "output_dir": "C:\\Users\\01\\Desktop\\delay2.0\\delay2.0\\results_v2\\20260723_143315_f70422ace551",
+  "failure_reason": "SB-CF interval_union_length received an empty interval set during the third main condition. The empty-set guard was fixed and regression-tested before a new-hash restart.",
+  "n_completed_checkpoints": 2,
+  "material_passport": {
+    "origin_skill": "experiment-agent",
+    "origin_mode": "run/validate",
+    "origin_date": "2026-07-22",
+    "verification_status": "VERIFIED",
+    "version_label": "exp_result_v2"
+  }
+}

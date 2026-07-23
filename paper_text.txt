@@ -1,0 +1,2147 @@
+=== PAGE 1 ===
+1008
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+Connection-Based Aloha: Modeling, Optimization,
+and Effects of Connection Establishment
+Xinran Zhao
+and Lin Dai , Senior Member, IEEE
+Abstract— According to whether a connection to the receiver
+is established before data transmission, random access schemes
+can be divided into two categories: connection-based and
+connection-free. For cellular networks, its connection-based
+access mechanism has been heavily criticized for being ill-
+suited to Machine-to-Machine (M2M) communications. With the
+existing studies overwhelmingly focusing on the physical-layer
+transmission and detection design of various connection-free
+access schemes, less attention has been paid to the fundamen-
+tal understanding of when connection establishment could be
+beneficial. The challenge originates from the lack of proper
+modeling of connection-based random access. In this paper,
+a scalable model that incorporates each node’s queueing behavior
+is proposed for connection-based slotted Aloha, based on which
+both the data throughput and the mean queueing delay of
+data packets are characterized, optimized, and compared with
+those for connection-free slotted Aloha. Conditions for beneficial
+connection establishment in terms of the optimal throughput
+and queueing delay performance are discussed and applied to
+cellular networks with the newly introduced Random Access-
+based Small Data Transmission (RA-SDT) schemes. The analysis
+offers important insights for the optimal access design of M2M
+communications.
+Index
+Terms— Random
+access,
+Aloha,
+connection-based,
+connection-free, grant-based, grant-free, throughput, queueing
+delay, machine-to-machine (M2M) communications.
+I. INTRODUCTION
+T
+HE rapid proliferation of Machine-Type Devices (MTDs)
+is yielding a paradigm shift from the traditional Human-
+to-Human (H2H) communications to Machine-to-Machine
+(M2M) communications [1]. A central challenge brought by
+M2M communications is to support massive access of MTDs
+in an efficient and timely manner. As a fundamental type of
+multiple access, random access, with which nodes indepen-
+dently decide when to transmit in a distributed fashion, is an
+appealing solution to M2M communications by virtue of its
+simplicity and scalability.
+Numerous random access protocols have been proposed
+since Abramson’s pioneering work on Aloha [2]. According
+Manuscript received 25 September 2022; revised 30 March 2023; accepted
+5 June 2023. Date of publication 16 June 2023; date of current version
+13 February 2024. This work was supported in part by the Research Grants
+Council (RGC) of Hong Kong through General Research Fund (GRF) under
+Grant City University of Hong Kong (CityU) 11210219 and in part by
+the CityU Strategic Research under Grant 7005860. The associate editor
+coordinating the review of this article and approving it for publication was
+S. Dey. (Corresponding author: Xinran Zhao.)
+The authors are with the Department of Electrical Engineering, City
+University of Hong Kong, Hong Kong (e-mail: xrzhao3-c@my.cityu.edu.hk;
+lindai@cityu.edu.hk).
+Color versions of one or more figures in this article are available at
+https://doi.org/10.1109/TWC.2023.3284907.
+Digital Object Identifier 10.1109/TWC.2023.3284907
+to whether a connection is established before the data packet
+transmission, they can be broadly divided into two cat-
+egories: connection-free and connection-based. Specifically,
+with connection-free random access schemes, nodes directly
+transmit their data packets. When there are concurrent trans-
+missions from multiple nodes, transmission failures may occur,
+and the resultant wasted time is determined by the length of
+a data packet. For connection-based random access, on the
+other hand, each node first sends a request, and transmits
+its data packets only after receiving the acknowledgement
+from the receiver that indicates the successful detection of its
+request, i.e., a connection is established. As a consequence,
+only requests are involved in transmission failures, and data
+packets can be transmitted over the reserved resources.
+Intuitively, when the data packet length is much larger
+than the request length, connection-based random access is
+preferred as the benefit brought by the reduction of trans-
+mission failure time would outweigh the extra overhead for
+connection establishment. Nevertheless, connection establish-
+ment may become costly for short-packet transmissions, which
+is common in M2M communications. Such concerns have
+long been raised over the Long Term Evolution (LTE) cellular
+systems, where its grant-based (i.e., connection-based) access
+mechanism has been intensely criticized for the low efficiency
+and long delay caused by the connection-establishment pro-
+cedure [3]. To this end, there have been extensive discussions
+on the suitability of grant-based random access schemes for
+M2M communications, with many advocating that grant-free
+(i.e., connection-free) random access is more favorable [4],
+[5], [6]. Most of the studies have focused on improving the
+success probability of uplink data transmission in grant-free
+random access by designing various transmission schemes for
+collision reduction [7], [8], [9], [10] and detection algorithms
+that exploit the sparsity nature of MTDs’ activities [11], [12],
+[13], [14], [15], [16], [17], [18], [19].
+Note that the advanced data transmission and detection
+schemes proposed for grant-free random access can also be
+applied to grant-based random access to reduce the request
+transmission failures. Given the same physical-layer design,
+from the perspective of medium access control layer, whether
+a grant-free random access protocol outperforms a grant-based
+one is determined by the data payload length and protocol
+overhead. Specifically, for given overhead parameters, there
+exists a critical threshold of data payload length, only above
+which connection establishment is beneficial. Such a threshold
+was recently characterized in [20] for both Aloha and Carrier
+Sense Multiple Access (CSMA) in terms of the maximum data
+throughput. The analysis shows that for Aloha, the threshold
+1536-1276 © 2023 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 2 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1009
+may drop below zero if the overhead parameters satisfy a
+certain constraint, indicating that connection establishment can
+be beneficial for any data payload length.
+There are, nevertheless, a few limitations when applying the
+above results to practice. First of all, the optimal throughput
+performance was considered in [20], to achieve which nodes’
+queues should be pushed to saturation, i.e., the queues are
+always busy. When the queueing delay performance becomes
+the main concern, however, the focus should be shifted to the
+unsaturated condition, only under which the mean queueing
+delay of data packets is bounded. More importantly, in [20],
+a channel-centric model was adopted, with which the through-
+put analysis can be greatly simplified by only focusing on the
+aggregate traffic of nodes instead of each individual node’s
+behavior. Yet by excluding nodes’ queues from the model, it is
+difficult to further characterize the queueing performance and
+obtain the optimal setting of access parameters of nodes, which
+is of paramount importance for practical network control.
+With nodes’ queues taken into consideration, a node-centric
+model was developed in [21] for connection-free Aloha, where
+the coupled service rates of nodes’ queues were derived
+by characterizing the state transition of Head-of-Line (HOL)
+packets in each queue and establishing the fixed-point equa-
+tions of the steady-state probability of successful transmission
+of HOL packets in saturated and unsaturated conditions.
+The model in [21], however, cannot be directly applied to
+connection-based Aloha because instead of contending for
+channel access individually, with connection-based Aloha,
+data packets are transmitted in a batch after a connection
+is established. That calls for a novel node-centric model for
+connection-based Aloha, based on which both throughput and
+queueing delay performance can be characterized, optimized,
+and further compared with that of connection-free Aloha.
+Note that for connection-based random access, the requests,
+rather than data packets, contend with each other. Therefore,
+the key to performance analysis lies in proper modeling
+of the behavior of each node’s requests. In
+this paper,
+a request-queue model is proposed for throughput and delay
+optimization of connection-based slotted Aloha. Specifically,
+by introducing a request queue for each node, both the data
+throughput and the mean queueing delay of data packets are
+derived based on the service time distribution of the request
+queue. The optimal transmission probability of nodes for max-
+imizing the data throughput or minimizing the mean queueing
+delay is also obtained as an explicit function of the number
+of nodes or the data input rate of each node. The optimal
+throughput and delay performance of connection-based slotted
+Aloha is further compared with that of connection-free slotted
+Aloha, based on which the criteria for beneficial connection
+establishment are discussed. The analysis is also applied to
+the Fifth-Generation (5G) cellular networks for performance
+comparison of the recently introduced grant-free 2-step Ran-
+dom Access-based Small Data Transmission (RA-SDT) and
+grant-based 4-step RA-SDT schemes [22].
+The remainder of this paper is organized as follows. Related
+work is reviewed in Section II. Section III describes our system
+model of connection-based slotted Aloha. In Section IV, the
+service process of each request queue is characterized, based
+on which the maximum data throughput and the minimum
+mean queueing delay are derived and verified by simula-
+tion results in Section V. The comparative analysis is con-
+ducted between connection-free slotted Aloha and connection-
+based slotted Aloha and further applied to 5G networks
+in Section VI. Possible extensions of the analysis are dis-
+cussed in Section VII. Finally, conclusions are summarized
+in Section VIII.
+II. RELATED WORK
+In this section, we will review the previous studies on mod-
+eling and performance analysis of connection-based Aloha.
+Similar to connection-free Aloha, models for connection-
+based Aloha can be in general categorized into channel-centric
+and node-centric, with the former focusing on the aggregate
+requests and the latter on each node’s queueing behavior.
+Early studies adopted channel-centric models to analyze the
+throughput and access delay performance by either assuming
+a network with an infinite number of nodes [23], [24], or a
+finite-node network with each node equipped of a one-packet
+buffer [25], [26], [27]. The number of aggregate requests of
+nodes is usually assumed as Poisson distributed [23], [24],
+or characterized based on the state transition of the number
+of backlogged nodes (i.e., nodes with nonempty buffer) [25],
+[26], [27]. The proposed channel-centric models have been
+widely adopted in later studies on modeling and performance
+optimization for connection-based access schemes in LTE and
+5G cellular systems [28], [29], [30], [31], [32], [33]. When
+modeling a cellular network with massive MTDs, for instance,
+the number of requests per time slot is often assumed to follow
+a Poisson distribution [28], [29]. However, by ignoring each
+node’s data queue, the adaptive tuning of access parameters,
+such as the transmission probability of each node, can only be
+performed based on the time-varying network status such as
+the number of backlogged nodes [30], [31], [32], [33], which
+in practice is difficult to track and estimate accurately, rather
+than the data input rate of each node.
+To include nodes’ queues, various node-centric models
+have been proposed in [34], [35], and [36]. In [34], the
+joint distribution of nodes’ queue lengths was obtained for a
+two-node connection-based slotted Aloha network, which is,
+nevertheless, difficult to be generalized to an n-node network
+due to high modeling complexity. Therefore, the symmetric
+scenario, where nodes have identical data input rates and
+transmission probabilities, has been considered in [35] and
+[36], where the modeling dimensions can be greatly reduced
+by focusing on each single queue. Specifically, in [35], each
+node’s data buffer was modeled as a Geo/D/1 queue with
+vacation. By assuming that the number of aggregate requests
+in each time slot is Poisson distributed with the average rate
+G, the mean queueing delay of data packets was derived
+as a function of G. Nevertheless, the assumption of Poisson
+distributed number of requests holds only when the number
+of nodes goes to infinity and the transmission probability of
+each request approaches zero. In [36], the contention among
+requests was decoupled from the queueing analysis of data
+packets by establishing a Markov process for the requests. The
+network throughput was further characterized and maximized
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 3 ===
+1010
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+by optimally tuning the transmission probability of each node
+based on the aggregate data input rate.
+Note that the model proposed in [36] was customized for
+the LTE cellular systems, where some key features, such as
+clearing the data buffer after connection establishment, are
+no longer adopted in the RA-SDT schemes of 5G systems.1
+As specified in the newest standard [22], small data payload
+of a fixed length can be transmitted after an uplink grant is
+obtained, with which the connection-establishment procedure
+is simplified without the need for reporting the buffer length.
+In this paper, instead of focusing on a specific network,
+we will develop a general analytical model for connection-
+based slotted Aloha with the fixed-length data transmission
+incorporated. RA-SDT of 5G cellular systems will be included
+as a case study.
+III. SYSTEM MODEL
+Consider a slotted Aloha network where n nodes transmit
+to a single receiver, each with an identical arrival process of
+data packets and equipped with an infinite-size buffer to store
+incoming packets. All the nodes are synchronized and can start
+a transmission only at the beginning of a time slot.2 Assume
+the collision model at the receiver, that is, if more than one
+node transmits simultaneously, a collision occurs and all of
+them fail. A transmission is successful if and only if there are
+no concurrent transmissions.
+With connection-based slotted Aloha, nodes would send
+requests to establish a connection before their data transmis-
+sions. Assume that each node sends a request with probability
+q when a batch of M data packets is formed in the buffer.
+If a request is successfully received, i.e., an acknowledgement
+(ACK) is sent by the receiver, then the node can start trans-
+mitting M data packets. Otherwise, it retransmits the request
+with probability q in the next time slot.3
+As Fig. 1 illustrates, each successful transmission includes
+M data packets and the signaling overhead. Without loss of
+generality, suppose that the transmission time of each packet
+is equal to one time slot. The overhead time of each successful
+transmission is denoted as δ, in the unit of time slots, where
+one time slot is for connection establishment and the other
+1Note that a similar assumption was adopted in [35], that is, a node
+connected to the receiver would clear its data buffer if the number of data
+packets in the buffer is no more than an upper limit. The optimal upper limit
+for minimizing the mean queueing delay of data packets was shown to be
+infinity, with which each node always clears its buffer after establishing a
+connection.
+2Note that synchronization among nodes is crucial for network perfor-
+mance. Intuitively, if nodes are not synchronized, more transmission failures
+would occur, leading to lower efficiency. In practice, nodes acquire time
+synchronization before their transmissions. In the 5G networks, for instance,
+each node needs to first detect the synchronization signals that are periodically
+broadcast by the base station before the initial access [37]. Based on the
+synchronization signals, nodes can identify the radio subframe boundary, with
+which their transmissions can then be synchronized.
+3Note that in the literature, there have been various assumptions on the
+transmission probability of each node. For instance, it can be adaptively
+adjusted based on the number of transmission failures a node has expe-
+rienced [38], or the queue status of other nodes [39]. In this paper, the
+transmission probability is assumed to be independent of each node’s prior
+experience or queue status. It, nevertheless, can be tuned based on the total
+number of nodes and each node’s input rate of data packets to optimize the
+throughput and delay performance, as will be shown later.
+Fig. 1.
+Graphic illustration of connection-based slotted Aloha.
+δ −1 time slots are for signaling exchange (e.g., header and
+ACK) during the data transmission.
+In this paper, we are interested in throughput and delay
+performance of connection-based slotted Aloha networks. For
+each node, as at most one data packet is successfully trans-
+mitted in each time slot, the average number of successfully
+transmitted data packets per time slot is equal to the fraction
+of time for its successful data packet transmission, which is
+defined as its data throughput λout. The data throughput of
+the network is then ˆλout = nλout.
+For each data packet, define its queueing delay T as the
+time from its arrival till its successful transmission, in the unit
+of time slots. To be more specific, the queueing delay of a
+data packet consists of the waiting time in the buffer and the
+service time. The waiting time in the buffer includes the time
+for forming a batch with M data packets, and the time for
+this batch waiting to be the HOL batch. The service time of
+a data packet includes the time of its batch contending for
+channel access, and the transmission time after a connection
+is successfully established.
+Both data throughput performance and queueing delay per-
+formance of each node crucially depend on whether the node’s
+data queue is saturated or not. Denote the input rate (i.e., the
+average number of arrival data packets per time slot) and the
+service rate (i.e., the average number of data packets that can
+be successfully transmitted per time slot given that the data
+queue is nonempty) of each node’s data queue as λ and µ,
+respectively. When λ < µ, the data queue is unsaturated with
+a non-zero probability of being empty. If λ ≥µ, then the data
+queue is saturated. The data throughput of each node λout can
+be written as
+λout =
+(
+λ
+λ < µ
+µ
+λ ≥µ.
+(1)
+For the mean queueing delay of data packets T, we have T <
+∞when the data queue is unsaturated, and T = ∞if the data
+queue becomes saturated.
+It can be seen that for each node’s data queue, to character-
+ize the throughput and delay performance, the key lies in the
+characterization of service rate, which is determined by the
+transmission probability q of requests and the probability of
+successful transmission of requests. In Section IV, a request-
+queue model will be proposed to characterize the service
+rate µ, based on which the data throughput of the network
+and the mean queueing delay of data packets will further be
+obtained and optimized by properly choosing the transmission
+probability q in Section V. Specifically, define the maximum
+data throughput as
+ˆλmax = max
+q,ˆλ
+ˆλout,
+(2)
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 4 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1011
+Fig. 2.
+Illustration of request-queue model.
+where ˆλ = nλ is the aggregate input rate of data packets. For
+the mean queueing delay of data packets T, as it is finite only
+in the unsaturated condition, we need to first find out how to
+select the transmission probability q such that the data queue
+is unsaturated. Define the unsaturated region of transmission
+probability q as
+Sun(q, ˆλ) = {q : ˆλ < ˆµ},
+(3)
+where ˆλ = nλ and ˆµ = nµ are the aggregate input rate and
+the aggregate service rate of data packets, respectively. For
+a given aggregate input rate ˆλ, the minimum mean queueing
+delay is defined as
+T
+∗=
+min
+q∈Sun(q,ˆλ)
+T.
+(4)
+Expressions of the maximum data throughput ˆλmax and the
+minimum mean queueing delay T
+∗with connection-based
+slotted Aloha will be derived in Section V, and compared to
+those with connection-free slotted Aloha in Section VI.
+IV. REQUEST-QUEUE MODEL
+For connection-based slotted Aloha, data packets are served
+in a batch of M data packets. To analyze the service process
+of data packets, in this section, we propose a request-queue
+model for each node.
+As Fig. 2 illustrates, for the virtual request queue of each
+node, a request is generated upon the arrival of M data
+packets, and removed from the request queue after this batch
+of M data packets is successfully transmitted. Therefore, the
+number of requests in a node’s request queue is indeed the
+number of data-packet batches in its data queue. The input
+rate λr and the service rate µr of each request queue can then
+be written as
+λr =
+λ
+M ,
+µr =
+µ
+M ,
+(5)
+where λ and µ are the input rate and the service rate of each
+data queue, respectively.
+Note that the request queues of nodes are coupled with
+each other through the service processes. In the following
+subsections, we will derive the service rate of each request
+queue by characterizing the state transition of HOL requests
+and establishing the fixed-point equation of the probability of
+successful transmission of HOL requests.
+Fig. 3.
+Embedded Markov chain {Xj} of the state transition process of an
+individual HOL request in connection-based slotted Aloha networks.
+A. State Characterization of HOL Requests
+The behavior of each HOL request can be character-
+ized by a discrete-time Markov renewal process (X, V) =
+{(Xj, Vj), j = 0, 1, . . .}, where Xj denotes the state of
+a tagged HOL request at the j-th transition and Vj denotes
+the epoch at which the j-th transition occurs. The embedded
+Markov chain X = {Xj} is shown in Fig. 3.
+As shown in Fig. 3, a HOL request is initially in State T,
+and stays in State T if there is no on-going data transmission
+and the request is successfully transmitted. It moves to State
+0 if the channel is occupied by an on-going data transmission,
+or there is no data transmission but 1) the request is not
+transmitted or 2) the request is transmitted but fails. For a
+given HOL request, let ˜αt denote the probability that there
+is no data transmission at time slot t = 1, 2, · · · , and pt
+denote the probability of successful transmission conditioned
+on no data transmission at time slot t = 1, 2, · · · . The steady-
+state probability distribution of the embedded Markov chain
+in Fig. 3 can be easily obtained as
+πT = p˜αq,
+π0 = 1−p˜αq,
+(6)
+where ˜α
+=
+lim
+t→∞˜αt and p
+=
+lim
+t→∞pt are the steady-
+state probability of no data transmission and the steady-state
+probability of successful transmission conditioned on no data
+transmission, respectively, for a given HOL request.
+Denote the mean holding time at State T and State 0 as τT
+and τ0, respectively, which are given by
+τT = M + δ,
+τ0 = 1,
+(7)
+in the unit of time slots. The limiting state probabilities of the
+Markov renewal process (X, V) can be then written as
+˜πi =
+πiτi
+Σj∈{T,0}πjτj , i ∈{T, 0}.
+(8)
+By combining (6)-(8), we have
+˜πT =
+p˜αq(M+δ)
+p˜αq(M+δ−1)+1,
+˜π0 =
+1−p˜αq
+p˜αq(M+δ−1)+1.
+(9)
+As a successful transmission of each HOL request only
+occurs at State T and holds for τT time slots, the service
+rate µr of HOL requests is given by ˜πT
+τT , which can be further
+written from (7) and (9) as
+µr =
+p˜αq
+p˜αq(M+δ−1)+1.
+(10)
+Note from (10) that the service rate µr is determined by ˜α and
+p, which depend on whether the request queue is saturated or
+not. The steady-state probability of no data transmission for a
+given HOL request ˜α can be obtained as
+˜α =
+(
+α
+1−λr(M+δ−1)
+λr < µr
+α
+1−pαq(M+δ−1)
+λr ≥µr,
+(11)
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 5 ===
+1012
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+where α denotes the unconditional steady-state probability of
+no data transmission (i.e., regardless of whether there are HOL
+requests or not):
+α =
+(
+1 −nλr(M + δ −1)
+λr < µr
+1
+nqp(M+δ−1)+1
+λr ≥µr.
+(12)
+Appendix A presents the detailed derivation of (11)-(12).
+The steady-state probability of successful transmission of
+HOL requests conditioned on no data transmission p will be
+characterized in the following section.
+B. Probability of Successful Transmission of HOL Requests
+Whether a HOL request can be successfully transmitted
+is determined by the activities of HOL requests in other
+nodes’ request queues. Specifically, given that there is no
+on-going data transmission, a node can successfully transmit
+its request if and only if all the other n −1 nodes do not
+request. Consequently, for a given HOL request, the steady-
+state probability of successful transmission conditioned on no
+data transmission, p, can be written as
+p = (1 −Pr{a request queue is nonempty and the HOL
+request is transmitted | no data transmission})n−1.
+(13)
+Let ρ denote the probability of a request queue being
+nonempty, which is given by
+ρ =
+(
+λr
+µr
+λr < µr
+1
+λr ≥µr.
+(14)
+Note that the transmission probability of each HOL request is
+q. Moreover, given that there is no on-going data transmission,
+each request is either empty, or nonempty with the HOL
+request at State 0 or the first time slot of State T. (13) can
+then be written as
+p =
+ 
+1 −
+ρ(˜π0+ ˜πT
+τT )
+1−ρ+ρ(˜π0+ ˜πT
+τT ) · q
+!n−1
+.
+(15)
+By combining (7), (9)-(11), and (14)-(15), we have
+p =
+(
+(1 −λr
+pα)n−1 ≈exp{−nλr
+pα }
+λr < µr
+(1 −q)n−1 ≈exp{−nq}
+λr ≥µr,
+(16)
+where the approximation is based on n−1 ≈n and (1−x)n ≈
+e−nx for 0 < x < 1 if n ≫1.
+For the unsaturated condition, the fixed-point equation of p
+given in (16) can be further written as
+p = exp
+n
+−
+nλr
+p[1−nλr(M+δ−1)]
+o
+,
+(17)
+by combining with (12). Note that (17) has two positive real
+roots:
+pL = exp
+n
+W0
+
+−
+nλr
+1−nλr(M+δ−1)
+o
+,
+(18)
+and
+pS = exp
+n
+W−1
+
+−
+nλr
+1−nλr(M+δ−1)
+o
+,
+(19)
+if and only if
+nλr
+1−nλr(M+δ−1) < e−1,
+(20)
+where W0 (·) and W−1 (·) are two branches of the Lambert
+W function [40]. It can be further shown that for the two fixed
+points pL and pS of (17), pL is an attracting fixed point, while
+pS is a repelling fixed point. Therefore, only the larger root
+pL is the steady-state point in the unsaturated condition. The
+steady-state point in the saturated condition, denoted as pA,
+can also be obtained from (16) as
+pA = e−nq.
+(21)
+It can be observed from (18) and (21) that the unsaturated
+steady-state point pL is determined by the aggregate input rate
+ˆλ, the batch size M and the overhead time for each successful
+transmission δ. In contrast, the saturated steady-state point pA
+is determined by the transmission probability q and the number
+of nodes n.
+C. Service Rate of HOL Requests
+It has been shown in (11) and (16) that both ˜α and p depend
+on whether the request queue is saturated or not. Let µu
+r and
+µs
+r denote the service rate in the unsaturated condition and
+saturated condition, respectively, which can be written as
+µu
+r =
+pLq[1−nλr(M+δ−1)]
+pLq(M+δ−1)[1−nλr(M+δ−1)]−λr(M+δ−1)+1
+(22)
+and
+µs
+r =
+pAq
+npAq(M+δ−1)+1,
+(23)
+by combining (10)-(12). Further note that for the request queue
+to stay unsaturated, the input rate λr should not exceed the
+service rate µs
+r, i.e.,
+λr <
+qe−nq
+nqe−nq(M+δ−1)+1.
+(24)
+Note that (24) can also be written as −1
+n ln pL < q <
+−1
+n ln pS, where pL and pS are given in (18) and (19), respec-
+tively. By combining (3), (5), and (18)-(19), the unsaturated
+region of transmission probability q can be obtained as
+Sun(q, ˆλ) = {q : −1
+nW0
+
+−
+ˆλ
+M−ˆλ(M+δ−1)
+
+< q
+< −1
+nW−1
+
+−
+ˆλ
+M−ˆλ(M+δ−1)
+o
+.
+(25)
+Finally, by combining (22)-(23) and (18), (21), (25), the
+service rate of each request queue µr can be obtained in (26),
+as shown at the bottom of the next page.
+V. THROUGHPUT AND DELAY OPTIMIZATION
+Based
+on
+the
+request-queue
+model,
+in
+this
+section,
+we will derive the data throughput and the mean queue-
+ing delay of data packets, and further demonstrate how
+to optimize them by tuning the transmission probability of
+nodes.
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 6 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1013
+Fig. 4.
+Unsaturated region Sun(q, ˆλ) of transmission probability q. n = 50.
+δ = 2. M ∈{1, 2, 3}.
+A. Maximum Data Throughput
+By combining (1), (5), and (26), the data throughput ˆλout
+can be obtained as
+ˆλout = nλout =
+
+
+
+ˆλ
+q ∈Sun(q, ˆλ)
+M
+1
+nqe−nq +M+δ−1
+otherwise.
+(27)
+Note from (25) that Sun(q, ˆλ)̸ = ∅if and only if (20) holds,
+which can be further written as
+ˆλ <
+M
+M+δ+e−1.
+(28)
+When ˆλ ≥
+M
+M+δ+e−1, we have Sun(q, ˆλ) = ∅and all
+the request queues are saturated no matter what value of
+transmission probability q is selected. As
+(27) shows, the
+data throughput ˆλout in the saturated condition is a function
+of transmission probability q and can be maximized as
+max
+q
+M
+1
+nqe−nq +M+δ−1 =
+M
+M+δ+e−1
+(29)
+at q = 1
+n. Combining (2) with (27)-(29), we then obtain the
+maximum data throughput ˆλmax as
+ˆλmax =
+M
+M+δ+e−1,
+(30)
+which is achieved when the aggregate input rate satisfies ˆλ ≥
+M
+M+δ+e−1 and the transmission probability q is set to
+q = q∗
+λ = 1
+n.
+(31)
+Fig. 4 illustrates the unsaturated region Sun(q, ˆλ) and the
+maximum data throughput ˆλmax with various values of batch
+size M. When the aggregate input rate ˆλ < ˆλmax, Sun(q, ˆλ)̸ =
+∅, and each request queue is unsaturated if the transmission
+probability q is selected from the unsaturated region. On the
+other hand, when ˆλ ≥ˆλmax, Sun(q, ˆλ) = ∅, indicating that
+each request queue is always saturated for any q; the maximum
+data throughput ˆλmax can be achieved at q = q∗
+λ. It can be
+seen from Fig. 4 that an increase in batch size M leads to
+both an enlarged unsaturated region and a higher maximum
+data throughput.
+B. Minimum Mean Queueing Delay
+The queueing delay T of each data packet consists of three
+parts: 1) waiting time for forming a batch Wb; 2) waiting
+time of a batch Wr; and 3) service time of a batch Dr.
+Assuming that data packet arrivals follow a Bernoulli process
+with parameter λ, we will derive the mean of each part of
+delay in the following subsections.
+1) Waiting Time for Forming a Batch Wb: For the j-th
+data packet (j = 1, 2, · · · , M) in a batch, let W (j)
+b
+denote
+its waiting time for forming the batch. With Bernoulli arrivals
+of data packets, the probability mass function (PMF) of W (j)
+b
+can be written as
+Pr{W (j)
+b
+= i}
+=
+
+
+
+
+
+
+
+
+i −1
+M −j −1
+
+λM−j(1 −λ)i−M+j
+i = M −j, M −j+1, · · ·
+0
+otherwise
+(32)
+for j = 1, 2, · · · , M −1, and
+Pr{W (M)
+b
+= i} =
+(
+1
+i = 0
+0
+otherwise.
+(33)
+Note that the probability of a data packet being the j-th (j =
+1, 2, · · · , M) one in the batch is equal to
+1
+M . The mean waiting
+time for forming a batch W b can then be obtained as
+W b =
+M
+X
+j=1
+1
+M
+∞
+X
+i=0
+i · Pr{W (j)
+b
+= i} = M−1
+2λ .
+(34)
+2) Service Time of a Batch Dr: Dr is also the service time
+of a HOL request, with the PMF
+Pr{Dr = i}
+=
+(
+p˜αq(1 −p˜αq)i−M−δ
+i = M + δ, M + δ + 1, · · ·
+0
+otherwise
+(35)
+according to Fig. 3, where ˜α is given by (11), p = pL in the
+unsaturated condition is given by (18), and p = pA in the
+saturated condition is given by (21). The mean service time
+of a batch, Dr, can then be obtained from (35) as
+Dr =
+∞
+X
+i=0
+i · Pr{Dr = i} =
+1
+p˜αq + M + δ −1.
+(36)
+µr =
+
+
+
+
+
+
+
+q·exp
+
+W0
+
+−
+ˆλ
+M−ˆλ(M+δ−1)
+
+·
+
+1−
+ˆλ
+M (M+δ−1)
+
+q·exp
+
+W0
+
+−
+ˆλ
+M−ˆλ(M+δ−1)
+
+·(M+δ−1)·
+
+1−
+ˆλ
+M (M+δ−1)
+
+−λ
+M (M+δ−1)+1
+q ∈Sun(q, ˆλ)
+qe−nq
+nqe−nq·(M+δ−1)+1
+otherwise.
+(26)
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 7 ===
+1014
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+Fig. 5.
+(a) Exact and approximate expressions of mean queueing delay T versus aggregate input rate ˆλ. q =
+1
+n. δ = 4. n ∈{5, 20}. M ∈{1, 4}.
+(b) Minimum mean queueing delay T ∗versus aggregate input rate ˆλ. n = 50. q = q∗
+T . δ = 2. M ∈{1, 2, 3}.
+3) Waiting Time of a Batch Wr: Wr is indeed the waiting
+time of a request in the request queue. With Bernoulli arrivals
+of data packets, we can model each request queue as an
+NBk/G/1 queue where the interarrival time of requests
+follows a negative binomial distribution with parameters λ
+and k = M, and the service time of requests follows the
+distribution given by (35). The mean waiting time W r is finite
+only in the unsaturated condition, which can be derived as
+W r = 1
+λ
+δ
+X
+i=1
+ri
+1−ri + 1 −
+1
+pL ˜αuq,
+(37)
+where r1, r2, · · · , rδ are δ roots inside the unit circle |r| = 1 of
+the following equation of r:
+pL˜αuq · [(1 −λ)r + λ]M+δ −(λ + pL˜αuq −λpL˜αuq) · rδ
++ (λ −λpL˜αuq) · rδ−1 = 0,
+(38)
+where pL is the unsaturated steady-state point given by (18),
+and ˜αu = 1−nλr(M+δ−1)
+1−λr(M+δ−1) is the steady-state probability of no
+data transmission for a given HOL request in the unsaturated
+condition according to (11)-(12). Appendix B shows the
+detailed derivation of (37)-(38).
+Finally, by combining (34), (36), and (37), the mean queue-
+ing delay of data packets in the unsaturated condition can be
+obtained as
+T = M−1
+2λ
++ M + δ + 1
+λ
+δ
+X
+i=1
+ri
+1−ri ,
+(39)
+where r1, r2, · · · , rδ are δ roots inside the unit circle |r| = 1 of
+Eq. (38) of r.
+Note that the mean queueing delay T is closely dependent
+on the transmission probability q. For q /∈Sun(q, ˆλ), the
+data queue becomes saturated, leading to T →∞. For q ∈
+Sun(q, ˆλ), the transmission probability q should be carefully
+selected to minimize the mean queueing delay T. Due to the
+lack of explicit expressions of {ri}, however, it is difficult to
+obtain the optimal transmission probability for optimizing T
+based on (39). In the following, let us introduce an accurate
+approximation for the mean queueing delay T. Specifically,
+by approximating the service time distribution of each request
+as the Geometric distribution with parameter pL˜αuq, the mean
+waiting time of each request W r can be approximated as
+W r ≈
+r0
+λ(1−r0) + 1 −
+1
+pL ˜αuq,
+(40)
+where r0 is the real root in (0, 1) of the following equation of
+r:
+(1 −λ) · rM+1 + λ · rM −[λ(
+1
+pL ˜αuq −1) + 1]
+· r + λ(
+1
+pL ˜αuq −1) = 0.
+(41)
+The derivation of (40)-(41) is presented in Appendix B.
+We should point out that the mean waiting time of the approx-
+imate NBk/Geo/1 queue is shorter than the actual mean
+waiting time of each request since we ignore M + δ −1 time
+slots in each service. By replacing W r with the approximation
+given in (40), the mean queueing delay T can be approximated
+as
+T ≈M−1
+2λ
++ M + δ +
+r0
+λ(1−r0),
+(42)
+where r0 is the real root in (0, 1) of Eq. (41) of r.
+The accuracy of (42) is illustrated in Fig. 5a. It is further
+shown in Appendix C that the mean queueing delay of data
+packets T given in (42) is a monotonic decreasing function
+of q ∈Sun(q, ˆλ). Therefore, to minimize T, the optimal
+transmission probability q∗
+T should be
+q∗
+T = −1
+nW−1
+
+−
+ˆλ
+M−ˆλ(M+δ−1)
+
+−ϵ,
+(43)
+where ϵ is a positive small value.
+The minimum mean queueing delay T
+∗=
+min
+q∈Sun(q,ˆλ)
+T can
+then be obtained by combining (41)-(43). Fig. 5b illustrates
+how T
+∗varies with the aggregate input rate ˆλ under different
+values of batch size M. When M = 1, for instance, the
+queueing delay of a data packet only depends on the waiting
+time and the service time of the request associated to it; in this
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 8 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1015
+Fig. 6.
+(a) Steady-state probability of successful transmission of HOL requests conditioned on no data transmission p and (b) data throughput ˆλout versus
+transmission probability q. n = 100. ˆλ = 0.5. δ = 2. M ∈{1, 2, 4, 8}.
+case, T
+∗monotonically increases with ˆλ, with T
+∗→1 + δ
+for ˆλ →0 and T
+∗→∞for ˆλ →ˆλmax. For M > 1, however,
+T
+∗→∞for both ˆλ →0 and ˆλ →ˆλmax. It has been shown
+in Section V-A that as the batch size M increases, both the
+maximum data throughput ˆλmax and the unsaturated region
+of transmission probability Sun(q, ˆλ) can be enlarged. For the
+minimum mean queueing delay of data packets T
+∗, however,
+using a larger batch size M under a low aggregate input rate ˆλ
+may result in higher T
+∗as the mean waiting time for forming
+a batch is significantly increased.
+C. Simulation Results
+This section presents the simulation results to verify
+the preceding theoretical analysis. We consider an n-node
+connection-based slotted Aloha network where each node has
+Bernoulli packet arrivals with rate λ. The simulation setting
+is identical to the system model described in Section III.
+Each simulation is carried out for 108 time slots, and the
+initial number of data packets in each node’s buffer is set to
+20. In simulations, the steady-state probability of successful
+transmission of HOL requests p is obtained by calculating the
+ratio of the number of successful requests to the total number
+of transmitted requests; the data throughput ˆλout is obtained by
+calculating the ratio of the number of successful data packets
+to the total number of time slots 108; the mean queueing delay
+of data packets T is obtained by calculating the ratio of the
+sum of queueing delay of all the arrival data packets to the
+total number of arrival data packets.
+Section IV has demonstrated that the network operates at
+either the unsaturated steady-state point pL or the saturated
+steady-state point pA, where pL is invariant with respect to
+the transmission probability q and determined by the batch
+size M, the aggregate input rate ˆλ and the overhead time
+for each successful transmission δ, while pA only depends
+on the transmission probability q and the number of nodes n.
+As Fig. 6a illustrates, with ˆλ = 0.5, n = 100 and δ = 2, the
+unsaturated steady-state point pL varies with the batch size M
+and is equal to 0.5384 for M = 4 and 0.8443 for M = 8; for
+given M, pL does not change with the transmission probability
+q. The saturated steady-state point pA, on the other hand,
+is closely dependent of q and independent of M.
+Section V-A shows that the data throughput ˆλout is equal to
+the aggregate input rate ˆλ when the transmission probability
+q is selected from the unsaturated region Sun(q, ˆλ). With
+ˆλ ≥
+ˆλmax, Sun(q, ˆλ) = ∅and the network is always
+saturated for any q; in this case, the maximum data throughput
+ˆλmax can be achieved at the optimal transmission proba-
+bility q∗
+λ =
+1
+n. As shown in Fig. 6b, with the aggregate
+input rate ˆλ = 0.5, the maximum data throughput ˆλmax
+is achieved at q∗
+λ
+= 0.01 for M
+= 1 and M
+= 2,
+i.e., ˆλM=1
+max
+= 0.21 and ˆλM=2
+max
+= 0.35; for M = 4 and
+M = 8, we have SM=4
+un
+(q, 0.5) = (0.0062, 0.0151) and
+SM=8
+un
+(q, 0.5) = (0.0017, 0.0307), within which the network
+is unsaturated and the data throughput ˆλout = ˆλ = 0.5.
+Fig. 6b also corroborates that with a larger batch size M, the
+maximum data throughput ˆλmax and the unsaturated region
+Sun(q, ˆλ) are both enlarged.
+The expression of the mean queueing delay of data packets
+T with the transmission probability q ∈Sun(q, ˆλ) has been
+derived in Section V-B. As Fig. 7 illustrates, the minimum
+mean queueing delay T
+∗is achieved at q∗
+T given in (43). It can
+also been seen in Fig. 7a that for a smaller aggregate input rate,
+i.e., ˆλ = 0.2, a larger batch size M leads to higher T
+∗because
+data packets need to wait longer for forming a batch. On the
+other hand, with ˆλ = 0.5, we have T
+∗
+M=4 > T
+∗
+M=6, as shown
+in Fig. 7b, indicating that the minimum mean queueing delay
+performance can be improved by appropriately increasing the
+batch size M under large aggregate input rates.
+VI. CONNECTION-FREE OR CONNECTION-BASED?
+In
+contrast
+to
+connection-based
+random
+access,
+the
+basic concept of connection-free random access is that
+each node transmits its data packets without establish-
+ing connections. Without extra overhead time for connec-
+tion establishment, connection-free random access has been
+widely argued to be more suitable for the emerging M2M
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 9 ===
+1016
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+Fig. 7.
+Mean queueing delay T versus transmission probability q. n = 100. δ = 2. M ∈{4, 6, 8}. (a) ˆλ = 0.2. (b) ˆλ = 0.5.
+Fig. 8.
+Graphic illustration of (a) connection-free and (b) connection-based
+slotted Aloha.
+communications [4], [5], [6], which is featured by massive
+MTDs with short packets and sporadic packet arrivals. How-
+ever, each failed data packet transmission in connection-free
+random access usually wastes more time than each failed
+request transmission in connection-based random access.
+To see which one is more preferable for M2M communica-
+tions, in this section, we conduct a comparative study between
+connection-free and connection-based slotted Aloha and apply
+the results to the 5G cellular networks.
+For superscripts and subscripts throughout this section,
+P
+and N
+denote connection-free and connection-based,
+respectively.
+A. Performance Comparison
+Fig. 8 illustrates the connection-free and connection-based
+slotted Aloha. To be consistent with the notations in [20],
+we use σ, L, ∆S and ∆F to denote the time slot length, the
+time for each payload transmission, the overhead time for each
+successful or failed transmission, respectively, all in the unit
+of milliseconds (ms). As shown in Fig. 8a, with connection-
+free slotted Aloha, each successful or failed transmission takes
+one time slot, i.e., LP + ∆S,P = LP + ∆F,P = σP . With
+connection-based slotted Aloha, as seen from Fig. 8b, each
+successful transmission includes M time slots for payload
+transmission and δ time slots for signaling overhead, i.e.,
+LN = M · σN and ∆S,N = δ · σN; each failed transmission
+takes one time slot, i.e., ∆F,N = σN.
+In the following subsections, we will compare the perfor-
+mance between connection-free and connection-based slotted
+Aloha in terms of maximum data throughput, unsaturated
+region of transmission probability, and minimum mean queue-
+ing delay of data packets.
+1) Maximum
+Data
+Throughput:
+The
+maximum
+data
+throughput4 ˆλP
+max of connection-free slotted Aloha is given
+by Eq. (10) in [20] as
+ˆλP
+max = e−1 ·
+LP
+LP +∆S,P .
+(44)
+On the other hand, substituting δ =
+∆S,N
+σN , M =
+LN
+σN and
+σN = ∆F,N into (30), we can rewrite the maximum data
+throughput ˆλN
+max of connection-based slotted Aloha as
+ˆλN
+max =
+LN
+LN+∆S,N+(e−1)·∆F,N .
+(45)
+Note that to achieve the maximum data throughput ˆλmax,
+the aggregate input rate ˆλ must be large enough to push all
+the queues to the saturated condition, and the transmission
+probability should be set to the optimal value q∗
+λ.
+By combining (44) and (45), we have ˆλN
+max > ˆλP
+max if and
+only if the payload lengths and the overhead parameters satisfy
+LN
+(e−1)·∆F,N+∆S,N >
+LP
+(e−1)·LP +e·∆S,P .
+(46)
+Note that when LN = LP = L, (46) is reduced to
+L
+∆S,N >
+1−e· ∆S,P
+∆S,N
+e−1
++ ∆F,N
+∆S,N , which is consistent with Eq. (21) in [20].
+2) Unsaturated Region of Transmission Probability q:
+According to [21], the unsaturated region of transmission
+probability q for connection-free slotted Aloha can be written
+as
+SP
+un(q, ˆλP ) =
+n
+q : −1
+nW0(−ˆλP ) < q < −1
+nW−1(−ˆλP )
+o
+.
+(47)
+4Note that the maximum data throughput was referred to as the maximum
+effective throughput in [20].
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 10 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1017
+For connection-based slotted Aloha, the unsaturated region
+SN
+un(q, ˆλN) is given in (25).
+To
+compare
+the
+unsaturated
+regions
+SP
+un(q, ˆλP )
+and
+SN
+un(q, ˆλN), we need to specify the aggregate input rates
+ˆλP and ˆλN. Note that in the unsaturated condition, the data
+throughput is given by ˆλP
+out = ˆλP ·
+LP
+LP +∆S,P and ˆλN
+out =
+ˆλN for connection-free and connection-based slotted Aloha,
+respectively. For achieving equal data throughput ˆλP
+out = ˆλN
+out,
+we need ˆλP ·
+LP
+LP +∆S,P
+= ˆλN. It can be shown that for
+ˆλP ·
+LP
+LP +∆S,P = ˆλN < ˆλN
+max, SP
+un(q, ˆλP ) ⊂SN
+un(q, ˆλN) if
+(46) holds.5 It indicates that if payload lengths and overhead
+parameters satisfy the condition given in (46), in addition to
+achieving a higher maximum data throughput in the saturated
+condition, connection-based slotted Aloha is also more robust
+for staying unsaturated thanks to a larger unsaturated region
+of transmission probability q.
+3) Minimum Mean Queueing Delay: Based on the first
+and second moments of access delay derived in [21], the
+mean queueing delay of data packets of connection-free slotted
+Aloha with Bernoulli arrivals can be obtained as
+T P =
+n−ˆλP
+nq·exp{W0(−ˆλP )}−ˆλP ,
+(48)
+for q ∈SP
+un(q, ˆλP ). We can see from (48) that T P is a
+monotonic decreasing function of transmission probability q.
+The optimal transmission probability to minimize T P is then
+given by
+q∗,P
+T
+= −1
+nW−1(−ˆλP ) −ϵ,
+(49)
+where ϵ is a positive small value. For connection-based slotted
+Aloha, the mean queueing delay T N of data packets and the
+corresponding optimal transmission probability q∗,N
+T
+are given
+in (42) and (43), respectively.
+Note that the minimum mean queueing delay T
+∗
+P and T
+∗
+N
+are in the unit of time slots, but the time slot lengths σP
+and σN, in the unit of ms, are usually not equal. Let ˜T ∗
+denote the minimum mean queueing delay in the unit of ms.
+For connection-free and connection-based slotted Aloha, ˜T ∗
+P
+and ˜T ∗
+N are given by T
+∗
+P · σP and T
+∗
+N · σN, respectively,
+where σP = LP + ∆S,P and σN = ∆F,N. Furthermore,
+for a fair comparison, assume that the aggregate input rates
+satisfy ˆλN = ˆλP ·
+LP
+LP +∆S,P , so that both have the same data
+throughput ˆλP
+out = ˆλN
+out in the unsaturated condition.
+With light traffic, i.e., ˆλP →0, we have ˜T ∗
+P →σP =
+LP +∆S,P , and ˜T ∗
+N →(1+δ)·σN = ∆F,N +∆S,N for M =
+1 or ˜T ∗
+N →∞for M > 1, indicating that connection-free
+slotted Aloha may have lower minimum mean queueing delay
+if LP +∆S,P < ∆F,N +∆S,N. As ˆλP increases, however, ˜T ∗
+P
+increases faster as ˜T ∗
+P = ∞for ˆλP ≥ˆλP
+max but ˜T ∗
+N < ∞for
+5Specifically, by combining (47) and (25), we have SP
+un(q, ˆλP )
+⊂
+SN
+un(q, ˆλN)
+if
+and
+only
+if
+ˆλN
+M−ˆλN ·(M+δ−1)
+<
+ˆλP .
+When
+(46)
+holds,
+for
+ˆλP
+·
+LP
+LP +∆S,P
+=
+ˆλN
+<
+ˆλN
+max,
+we
+have
+ˆλN
+ˆλP ·[M−ˆλN (M+δ−1)]
+=
+LP ·∆F,N
+(LP +∆S,P )·[LN −ˆλN (LN +∆S,N −∆F,N )]
+<
+LP ·e−1
+(LP +∆S,P )·
+LN
+LN +∆S,N +(e−1)·∆F,N
+< 1 by applying δ =
+∆S,N
+∆F,N and
+(45), leading to SP
+un(q, ˆλP ) ⊂SN
+un(q, ˆλN).
+ˆλP
+max ≤ˆλP < ˆλN
+max · LP +∆S,P
+LP
+. It can be seen that in addition
+to the overhead parameters and payload lengths, which one
+performs better in terms of the minimum mean queueing delay
+˜T ∗, connection-free or connection-based, further depends on
+their data input rates.
+B. Case Study: Random Access in 5G Cellular Networks
+To demonstrate how to apply the above analysis to practical
+networks, let us consider the 2-step RA-SDT and 4-step
+RA-SDT schemes specified in 3GPP Release 17 [22], as shown
+in Fig 9. Compared to the 4-step RA-SDT scheme, where each
+MTD has to first transmit Msg1 to obtain an uplink grant for
+Msg3 transmission, the 2-step RA-SDT scheme allows each
+MTD to transmit Msg1 and Msg3 in one message, MsgA,
+without an uplink grant. Thus, 2-step RA-SDT and 4-step RA-
+SDT are corresponding to grant-free random access and grant-
+based random access, respectively.
+As Fig. 9a illustrates, with grant-free 2-step RA-SDT
+scheme, each node transmits its data payload along with the
+preamble in MsgA. If the Random Access Response (RAR)
+message and the Radio Resource Control (RRC) Release
+message are received within the MsgB Response Window, then
+the node knows that its MsgA transmission has been success-
+ful. With grant-based 4-step RA-SDT scheme, on the other
+hand, each node can transmit its data payload in Msg3 only
+after sending the preamble and receiving the RAR message
+within the Msg2 Response Window, as shown in Fig. 9b. The
+overhead parameters of 2-step and 4-step RA-SDT schemes
+are summarized in Table I.
+Without loss of generality, we consider one single preamble.
+The time slot length is set to the interval between two consec-
+utive Physical Random Access CHannel (PRACH) occasions
+available for preamble transmission of MTDs.6 Table II lists
+the typical values of key system parameters [41], [42]. With
+the Transmission Time Interval (TTI) set to 0.5 ms, the
+overhead time for each successful and failed transmission in
+the grant-free 2-step RA-SDT and grant-based 4-step RA-SDT
+schemes can be obtained as
+∆S,P = ∆F,P = 6 ms
+and
+∆S,N = 8 ms, ∆F,N = 2 ms.
+(50)
+The payload transmission time LP and LN should be integer
+times of TTI. Given the system setting above, let us compare
+the performance of grant-free 2-step RA-SDT and grant-based
+4-step RA-SDT in 5G cellular networks in terms of maximum
+data throughput, unsaturated region of transmission probability
+q,7 and minimum mean queueing delay in the following
+subsections.
+6As [41] specifies, PRACH occasions for each MTD’s preamble transmis-
+sion are available periodically, that is, each MTD can start its MsgA or Msg1
+transmission only at the beginning of each periodic PRACH occasion.
+7Note that in 5G random access schemes, the transmission probability q of
+each request is determined by the Access Class Barring (ACB) factor qACB
+and the Uniform Backoff (UB) window size WUB (in the unit of ms) [43].
+Let ˜
+WUB denote the UB window size in the unit of time slots, which can
+be obtained from WUB as ˜
+WUB =
+j
+WUB
+σ
+k
++ 1, with σ denoting the time
+slot length. Then the transmission probability q is given by
+2qACB
+˜
+WUB+1 .
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 11 ===
+1018
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+Fig. 9.
+Graphic illustration of (a) 2-step RA-SDT and (b) 4-step RA-SDT schemes in 5G cellular networks [22].
+TABLE I
+OVERHEAD PARAMETERS OF 2-STEP RA-SDT AND 4-STEP RA-SDT SCHEMES
+TABLE II
+SYSTEM PARAMETER SETTING [41], [42]
+1) Maximum Data Throughput: With the overhead param-
+eters given in (50), (46) can be simplified to
+LP <
+16.31 LN
+11.44−1.72LN ,
+(51)
+with which the maximum data throughput with grant-based
+4-step RA-SDT ˆλN
+max is larger than that with grant-free 2-step
+RA-SDT ˆλP
+max. When the payload length of grant-based 4-step
+RA-SDT LN = 2 ms, for instance, according to (51), ˆλP
+max <
+ˆλN
+max as long as LP < 4.08 ms. It implies that transmitting
+short data packets with grant-free 2-step RA-SDT would result
+in loss of maximum data throughput in the saturated condition.
+2) Unsaturated Region of Transmission Probability q:
+The unsaturated regions with grant-free 2-step RA-SDT
+SP
+un(q, ˆλP ) and grant-based 4-step RA-SDT SN
+un(q, ˆλN) with
+ˆλN = ˆλP ·
+LP
+LP +∆S,P = ˆλP ·
+LP
+LP +6 can be obtained by combin-
+ing (47) and (25) with (50), respectively, which are illustrated
+in Fig. 10. Both shrink as the number of nodes n increases.
+With LP < 4.08 ms, SP
+un(q, ˆλP ) ⊂SN
+un(q, ˆλN), indicating
+that in addition to a smaller maximum data throughput, the
+system is also more prone to become saturated when grant-
+free 2-step RA-SDT is adopted.
+3) Minimum Mean Queueing Delay: Given the overhead
+parameters in (50), we have ˜T ∗
+P = T
+∗
+P ·σP = T P ·(LP +6 ms)
+and ˜T ∗
+N = T
+∗
+N ·σN = T
+∗
+N ·2 ms. The minimum mean queueing
+delay T
+∗
+P and T
+∗
+N are achieved at q∗,P
+T
+given in (49) and
+q∗,N
+T
+given in (43), respectively. Fig. 11 illustrates how the
+minimum mean queueing delay ˜T ∗
+P of grant-free 2-step RA-
+SDT and ˜T ∗
+N of grant-based 4-step RA-SDT vary with the
+aggregate data input rate ˆλN under different values of the
+number of nodes. Again ˆλN = ˆλP ·
+LP
+LP +6 such that equal
+data throughput is achieved in both cases. It can be observed
+from Fig. 11 that even for very short data packets, e.g.,
+LP = 0.5 ms, grant-free 2-step RA-SDT may lead to longer
+minimum mean queueing delay. As Fig. 11a shows, grant-
+based 4-step RA-SDT outperforms grant-free 2-step RA-SDT
+with LP = 0.5 ms except for extremely small aggregate data
+input rate, i.e., ˆλN < 3.8 × 10−6. The gain in the minimum
+mean queueing delay is even more significant as the number
+of MTDs increases from 20 to 100, as shown in Fig. 11b.
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 12 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1019
+Fig. 10.
+Unsaturated regions of transmission probability SP
+un(q, ˆλP ) and SN
+un(q, ˆλN) of grant-free 2-step RA-SDT and grant-based 4-step RA-SDT schemes
+in 5G cellular networks. ˆλN = ˆλP ·
+LP
+LP +6 . LN = 2 ms. LP ∈{0.5, 2, 5} ms. (a) n = 20. (b) n = 100.
+Fig. 11.
+Minimum mean queueing delay of data packets ˜T ∗
+P and ˜T ∗
+N in the unit of ms of grant-free 2-step RA-SDT and grant-based 4-step RA-SDT schemes
+in 5G cellular networks. ˆλN = ˆλP ·
+LP
+LP +6 . LN = 2 ms. LP ∈{0.5, 2, 5} ms. (a) n = 20. (b) n = 100.
+For M2M communications where a typical scenario is a
+large number of MTDs with short packets and low data
+input rate, we can conclude from the above results that in
+addition to higher maximum data throughput in the saturated
+condition and better robustness for staying unsaturated, grant-
+based 4-step RA-SDT may also achieve lower minimum mean
+queueing delay than grant-free 2-step RA-SDT.
+VII. DISCUSSIONS
+Note that the above analysis is based on a few key assump-
+tions. In this section, we will further discuss how to extend
+the analysis to incorporate: 1) asymmetric input rates and
+transmission probabilities of nodes, 2) finite buffer size, and
+3) more advanced receiver design.
+A. Asymmetric Scenario
+The preceding analysis has focused on the symmetric sce-
+nario, where all the nodes have the same data input rate
+and transmission probability. With distinct applications and
+quality-of-service requirements of nodes, however, the input
+rate and transmission probability may vary from node to node.
+It is, therefore, of great practical importance to extend the anal-
+ysis to the general asymmetric scenario. For connection-free
+Aloha, it has been shown in [44] that similar to the analysis for
+the symmetric case, the key to characterizing the service rates
+of nodes’ queues still lies in: 1) establishing a Markov renewal
+process for each node’s HOL packets, and 2) developing the
+fixed-point equations of steady-state probabilities of successful
+transmission of HOL packets. Different from the symmetric
+case, however, different nodes may have distinct steady-state
+probabilities of successful transmission of HOL packets, which
+need to be jointly solved.
+For connection-based Aloha, the analytical framework pro-
+posed in this paper for the symmetric scenario can also be
+extended to the general asymmetric scenario. Specifically, for
+Node i ∈{1, · · · , n}, a Markov renewal process can be
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 13 ===
+1020
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+established for its HOL request, based on which the service
+rate of Node i’s queue can be derived as a function of pi, the
+steady-state probability of successful transmission of Node i’s
+HOL requests conditioned on no data transmission. By estab-
+lishing and solving the fixed-point equations of (p1, · · · , pn),
+the throughput and queueing delay performance of each node
+can be analyzed by following a similar approach as presented
+in Section V. With nodes having distinct performance, how-
+ever, fairness needs to be further taken into consideration when
+optimizing the system performance.
+B. Finite-Size Buffer
+In the preceding analysis, each node is assumed to have an
+infinite-size data buffer. In practice, however, the buffer size
+is finite, with which arrival data packets would be dropped
+if there is no vacancy in the buffer. Intuitively, the optimal
+throughput performance is independent of the buffer size, as it
+is achieved only in the saturated condition with all nodes’
+queues always nonempty, and determined by the contention
+of nodes’ HOL requests. The minimum mean queueing delay
+of data packets, on the other hand, could be improved by
+reducing the buffer size, because for the data packets that
+are not dropped, the waiting time in the buffer would be on
+average shorter with a smaller buffer size.
+To extend the analysis to the finite-buffer-size scenario,
+the key still lies in the characterization of service processes
+of nodes’ queues, which is determined by the aggregate
+activities of HOL requests. Specifically, we can adopt the
+methodology proposed in this paper to first model the behavior
+of HOL requests and then derive the steady-state probability of
+successful transmission of HOL requests. The throughput and
+delay performance of each data queue can be further char-
+acterized by following the standard finite-capacity queueing
+analysis.
+C. Advanced Receiver Design
+Another key assumption in the preceding analysis is that the
+collision model is adopted at the receiver side. It is important
+to further incorporate more sophisticated receiver design into
+the analysis. To that end, the proposed Markov renewal
+process for HOL requests remains unchanged. Yet the fixed-
+point equation of the steady-state probability of successful
+transmission of HOL requests needs to be re-established, as it
+closely depends on the definition of successful transmission
+that varies under different assumptions of the receiver type
+and channel model. Specifically, (13) can be generalized to
+p =
+n−1
+X
+k=0
+n −1
+k
+
+(1 −ω)n−1−kωk · ψk,
+(52)
+where ω is the probability that a request queue is nonempty
+and its HOL request is transmitted conditioned on no data
+transmission, and ψk is the successful transmission probability
+of a HOL request for given k concurrent requests from other
+nodes. In this paper, with the collision receiver model over
+ideal channel conditions, we have ψ0 = 1 and ψk = 0 for
+k > 0. For Rayleigh fading channels, i.e., received signal-to-
+noise ratios (SNRs) of nodes are exponentially distributed, the
+conditional success probability ψk with the capture receiver8
+and the successive interference cancellation (SIC) receiver
+have been derived in [45] and [46], respectively. It can
+be expected that by adopting a more advanced receiver,
+the steady-state probability of successful transmission of
+HOL requests conditioned on no data transmission p can
+be improved, thus leading to gains in throughput and delay
+performance.
+Note that with more sophisticated receivers, the transmis-
+sion probability of each node can be jointly tuned with other
+system parameters when optimizing the network performance.
+For connection-free Aloha, it has been shown in [45] and
+[46] that with the capture receiver or SIC receiver, the SINR
+threshold is a key parameter that should be jointly tuned with
+the transmission probability of each node to maximize the sum
+data rate. For connection-based Aloha, the SINR threshold
+also determines a fundamental tradeoff between the transmis-
+sion time of each request and the probability of successful
+transmission of requests: A larger SINR threshold leads to a
+higher encoding rate and thus shorter transmission time of a
+request, but lower probability of successful transmission of
+requests. As a result, by increasing the SINR threshold, the
+time slot length σ, which is determined by the transmission
+time of a request, can be reduced, yet it takes more time slots
+for a request to be successfully transmitted. To optimize the
+mean queueing delay of data packets, the SINR threshold and
+the transmission probability of each node should be jointly
+tuned.
+VIII. CONCLUSION
+In this paper, the maximum data throughput and the min-
+imum mean queueing delay of data packets for connection-
+based slotted Aloha are characterized and compared with
+those for connection-free slotted Aloha. Based on the proposed
+request-queue model, the service rate of each request queue is
+derived, from which the data throughput and the mean queue-
+ing delay of data packets are further obtained as functions of
+transmission probability of nodes q. As the mean queueing
+delay of data packets is finite only when the data queue is
+unsaturated, the region Sun(q, ˆλ) of transmission probability
+q for each queue to stay unsaturated is also characterized. The
+analysis shows that to maximize the data throughput or to
+minimize the mean queueing delay, the optimal tuning of trans-
+mission probability q only requires the long-term statistical
+information such as the aggregate data input rate ˆλ. Moreover,
+with a larger batch size (or data payload transmission time)
+M, the maximum data throughput and unsaturated region
+of transmission probability can always be improved. Yet the
+minimum mean queueing delay could be increased when the
+data input rate is low.
+The optimal performance with connection-based slotted
+Aloha is further compared to that with connection-free slot-
+ted Aloha from the aspects of maximum data throughput,
+unsaturated region of transmission probability, and minimum
+8Specifically, with the capture receiver, a request can be successfully
+decoded as long as its received signal-to-interference-plus-noise ratio (SINR)
+is above a certain threshold.
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 14 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1021
+mean queueing delay. For the first two, the condition that
+the payload lengths and overhead parameters should satisfy
+for beneficial connection establishment is obtained, which
+includes the payload length threshold derived in [20] as a
+special case. For the optimal queueing delay performance,
+on the other hand, whether gains can be brought by the
+connection establishment further depends on the data input
+rate of nodes. To demonstrate the practical insights of the
+analysis, a case study on grant-based 4-step RA-SDT and
+grant-free 2-step RA-SDT of 5G networks is also conducted.
+The comparison shows that with the current system setting,
+in
+addition to higher maximum data throughput and better
+robustness for staying unsaturated, the grant-based 4-step RA-
+SDT also leads to lower minimum mean queueing delay
+even when the aggregate data input rate is small, and the
+gain becomes more significant as the number of nodes
+increases.
+APPENDIX A
+DERIVATION OF (11)-(12)
+To derive the steady-state probability ˜α of no data trans-
+mission for a given HOL request, let us first denote E1 as
+the event of no data transmission, and E2 as the event of
+the HOL request in State 0 or the first time slot of State T.
+Define α as the unconditional steady-state probability of no
+data transmission, which can be expressed as α = Pr{E1}.
+We have
+˜α = Pr{E1|E2} = Pr{E2|E1}
+Pr{E2}
+· α,
+(53)
+where
+Pr{E2} = ρ(˜π0 + ˜πT
+τT ),
+(54)
+with ρ, τT , ˜π0 and ˜πT given in (14), (7) and (9), respectively.
+Given that there is no data transmission, each request queue is
+either empty or nonempty with a HOL request either in State
+0 or the first time slot of State T. Consequently, Pr{E2|E1}
+can be written as
+Pr{E2|E1} =
+ρ(˜π0+ ˜πT
+τT )
+1−ρ+ρ(˜π0+ ˜πT
+τT ).
+(55)
+By combining (7), (9)-(10), (14), and (53)-(55), ˜α can be
+obtained as (11).
+To derive the unconditional steady-state probability of no
+data transmission α, first note that M + δ −1 time slots are
+reserved for data transmission after each successful request
+transmission. The probability that there is a successful request
+transmission at any time slot is equal to nλr and nµr in
+the unsaturated and saturated conditions, respectively. We then
+have
+α =
+(
+1 −nλr(M + δ −1)
+λr < µr
+1 −nµr(M + δ −1)
+λr ≥µr.
+(56)
+Finally, the unconditional steady-state probability of no data
+transmission α can be derived as (12) by combining (10)-(11)
+and (56).
+APPENDIX B
+DERIVATION OF (37)-(38) AND (40)-(41)
+1) Derivation of (37)-(38): To derive the mean waiting time
+of each request W r in the unsaturated condition, we first
+introduce the number of arrival data packets during the waiting
+time and the service time of a request, N +, and its mean, N
++.
+W r can then be written as
+W r = N
++
+λ −Dr = N
++
+λ −
+1
+pL ˜αuq −τT + 1,
+(57)
+where Dr is the mean service time of requests given in
+(36), pL is the unsaturated steady-state point given in (18),
+˜αu =
+1−nλr(M+δ−1)
+1−λr(M+δ−1)
+is the steady-state probability of no
+data transmission for a given HOL request in the unsaturated
+condition, and τT = M + δ is the time for each successful
+transmission.
+[47] provided the analytical results for the Ek/G/1 queue
+(i.e., the continuous-time counterpart of the NBk/G/1 queue),
+from which the probability generating function of N + can be
+obtained as
+GN +(z) =
+M
+
+1−λr
+µr
+
+(z−1)
+zM
+GK(z) −1
+·
+M−1
+Y
+i=1
+z−zi
+1−zi ,
+(58)
+where z1, · · · , zM−1 are the M −1 roots of zM −GK(z) =
+0 inside the unit circle |z| = 1, and GK(z) = P∞
+j=0 Pr{K =
+j}·zj is the probability generating function of K, the number
+of arrival data packets during the service time of a request.
+With Bernoulli arrivals of data packets, GK(z) can be obtained
+from (35) as
+GK(z) =
+∞
+X
+j=0
+∞
+X
+i=j
+i
+j
+
+λj(1 −λ)i−j Pr{Dr = i}zj
+=
+pL ˜αuq(λz+1−λ)τT
+1−(1−pL ˜αuq)(λz+1−λ).
+(59)
+By combining (58) and (59), and applying λr =
+λ
+M and µr =
+pL ˜αuq
+pL ˜αuq(τT −1)+1 in the unsaturated condition, GN +(z) can be
+further derived as
+GN+(z) =
+h
+M−λ
+
+1
+pL ˜αuq +τT −1
+i
+(z−1)(λz+1−λ)τT
+zM
+h
+1+λ
+
+1
+pL ˜αuq −1
+
+(1−z)
+i
+−(λz+1−λ)τT ·
+M−1
+Y
+i=1
+z−zi
+1−zi
+= (λz + 1 −λ)τT
+δ
+Y
+i=1
+1−ri
+1−riz,
+(60)
+where z1, ..., zM−1 are the M −1 roots inside the unit circle
+|z| = 1 of the equation zM −GK(z) = 0, which can be
+rewritten from (59) as
+zM −
+pL ˜αuq(λz+1−λ)τT
+1−(1−pL ˜αuq)(λz+1−λ) = 0.
+(61)
+r1, · · · , rδ are the roots inside the unit circle |r| = 1 of Eq.
+(38) of r, which is obtained by replacing z in (61) with 1
+r.
+The average number of arrival data packets during the waiting
+time and the service time of each request, N
++, can then be
+derived from (60) as
+N
++ = G(1)
+N +(1) = λτT +
+δ
+X
+i=1
+ri
+1−ri .
+(62)
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 15 ===
+1022
+IEEE TRANSACTIONS ON WIRELESS COMMUNICATIONS, VOL. 23, NO. 2, FEBRUARY 2024
+By substituting (62) into (57) and applying τT = M + δ, the
+mean waiting time of each request W r can be finally obtained
+as (37).
+2) Derivation of (40)-(41): By ignoring τT −1 time slots
+in each service time, each request queue can be approximated
+as an NBk/Geo/1 queue where the service time follows the
+Geometric distribution with parameter pL˜αuq. By replacing
+τT in (57) with 1, the mean waiting time of each request can
+be approximated as
+W r ≈
+˜
+N+
+λ −
+1
+pL ˜αuq,
+(63)
+where ˜N + is the average number of arrival data packets during
+the waiting time and the service time of each request in the
+NBk/Geo/1 queue. By replacing τT in (60) with 1, the prob-
+ability generating function of N + of the NBk/Geo/1 queue
+can be obtained as
+˜GN+(z) = (λz + 1 −λ) · 1−r0
+1−r0z,
+(64)
+where r0 is the single real root in (0, 1) of Eq. (41) of r, which
+is obtained by replacing τT with 1 and z with 1
+r in (61). The
+average number of arrival data packets during the waiting time
+and the service time of each request in the NBk/Geo/1 queue,
+˜N +, can then be derived from (64) as
+˜N + = ˜G(1)
+N+(1) = λ +
+r0
+1−r0 .
+(65)
+By combining (63) and (65), the mean waiting time of each
+request W r can be approximated as (40).
+APPENDIX C
+MONOTONIC PROPERTY OF T GIVEN IN (42) WITH
+RESPECT TO q
+We can see from (42) that the mean queueing delay T
+monotonically increases with r0, the root in (0, 1) of Eq. (41).
+r0 can be expressed as an implicit function of q, denoted as
+g(q). We then rewrite (41) as
+M
+X
+i=1
+gi(q) −λ · gM(q) −λ · (
+1
+pL ˜αuq −1) = 0,
+(66)
+where pL and ˜αu are both independent of q in the unsaturated
+condition. For (66), taking the first derivative with respect to
+q, we further have
+g(1)(q) = −
+λ
+pL ˜αuq2[PM−1
+i=1
+i·gi−1(q)+M(1−λ)·gM−1(q)].
+(67)
+It is clear from (67) that g(1)(q) < 0 for g(q) ∈(0, 1),
+indicating that r0 = g(q) monotonically decreases with q. As a
+result, we can conclude that the mean queueing delay T given
+in (42) is a monotonic decreasing function of the transmission
+probability q in the unsaturated condition.
+REFERENCES
+[1] W. Saad, M. Bennis, and M. Chen, “A vision of 6G wireless systems:
+Applications, trends, technologies, and open research problems,” IEEE
+Netw., vol. 34, no. 3, pp. 134–142, May 2020.
+[2] N. Abramson, “The ALOHA system: Another alternative for com-
+puter communications,” in Proc. Fall Joint Comput. Conf., Nov. 1970,
+pp. 281–285.
+[3] A. Laya, L. Alonso, and J. Alonso-Zarate, “Is the random access channel
+of LTE and LTE-A suitable for M2M communications? A survey of
+alternatives,” IEEE Commun. Surveys Tuts., vol. 16, no. 1, pp. 4–16,
+1st Quart., 2014.
+[4] C. Bockelmann et al., “Massive machine-type communications in 5G:
+Physical and MAC-layer solutions,” IEEE Commun. Mag., vol. 54, no. 9,
+pp. 59–65, Sep. 2016.
+[5] L. Liu, E. G. Larsson, W. Yu, P. Popovski, C. Stefanovic, and
+E. de Carvalho, “Sparse signal processing for grant-free massive con-
+nectivity: A future paradigm for random access protocols in the Internet
+of Things,” IEEE Signal Process. Mag., vol. 35, no. 5, pp. 88–99,
+Sep. 2018.
+[6] X. Chen, D. W. K. Ng, W. Yu, E. G. Larsson, N. Al-Dhahir, and
+R. Schober, “Massive access for 5G and beyond,” IEEE J. Sel. Areas
+Commun., vol. 39, no. 3, pp. 615–637, Mar. 2021.
+[7] B. Singh, O. Tirkkonen, Z. Li, and M. A. Uusitalo, “Contention-
+based access for ultra-reliable low latency uplink transmissions,” IEEE
+Wireless Commun. Lett., vol. 7, no. 2, pp. 182–185, Apr. 2018.
+[8] H. Jiang, D. Qu, J. Ding, and T. Jiang, “Multiple preambles for high
+success rate of grant-free random access with massive MIMO,” IEEE
+Trans. Wireless Commun., vol. 18, no. 10, pp. 4779–4789, Oct. 2019.
+[9] J. Choi, “An approach to preamble collision reduction in grant-free
+random access with massive MIMO,” IEEE Trans. Wireless Commun.,
+vol. 20, no. 3, pp. 1557–1566, Mar. 2021.
+[10] S. M. Hasan, K. Mahata, and M. M. Hyder, “Uplink grant-free NOMA
+with sinusoidal spreading sequences,” IEEE Trans. Commun., vol. 69,
+no. 6, pp. 3757–3770, Jun. 2021.
+[11] B. Wang, L. Dai, Y. Zhang, T. Mir, and J. Li, “Dynamic compressive
+sensing-based multi-user detection for uplink grant-free NOMA,” IEEE
+Commun. Lett., vol. 20, no. 11, pp. 2320–2323, Nov. 2016.
+[12] Z. Zhang, X. Wang, Y. Zhang, and Y. Chen, “Grant-free rateless multiple
+access: A novel massive access scheme for Internet of Things,” IEEE
+Commun. Lett., vol. 20, no. 10, pp. 2019–2022, Oct. 2016.
+[13] Y. Du et al., “Efficient multi-user detection for uplink grant-free NOMA:
+Prior-information aided adaptive compressive sensing perspective,” IEEE
+J. Sel. Areas Commun., vol. 35, no. 12, pp. 2812–2828, Dec. 2017.
+[14] B. K. Jeong, B. Shim, and K. B. Lee, “MAP-based active user and data
+detection for massive machine-type communications,” IEEE Trans. Veh.
+Technol., vol. 67, no. 9, pp. 8481–8494, Sep. 2018.
+[15] K. Senel and E. G. Larsson, “Grant-free massive MTC-enabled massive
+MIMO: A compressive sensing approach,” IEEE Trans. Commun.,
+vol. 66, no. 12, pp. 6164–6175, Dec. 2018.
+[16] M. Ke, Z. Gao, Y. Wu, X. Gao, and R. Schober, “Compressive sensing-
+based adaptive active user detection and channel estimation: Massive
+access meets massive MIMO,” IEEE Trans. Signal Process., vol. 68,
+pp. 764–779, 2020.
+[17] J.-C. Jiang and H.-M. Wang, “Massive random access with sporadic
+short packets: Joint active user detection and channel estimation via
+sequential message passing,” IEEE Trans. Wireless Commun., vol. 20,
+no. 7, pp. 4541–4555, Jul. 2021.
+[18] P. Gao, Z. Liu, P. Xiao, C. H. Foh, and J. Zhang, “Low-complexity
+channel estimation and multi-user detection for uplink grant-free NOMA
+systems,” IEEE Wireless Commun. Lett., vol. 11, no. 2, pp. 263–267,
+Feb. 2022.
+[19] Y. Mei et al., “Compressive sensing-based joint activity and data
+detection for grant-free massive IoT access,” IEEE Trans. Wireless
+Commun., vol. 21, no. 3, pp. 1851–1869, Mar. 2022.
+[20] Y. Gao and L. Dai, “Random access: Packet-based or connection-
+based?” IEEE Trans. Wireless Commun., vol. 18, no. 5, pp. 2664–2678,
+May 2019.
+[21] L. Dai, “Stability and delay analysis of buffered Aloha networks,” IEEE
+Trans. Wireless Commun., vol. 11, no. 8, pp. 2707–2719, Aug. 2012.
+[22] NR; Medium Access Control (MAC) Protocol Specification (Release 17),
+document TS 38.321, Version 17.0.0, 3GPP, Mar. 2022.
+[23] L. G. Roberts, “Dynamic allocation of satellite capacity through packet
+reservation,” in Proc. Nat. Comput. Conf. Expo., Jun. 1973, pp. 711–716.
+[24] F. Tobagi and L. Kleinrock, “Packet switching in radio channels:
+Part III—Polling and (dynamic) split-channel reservation multiple
+access,” IEEE Trans. Commun., vol. C-24, no. 8, pp. 832–845,
+Aug. 1976.
+[25] W. Szpankowski, “Analysis and stability considerations in a reserva-
+tion multiaccess system,” IEEE Trans. Commun., vol. C-31, no. 5,
+pp. 684–692, May 1983.
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
+=== PAGE 16 ===
+ZHAO AND DAI: CONNECTION-BASED ALOHA
+1023
+[26] S. Tasaka, “Stability and performance of the R-ALOHA packet broad-
+cast system,” IEEE Trans. Comput., vol. C-32, no. 8, pp. 717–726,
+Aug. 1983.
+[27] S. Tasaka and Y. Ishibashi, “A reservation protocol for satellite packet
+communication—A performance analysis and stability considerations,”
+IEEE Trans. Commun., vol. C-32, no. 8, pp. 920–927, Aug. 1984.
+[28] P. Osti, P. Lassila, S. Aalto, A. Larmo, and T. Tirronen, “Analysis
+of PDCCH performance for M2M traffic in LTE,” IEEE Trans. Veh.
+Technol., vol. 63, no. 9, pp. 4357–4371, Nov. 2014.
+[29] R. R. Tyagi, F. Aurzada, K. Lee, S. G. Kim, and M. Reisslein, “Impact of
+retransmission limit on preamble contention in LTE-advanced network,”
+IEEE Syst. J., vol. 9, no. 3, pp. 752–765, Sep. 2015.
+[30] D. T. Wiriaatmadja and K. W. Choi, “Hybrid random access and
+data transmission protocol for machine-to-machine communications in
+cellular networks,” IEEE Trans. Wireless Commun., vol. 14, no. 1,
+pp. 33–46, Jan. 2015.
+[31] S. Duan, V. Shah-Mansouri, Z. Wang, and V. W. S. Wong, “D-ACB:
+Adaptive congestion control algorithm for bursty M2M traffic in LTE
+networks,” IEEE Trans. Veh. Technol., vol. 65, no. 12, pp. 9847–9861,
+Dec. 2016.
+[32] H. S. Jang, B. C. Jung, and D. K. Sung, “Dynamic access control with
+resource limitation for group paging-based cellular IoT systems,” IEEE
+Internet Things J., vol. 5, no. 6, pp. 5065–5075, Dec. 2018.
+[33] L. Miuccio, D. Panno, and S. Riolo, “Joint control of random access
+and dynamic uplink resource dimensioning for massive MTC in 5G NR
+based on SCMA,” IEEE Internet Things J., vol. 7, no. 6, pp. 5042–5063,
+Jun. 2020.
+[34] M. Hofri and A. Konheim, “The analysis of a finite quasi-symmetric
+ALOHA network with reservation,” Dept. Comput. Sci., Technion,
+Haifa, Israel, Tech. Rep. CS0281, Jun. 1983.
+[35] H. Huang, T. Ye, T. T. Lee, and W. Sun, “Delay and stability analysis of
+connection-based slotted-aloha,” IEEE/ACM Trans. Netw., vol. 29, no. 1,
+pp. 203–219, Feb. 2021.
+[36] W. Zhan and L. Dai, “Massive random access of machine-to-machine
+communications in LTE networks: Modeling and throughput optimiza-
+tion,” IEEE Trans. Wireless Commun., vol. 17, no. 4, pp. 2771–2785,
+Apr. 2018.
+[37] NR; Physical Layer Procedures for Control (Release 17), document TS
+38.213, Version 17.1.0, 3GPP, Mar. 2022.
+[38] B.-J. Kwak, N.-O. Song, and L. E. Miller, “Performance analysis
+of exponential backoff,” IEEE/ACM Trans. Netw., vol. 13, no. 2,
+pp. 343–355, Apr. 2005.
+[39] I. Dimitriou and N. Pappas, “Stable throughput and delay analysis of
+a random access network with queue-aware transmission,” IEEE Trans.
+Wireless Commun., vol. 17, no. 5, pp. 3170–3184, May 2018.
+[40] R. M. Corless, G. H. Gonnet, D. E. G. Hare, D. J. Jeffrey, and
+D. E. Knuth, “On the LambertW function,” Adv. Comput. Math., vol. 5,
+no. 1, pp. 329–359, Dec. 1996.
+[41] NR; Physical Layer Procedures for Control (Release 17), document TS
+38.211, Version 17.1.0, 3GPP, Mar. 2022.
+[42] IMT Canadian Evaluation Group. (Apr. 2019). IMT-2020: Evaluation
+of Control-Plane Latency. [Online]. Available: https://www.imt-ceg.ca/
+IMT-2020/ResultsInProgress/Control_plane_latency_CEG_2Apr19.docx
+[43] NR; Radio Resource Control (RRC) Protocol Specification (Release 17),
+document TS 38.331, Version 17.0.0, 3GPP, Mar. 2022.
+[44] L. Dai, “A theoretical framework for random access: Stability regions
+and transmission control,” IEEE/ACM Trans. Netw., vol. 30, no. 5,
+pp. 2173–2200, Oct. 2022.
+[45] Y. Li and L. Dai, “Maximum sum rate of slotted ALOHA with capture,”
+IEEE Trans. Commun., vol. 64, no. 2, pp. 690–705, Feb. 2016.
+[46] Y. Li and L. Dai, “Maximum sum rate of slotted ALOHA with
+successive interference cancellation,” IEEE Trans. Commun., vol. 66,
+no. 11, pp. 5385–5400, Nov. 2018.
+[47] M. Chaudhry and J. G. Templeton, First Course in Bulk Queues.
+New York, NY, USA: Wiley, 1983.
+Xinran Zhao received the B.Eng. degree from
+the School of Electronic Information and Com-
+munications, Huazhong University of Science and
+Technology, Wuhan, China, in 2020. She is currently
+pursuing the Ph.D. degree with the Department
+of Electrical Engineering, City University of Hong
+Kong. Her current research interests include perfor-
+mance optimization of random access networks.
+Lin Dai (Senior Member, IEEE) received the B.S.
+degree in electronic engineering from the Huazhong
+University of Science and Technology, Wuhan,
+China, in 1998, and the M.S. and Ph.D. degrees
+in electronic engineering from Tsinghua University,
+Beijing, China, in 2003. She was a Post-Doctoral
+Fellow with The Hong Kong University of Science
+and Technology and the University of Delaware.
+Since 2007, she has been with the City University of
+Hong Kong, where she is currently a Full Professor.
+Her research interests include communications and
+networking theory, with special interests in wireless communications. She was
+a co-recipient of the Best Paper Award from the IEEE Wireless Communi-
+cations and Networking Conference (WCNC) in 2007 and the IEEE Marconi
+Prize Paper Award in 2009.
+Authorized licensed use limited to: Huazhong University of Science and Technology. Downloaded on January 14,2026 at 05:29:22 UTC from IEEE Xplore.  Restrictions apply. 
+
