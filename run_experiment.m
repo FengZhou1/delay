@@ -118,7 +118,7 @@ function experiment = run_experiment(cfg)
                             eval_results = {};
                         end
                         condition = summarize_condition(protocol, load_mode, ...
-                            lambda_base, lambda_eff, M, tune, eval_results);
+                            lambda_base, lambda_eff, M, tune, eval_results, cfg);
                         condition.elapsed_s = toc(condition_started);
                         condition.timeout_exceeded = ...
                             condition.elapsed_s > cfg.condition_timeout_s;
@@ -211,23 +211,78 @@ function tune = tune_condition(protocol, spec, scenario, cfg, M, ...
                                tune_cfg.drain_max_us;
     tune_cfg.collect_diagnostics = false;
     q_values = condition_q_values(cfg,protocol,lambda_eff,M);
-    coarse = evaluate_q_grid(protocol, q_values, cfg.n_tune_runs, 0, ...
-        scenario, tune_cfg, M, lambda_eff, lambda_base, load_idx, lambda_idx, protocol_idx);
-    [best_q, best_index] = select_best_q(coarse, cfg.n_tune_runs);
+    if cfg.q_two_stage_tuning
+        coarse = evaluate_q_grid(protocol,q_values,cfg.q_coarse_tune_runs,0, ...
+            scenario,tune_cfg,M,lambda_eff,lambda_base,load_idx,lambda_idx, ...
+            protocol_idx);
+        [coarse_best,center_index] = select_best_q_v2(coarse,false,true);
+        center_source = "self_stable_delay";
+        if ~isfinite(coarse_best)
+            center_index = select_refinement_center(coarse);
+            coarse_best = coarse(center_index).q;
+            center_source = "maximum_goodput";
+        end
+
+        if numel(q_values) >= 2
+            [fine_q,refinement_meta] = build_refined_q_grid(q_values, ...
+                center_index,cfg.q_fine_points,cfg.q_refine_scale, ...
+                cfg.q_refine_floor);
+        else
+            fine_q = q_values;
+            refinement_meta = struct( ...
+                'center_q',coarse_best, ...
+                'bracket_left_q',coarse_best, ...
+                'bracket_right_q',coarse_best, ...
+                'scale_mode',"single", ...
+                'expanded_lower',false, ...
+                'expanded_upper',false);
+        end
+        refine = evaluate_q_grid(protocol,fine_q,cfg.q_fine_tune_runs,0, ...
+            scenario,tune_cfg,M,lambda_eff,lambda_base,load_idx,lambda_idx, ...
+            protocol_idx);
+        [best_q,~,selection_meta] = select_best_q_v2(refine, ...
+            cfg.q_require_stable_neighbors,cfg.q_fallback_self_stable);
+        combined = refine;
+        fprintf(['  q coarse center=%.6g (%s), fine=[%.6g,%.6g], ', ...
+                 'best=%.6g (%s)\n'],coarse_best,char(center_source), ...
+                min(fine_q),max(fine_q),best_q, ...
+                char(selection_meta.selection_mode));
+        tune = struct('best_q',best_q, 'grid',combined, ...
+            'coarse_grid',coarse, 'refined_grid',refine, ...
+            'trace_spec',spec, 'selection_mode',selection_meta.selection_mode, ...
+            'stable_basin_left_q',selection_meta.stable_basin_left_q, ...
+            'stable_basin_right_q',selection_meta.stable_basin_right_q, ...
+            'q_search_boundary_hit',selection_meta.q_search_boundary_hit, ...
+            'q_refinement_passes',1, 'coarse_center_q',coarse_best, ...
+            'coarse_center_source',center_source, ...
+            'refinement_meta',refinement_meta);
+        return;
+    end
+
+    coarse = evaluate_q_grid(protocol,q_values,cfg.n_tune_runs,0, ...
+        scenario,tune_cfg,M,lambda_eff,lambda_base,load_idx,lambda_idx, ...
+        protocol_idx);
+    [best_q,best_index,selection_meta] = ...
+        select_best_q_v2(coarse,false,true);
 
     refine = struct([]);
     if isfinite(best_q) && cfg.q_refine_points > 0 && numel(q_values) > 1
-        lo_idx = max(1, best_index-1);
-        hi_idx = min(numel(q_values), best_index+1);
-        q_lo = q_values(lo_idx); q_hi = q_values(hi_idx);
-        refine_q = unique(logspace(log10(q_lo), log10(q_hi), cfg.q_refine_points));
-        refine_q = setdiff(refine_q, q_values);
+        lo_idx = max(1,best_index-1);
+        hi_idx = min(numel(q_values),best_index+1);
+        q_lo = q_values(lo_idx);
+        q_hi = q_values(hi_idx);
+        refine_q = unique(logspace(log10(q_lo),log10(q_hi), ...
+            cfg.q_refine_points));
+        refine_q = setdiff(refine_q,q_values);
         if ~isempty(refine_q)
-            refine = evaluate_q_grid(protocol, refine_q, cfg.n_tune_runs, 0, ...
-                scenario, tune_cfg, M, lambda_eff, lambda_base, load_idx, lambda_idx, protocol_idx);
+            refine = evaluate_q_grid(protocol,refine_q,cfg.n_tune_runs,0, ...
+                scenario,tune_cfg,M,lambda_eff,lambda_base,load_idx, ...
+                lambda_idx,protocol_idx);
             combined = [coarse(:); refine(:)];
-            [~, order] = sort([combined.q]); combined = combined(order);
-            [best_q, ~] = select_best_q(combined, cfg.n_tune_runs);
+            [~,order] = sort([combined.q]);
+            combined = combined(order);
+            [best_q,~,selection_meta] = ...
+                select_best_q_v2(combined,false,true);
         else
             combined = coarse;
         end
@@ -236,8 +291,36 @@ function tune = tune_condition(protocol, spec, scenario, cfg, M, ...
     end
 
     tune = struct('best_q',best_q, 'grid',combined, ...
-                  'coarse_grid',coarse, 'refined_grid',refine, ...
-                  'trace_spec',spec);
+        'coarse_grid',coarse, 'refined_grid',refine, ...
+        'trace_spec',spec, 'selection_mode',selection_meta.selection_mode, ...
+        'stable_basin_left_q',selection_meta.stable_basin_left_q, ...
+        'stable_basin_right_q',selection_meta.stable_basin_right_q, ...
+        'q_search_boundary_hit',selection_meta.q_search_boundary_hit, ...
+        'q_refinement_passes',double(~isempty(refine)));
+end
+
+function center_index = select_refinement_center(grid)
+    goodput = double([grid.mean_goodput_pkt_s]);
+    goodput(~isfinite(goodput)) = -inf;
+    max_goodput = max(goodput);
+    candidates = find(goodput == max_goodput);
+    if isempty(candidates)
+        center_index = ceil(numel(grid)/2);
+        return;
+    end
+    if numel(candidates) > 1
+        slopes = double([grid(candidates).mean_backlog_slope_pkt_s]);
+        slopes(~isfinite(slopes)) = inf;
+        min_slope = min(slopes);
+        candidates = candidates(slopes == min_slope);
+    end
+    if numel(candidates) > 1
+        q = double([grid(candidates).q]);
+        [~,k] = min(q);
+        center_index = candidates(k);
+    else
+        center_index = candidates(1);
+    end
 end
 
 function q_values=condition_q_values(cfg,protocol,lambda_eff,M) %#ok<INUSD>
@@ -267,6 +350,7 @@ function grid = evaluate_q_grid(protocol, q_values, n_runs, seed_offset, ...
     n_q = numel(q_values);
     grid = repmat(struct('q',NaN,'mean_delay_us',NaN,'se_delay_us',NaN, ...
         'mean_p95_us',NaN,'stable_fraction',0,'mean_collision_waste_us',NaN, ...
+        'mean_goodput_pkt_s',NaN,'mean_backlog_slope_pkt_s',NaN, ...
         'rate_screen_rejected_fraction',0,'run_summaries',[]), n_q, 1);
 
     [traces, protocol_seeds] = make_job_inputs(protocol, n_runs, seed_offset, ...
@@ -318,6 +402,10 @@ function grid = evaluate_q_grid(protocol, q_values, n_runs, seed_offset, ...
         end
         grid(qi).mean_p95_us = mean(p95,'omitnan');
         grid(qi).stable_fraction = mean(stable);
+        grid(qi).mean_goodput_pkt_s = ...
+            mean([summaries.goodput_pkt_s],'omitnan');
+        grid(qi).mean_backlog_slope_pkt_s = ...
+            mean([summaries.backlog_slope_pkt_s],'omitnan');
         grid(qi).rate_screen_rejected_fraction = ...
             mean([summaries.tuning_rate_screen_rejected]);
         grid(qi).mean_collision_waste_us = mean(wastes,'omitnan');
@@ -403,8 +491,8 @@ function [traces,protocol_seeds] = make_job_inputs(protocol,n_runs,seed_offset, 
     traces = cell(n_runs,1);
     protocol_seeds = zeros(n_runs,1);
     for r = 1:n_runs
-        arrival_seed = bounded_seed(cfg.traffic_seed_base + seed_offset + ...
-            load_idx*1000000 + lambda_idx*10000 + r);
+        arrival_seed = experiment_arrival_seed(cfg,lambda_eff,r, ...
+            seed_offset,load_idx,lambda_idx);
         traces{r} = cached_arrival_trace(lambda_eff,cfg,arrival_seed);
         % Common random numbers across q candidates reduce tuning noise.
         % Protocols retain independent streams because their decision-event
@@ -497,7 +585,7 @@ function output = run_cca_ablation(primary,scenario,cfg,output_dir, ...
                             tune=struct('best_q',q_ref,'grid',[], ...
                                 'q_source',q_source);
                             condition=summarize_condition(protocol,load_mode, ...
-                                lambda_base,lambda_eff,M,tune,eval_results);
+                                lambda_base,lambda_eff,M,tune,eval_results,variant_cfg);
                             condition.row.cca_variant=string(variant.name);
                             condition.row.cca_mode=string(variant.mode);
                             condition.row.rx_sens_dbm=variant.sensitivity;
@@ -563,7 +651,7 @@ function output = run_topology_robustness(primary,cfg,output_dir, ...
                             tune=struct('best_q',q_ref,'grid',[], ...
                                 'q_source',q_source);
                             condition=summarize_condition(protocol,load_mode, ...
-                                lambda_base,lambda_eff,M,tune,eval_results);
+                                lambda_base,lambda_eff,M,tune,eval_results,cfg);
                             condition.row.topology_seed=topology_seed;
                             condition.row.q_source=string(q_source);
                             condition.config_hash=cfg_hash;
@@ -598,47 +686,30 @@ function [q,q_source] = reference_q(primary,protocol,load_mode,lambda_base,M,n_n
     end
 end
 
-function [best_q, best_idx] = select_best_q(grid, n_runs)
-    best_q = NaN; best_idx = NaN;
-    if isempty(grid), return; end
-    % A q is eligible only when every independent tuning seed is stable.
-    % This prevents a censored run's deceptively short conditional delay
-    % from making an unstable q look optimal.
-    required_fraction = 1;
-    eligible = [grid.stable_fraction] >= required_fraction & ...
-               isfinite([grid.mean_delay_us]);
-    idx = find(eligible);
-    if isempty(idx), return; end
-    means = [grid(idx).mean_delay_us];
-    [~, local] = min(means);
-    candidate = idx(local);
-    candidate_se = grid(candidate).se_delay_us;
-    if ~isfinite(candidate_se), candidate_se = 0; end
-    threshold = grid(candidate).mean_delay_us + max(0,candidate_se);
-    tied = idx([grid(idx).mean_delay_us] <= threshold);
-    if numel(tied) > 1
-        p95 = [grid(tied).mean_p95_us];
-        finite_p95 = isfinite(p95);
-        if any(finite_p95)
-            min_p95 = min(p95(finite_p95));
-            tied = tied(finite_p95 & p95 == min_p95);
-        end
-    end
-    if numel(tied) > 1
-        waste = [grid(tied).mean_collision_waste_us];
-        waste(~isfinite(waste)) = inf;
-        [~, k] = min(waste);
-        candidate = tied(k);
-    else
-        candidate = tied(1);
-    end
-    best_q = grid(candidate).q;
-    best_idx = candidate;
-end
-
 function condition = summarize_condition(protocol, load_mode, lambda_base, ...
-        lambda_eff, M, tune, eval_results)
-    row = empty_row(protocol, load_mode, lambda_base, lambda_eff, M, tune.best_q);
+        lambda_eff, M, tune, eval_results, cfg)
+    row = empty_row(protocol, load_mode, lambda_base, lambda_eff, M, ...
+        tune.best_q, cfg);
+    if isfield(tune,'selection_mode')
+        row.q_selection_mode = string(tune.selection_mode);
+    elseif isfield(tune,'q_source')
+        row.q_selection_mode = string(tune.q_source);
+    else
+        row.q_selection_mode = "legacy";
+    end
+    if isfield(tune,'stable_basin_left_q')
+        row.q_stable_basin_left = double(tune.stable_basin_left_q);
+        row.q_stable_basin_right = double(tune.stable_basin_right_q);
+    elseif isfinite(tune.best_q)
+        row.q_stable_basin_left = double(tune.best_q);
+        row.q_stable_basin_right = double(tune.best_q);
+    end
+    if isfield(tune,'q_search_boundary_hit')
+        row.q_search_boundary_hit = logical(tune.q_search_boundary_hit);
+    end
+    if isfield(tune,'q_refinement_passes')
+        row.q_refinement_passes = double(tune.q_refinement_passes);
+    end
     if ~isempty(eval_results)
         run_structs = [eval_results{:}];
         summaries = [run_structs.summary];
@@ -667,10 +738,14 @@ function condition = summarize_condition(protocol, load_mode, lambda_base, ...
                        'evaluation',{eval_results});
 end
 
-function row = empty_row(protocol, load_mode, lambda_base, lambda_eff, M, best_q)
+function row = empty_row(protocol, load_mode, lambda_base, lambda_eff, M, best_q, cfg)
+    timing = mmw_timing_config(cfg);
     row = struct('protocol',string(protocol), 'load_mode',string(load_mode), ...
         'lambda_base',lambda_base, 'lambda_effective',lambda_eff, ...
-        'M',M, 'Tp_us',190*M, 'best_q',best_q, 'stable_fraction',0);
+        'M',M, 'Tp_us',timing.CONN_SLOT_US*M, 'best_q',best_q, ...
+        'q_selection_mode',"none", 'q_stable_basin_left',NaN, ...
+        'q_stable_basin_right',NaN, 'q_search_boundary_hit',false, ...
+        'q_refinement_passes',0, 'stable_fraction',0);
     metrics = condition_metric_names();
     for i=1:numel(metrics)
         row.(metrics{i}) = NaN;

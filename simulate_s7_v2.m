@@ -1,8 +1,8 @@
 function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
 %SIMULATE_S7_V2 Ideal omnidirectional Sub-7 assisted access model.
 % The Sub-7 control channel uses 9-us contention boundaries.  MLO arrivals
-% remain on the common 5-us physical trace, and mmWave/SLO payloads last the
-% exact physical Tp=190*M us without rounding to a Sub-7 minislot.
+% remain on the common mmWave physical trace, and mmWave/SLO payloads last
+% exactly M connection slots without rounding.
 
     if strcmp(protocol, 's7_clean')
         n_slo = 0;
@@ -17,7 +17,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
 
     n_mlo = cfg.n_nodes;
     n_total = n_mlo + n_slo;
-    tp_us = 190 * M;
+    tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * M;
     slot_us = scenario.SUB7.SLOT_TIME_US;
     difs_us = scenario.SUB7.DIFS_US;
     req_us = scenario.SUB7.ICF_US;
@@ -66,6 +66,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     diag.collision_tx_airtime_us = 0;
     diag.collision_channel_time_measure_us = 0;
     diag.collision_tx_airtime_measure_us = 0;
+    diag.Tp_us = tp_us;
 
     system_area = 0;
     service_area = 0;

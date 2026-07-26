@@ -2,14 +2,14 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 %SIMULATE_SB_CB_V2 Sensing-based, connection-based directional access.
 %   result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 %
-% The simulator advances on the common 5-us physical grid.  A packet that
+% The simulator advances on the common mmWave physical grid. A packet that
 % becomes HOL must observe a complete DIFS before its first (or retried)
 % p-persistent RTS.  The AP captures at most one RTS while idle, then runs
 % SIFS, an eight-sector CTS sweep, SIFS, and one directional data transfer.
 % Directional CCA, half-duplex CTS loss, NAV, late RTS interference, and
 % per-packet delay accounting are all evaluated on the same timeline.
 
-    TICK_US = 5;
+    TICK_US = double(scenario.MMW.SLOT_TIME_US);
     AP_IDLE = uint8(0);
     AP_SIFS_PRE = uint8(1);
     AP_CTS = uint8(2);
@@ -18,7 +18,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 
     if cfg.arrival_tick_us ~= TICK_US
         error('simulate_sb_cb_v2:BadTick', ...
-              'SB-CB v2 requires cfg.arrival_tick_us = 5 us.');
+              'SB-CB v2 requires arrival_tick_us = mmw_slot_us.');
     end
     if M < 1 || M ~= round(M)
         error('simulate_sb_cb_v2:BadM', 'M must be a positive integer.');
@@ -57,11 +57,11 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     sifs_us = MMW.SIFS_US;
     cts_us = MMW.CTS_US;
     cts_sweep_us = n_sectors * cts_us;
-    tp_us = 190 * double(M);
+    tp_us = double(MMW.CONN_OVERHEAD_US) * double(M);
     durations = [difs_us, rts_us, sifs_us, cts_us, tp_us];
     if any(mod(durations, TICK_US) ~= 0)
         error('simulate_sb_cb_v2:NonIntegralDuration', ...
-              'All protocol durations must be multiples of 5 us.');
+              'All protocol durations must be integer mmWave slots.');
     end
     difs_ticks = round(difs_us / TICK_US);
     rts_ticks = round(rts_us / TICK_US);
@@ -140,7 +140,9 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 
     left_measure_us = cfg.warmup_us;
     right_measure_us = cfg.arrival_end_us;
-    hard_end_us = cfg.sim_hard_end_us;
+    % Extend by less than one slot so a final grid-aligned arrival is not
+    % skipped when the requested experimental horizon is off-grid.
+    hard_end_us = ceil(cfg.sim_hard_end_us / TICK_US) * TICK_US;
     t = 0;
 
     while true
@@ -526,7 +528,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             end
         end
 
-        % Data SINR is checked in every 5-us slice so a late RTS can spoil
+        % Data SINR is checked in every mmWave slot so a late RTS can spoil
         % only part of a packet while still causing the whole packet to fail.
         if data_tx_active
             data_tx_ticks = data_tx_ticks + 1;

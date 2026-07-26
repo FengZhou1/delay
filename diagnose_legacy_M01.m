@@ -10,6 +10,14 @@ function diagnostic=diagnose_legacy_M01(output_dir)
 
     utils=sim_utils();
     [~,PHY,MMW,~,~]=utils.get_common_params();
+    % Freeze the historical 5-us timing locally. sim_utils now exposes the
+    % current 9-us parameter set and must not alter this legacy diagnosis.
+    MMW.SLOT_TIME_US=5;
+    MMW.N_RTS=4;
+    MMW.N_CTS=4;
+    MMW.SIFS=1;
+    MMW.DIFS=3;
+    MMW.conn_overhead=38;
     PHY.Int_Matrix=0;
     M_display=0.1;
     displayed_Tp_us=190*M_display;

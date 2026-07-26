@@ -137,8 +137,12 @@ function gain = calculate_ula_mrt_gain(target, desired, N, freq)
     if abs(target-desired) < 0.1, gain = 10*log10(N); end
 end
 
-function[SYS, PHY_MMW, MMW, SUB7, SIM] = get_common_params()
-    SYS.N_SECTORS = 8; 
+function[SYS, PHY_MMW, MMW, SUB7, SIM] = get_common_params(cfg)
+    if nargin < 1
+        cfg = struct();
+    end
+    timing = mmw_timing_config(cfg);
+    SYS.N_SECTORS = timing.N_SECTORS;
     
     PHY_MMW.FREQ         = 60e9;        
     PHY_MMW.TX_POWER_DBM = 10;          
@@ -146,12 +150,17 @@ function[SYS, PHY_MMW, MMW, SUB7, SIM] = get_common_params()
     PHY_MMW.Nt           = 4;          
     PHY_MMW.AP_POS       = [0, 0];      
     
-    MMW.SLOT_TIME_US = 5; 
-    MMW.N_RTS        = 4;     
-    MMW.N_CTS        = 4;    
-    MMW.SIFS         = 1;     
-    MMW.DIFS         = 3;     
-    MMW.conn_overhead = MMW.N_RTS + MMW.SIFS + (SYS.N_SECTORS * MMW.N_CTS) + MMW.SIFS;
+    MMW.SLOT_TIME_US = timing.SLOT_US;
+    MMW.R_D_BPS = timing.DATA_RATE_BPS;
+    MMW.R_B_BPS = timing.CONTROL_RATE_BPS;
+    MMW.PHY_HEADER = timing.PHY_HEADER_SLOTS;
+    MMW.RTS_BITS = timing.RTS_BITS;
+    MMW.CTS_BITS = timing.CTS_BITS;
+    MMW.N_RTS = timing.RTS_SLOTS;
+    MMW.N_CTS = timing.CTS_SLOTS;
+    MMW.SIFS = timing.SIFS_SLOTS;
+    MMW.DIFS = timing.DIFS_SLOTS;
+    MMW.conn_overhead = timing.CONN_SLOT_SLOTS;
     
     SUB7.SLOT_TIME_US = 9;
     SUB7.SIFS     = 2;  

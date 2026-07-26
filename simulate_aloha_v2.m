@@ -2,8 +2,8 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 %SIMULATE_ALOHA_V2 Event-driven sensing-free Aloha simulators.
 %   result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 %   supports:
-%     sf_cf - packet-length slotted Aloha.  A slot is Tp=190*M us.
-%     sf_cb - connection-based Aloha.  A reservation frame is 190 us;
+%     sf_cf - packet-length slotted Aloha. A slot is Tp=M conn-slots.
+%     sf_cb - connection-based Aloha. One reservation is one conn-slot;
 %             a singleton is followed by exactly Tp us of payload.
 %
 % Arrivals exactly on a decision boundary are enqueued before the decision.
@@ -64,8 +64,14 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
               'Trace times must be sorted and node IDs must be valid integers.');
     end
 
-    Tp_us = 190 * double(M);
-    reservation_us = 190;
+    if isempty(scenario) || ~isstruct(scenario) || ...
+            ~isfield(scenario, 'MMW') || ...
+            ~isfield(scenario.MMW, 'CONN_OVERHEAD_US')
+        error('simulate_aloha_v2:MissingTiming', ...
+            'scenario.MMW.CONN_OVERHEAD_US is required.');
+    end
+    reservation_us = double(scenario.MMW.CONN_OVERHEAD_US);
+    Tp_us = reservation_us * double(M);
     if strcmp(protocol, 'sf_cf')
         contention_slot_us = Tp_us;
     else
@@ -229,7 +235,7 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
             t_us = slot_end_us;
 
         else
-            % SF-CB: every decision consumes the complete 190-us reservation
+            % SF-CB: every decision consumes one complete conn-slot
             % frame.  Only a singleton continues into an exact Tp data phase.
             reservation_frames_by_k(K_backlogged+1) = ...
                 reservation_frames_by_k(K_backlogged+1) + 1;

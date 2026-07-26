@@ -18,11 +18,19 @@ function outputs = merge_supplement_results(base_dir,rerun_dir)
         'VariableNamingRule','preserve');
     rerun_summary = readtable(rerun_summary_path, ...
         'VariableNamingRule','preserve');
-    if ~isequal(base_summary.Properties.VariableNames, ...
-                rerun_summary.Properties.VariableNames)
+    provenance_names = {'result_source','rerun_replaced'};
+    base_core = remove_existing_variables(base_summary,provenance_names);
+    rerun_core = remove_existing_variables(rerun_summary,provenance_names);
+    if ~isequal(base_core.Properties.VariableNames, ...
+                rerun_core.Properties.VariableNames)
         error('merge_supplement_results:SchemaMismatch', ...
               'Base and rerun summary schemas do not match.');
     end
+    % A combined_view can itself be used as the base of a later targeted
+    % rerun. Strip its prior merge-provenance columns before applying the
+    % new provenance so repeated supplements remain schema-compatible.
+    base_summary = base_core;
+    rerun_summary = rerun_core;
 
     base_summary.result_source = repmat("original_stable", ...
         height(base_summary),1);
@@ -86,6 +94,15 @@ function outputs = merge_supplement_results(base_dir,rerun_dir)
         'combined_summary_path',combined_path, ...
         'combined_dir',combined_dir, ...
         'analysis',analysis);
+end
+
+function output = remove_existing_variables(input,names)
+    present = intersect(input.Properties.VariableNames,names,'stable');
+    if isempty(present)
+        output = input;
+    else
+        output = removevars(input,present);
+    end
 end
 
 function keys = summary_keys(summary)

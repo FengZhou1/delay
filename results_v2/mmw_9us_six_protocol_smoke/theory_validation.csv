@@ -1,0 +1,3 @@
+row_type,protocol,load_mode,lambda_base,lambda_effective,M,Tp_us,q,K,n_eval_runs,n_frames,n_success,empirical_ps,ci95_low,ci95_high,ci_method,theoretical_ps,theory_inside_ci95,attempts,attempt_bernoulli_trials,empirical_attempt_probability,approx_service_cycle_theory_us,approx_service_cycle_empirical_ps_us,empirical_intercompletion_us
+by_K,sf_cb,fixed_packet,5,5,1,198,0.2,1,1,7,3,0.428571428571429,0.0989882784425081,0.815948432359917,Clopper-Pearson exact,0.2,1,3,7,0.428571428571429,1188,660,NaN
+condition_mixture,sf_cb,fixed_packet,5,5,1,198,0.2,NaN,1,7,3,0.428571428571429,NaN,NaN,not_applicable_mixture,0.2,NaN,3,7,0.428571428571429,1188,660,6039

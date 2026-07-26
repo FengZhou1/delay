@@ -1,5 +1,5 @@
 function trace = generate_arrival_trace(lambda_per_node, cfg, seed)
-%GENERATE_ARRIVAL_TRACE Common sparse Bernoulli arrivals on a physical 5-us grid.
+%GENERATE_ARRIVAL_TRACE Sparse Bernoulli arrivals on the common mmWave grid.
 % Arrivals are generated once and reused by every protocol.  Event time zero
 % is valid, and arrivals at a decision boundary are enqueued before that
 % boundary's protocol decision.

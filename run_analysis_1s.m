@@ -2,7 +2,9 @@
 %
 % The default analysis profile uses:
 %   0.2 s warm-up + 1 s measurement + up to 1 s drain
-%   2 tuning seeds + 2 independent evaluation seeds
+%   one-seed protocol-wide coarse q scan
+%   three-seed five-point local fine q scan with stable-neighbor selection
+%   3 independent evaluation seeds
 %   lambda_base = [5 10 15], M = 1:6, and all six protocols
 %
 % Results are written to a new versioned results_v2 directory. The legacy

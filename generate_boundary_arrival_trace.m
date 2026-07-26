@@ -2,7 +2,10 @@ function trace=generate_boundary_arrival_trace(lambda_per_node,cfg,seed,boundary
 %GENERATE_BOUNDARY_ARRIVAL_TRACE Theory-only Bernoulli boundary arrivals.
 % This removes the sub-boundary phase wait and must not be used as the
 % fairness trace for cross-protocol comparisons.
-    if nargin<4 || isempty(boundary_us), boundary_us=190; end
+    if nargin<4 || isempty(boundary_us)
+        timing = mmw_timing_config(cfg);
+        boundary_us = timing.CONN_SLOT_US;
+    end
     if mod(boundary_us,cfg.arrival_tick_us)~=0
         error('generate_boundary_arrival_trace:BadBoundary', ...
               'boundary_us must align with the common physical grid.');

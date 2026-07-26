@@ -6,7 +6,7 @@ function [arrivals, p_arr_mmw, p_arr_sub7] = arrival_rate(lambda, sim_time_total
 %
 %   说明:
 %     λ 单位为 pkt/sta/s（每节点每秒到达包数）。
-%     毫米波 minislot = MMW.SLOT_TIME_US = 5 us   -> p_arr_mmw  = λ * 5e-6
+%     毫米波 minislot = MMW.SLOT_TIME_US = 9 us   -> p_arr_mmw  = λ * 9e-6
 %     sub7G  minislot = SUB7.SLOT_TIME_US = 9 us  -> p_arr_sub7 = λ * 9e-6
 %     本函数对指定 band 的 minislot 网格逐时隙做伯努利到达判断：
 %       arrivals(t,u)=true 表示节点 u 在第 t 个 minislot 有包到达。

@@ -20,13 +20,36 @@ function cfg = default_experiment_config(profile)
 
     cfg.n_nodes = 40;
     cfg.n_sectors = 8;
-    cfg.arrival_tick_us = 5;
+    % New mmWave timing set. Protocol durations are expressed as integer
+    % slot counts; microsecond values are derived by mmw_timing_config().
+    cfg.mmw_slot_us = 9;
+    cfg.mmw_data_rate_bps = 2.7e9;
+    cfg.mmw_control_rate_bps = 260e6;
+    cfg.mmw_phy_header_slots = 2;
+    cfg.mmw_sifs_slots = 2;
+    cfg.mmw_difs_slots = 4;
+    cfg.mmw_rts_bits = 160;
+    cfg.mmw_cts_bits = 112;
+    cfg.mmw_rts_slots = 2;
+    cfg.mmw_cts_slots = 2;
+    cfg.arrival_tick_us = cfg.mmw_slot_us;
+    mmw_timing = mmw_timing_config(cfg);
+    cfg.mmw_conn_slot_slots = mmw_timing.CONN_SLOT_SLOTS;
+    cfg.mmw_conn_slot_us = mmw_timing.CONN_SLOT_US;
     cfg.topology_seed = 20260325;
     cfg.traffic_seed_base = 20260722;
     cfg.protocol_seed_base = 731927;
 
     cfg.q_coarse = unique([10.^(-5:0.25:0), 0.05:0.05:1.0]);
     cfg.q_refine_points = 9;
+    cfg.q_two_stage_tuning = false;
+    cfg.q_coarse_tune_runs = 1;
+    cfg.q_fine_tune_runs = 3;
+    cfg.q_fine_points = 5;
+    cfg.q_refine_scale = 'auto';
+    cfg.q_refine_floor = 1e-7;
+    cfg.q_require_stable_neighbors = false;
+    cfg.q_fallback_self_stable = true;
     cfg.adaptive_q_grid = false;
     cfg.q_grid_light = [];
     cfg.q_grid_medium = [];
@@ -40,6 +63,7 @@ function cfg = default_experiment_config(profile)
     cfg.tune_min_expected_arrivals = 0;
     cfg.tune_measure_max_us = NaN;
     cfg.tuning_rate_screen = true;
+    cfg.common_arrivals_by_effective_rate = true;
     cfg.parallel = true;
     cfg.n_workers = 4;
     cfg.condition_timeout_s = 1800;
@@ -147,26 +171,35 @@ function cfg = default_experiment_config(profile)
             cfg.measure_us = 1e6;
             cfg.drain_max_us = 1e6;
             cfg.n_tune_runs = 3;
-            cfg.n_eval_runs = 2;
+            cfg.n_eval_runs = 3;
             cfg.tune_warmup_us = 2e5;
             cfg.tune_measure_us = 1e6;
             cfg.tune_drain_max_us = 1e6;
             cfg.q_coarse = [0.01 0.025 0.05];
             cfg.q_refine_points = 0;
+            cfg.q_two_stage_tuning = true;
+            cfg.q_coarse_tune_runs = 1;
+            cfg.q_fine_tune_runs = 3;
+            cfg.q_fine_points = 5;
+            cfg.q_refine_scale = 'auto';
+            cfg.q_refine_floor = 1e-7;
+            cfg.q_require_stable_neighbors = true;
+            cfg.q_fallback_self_stable = true;
             cfg.adaptive_q_grid = false;
             cfg.protocol_q_grids_enabled = true;
             cfg.protocol_q_grids.sf_cf = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5];
+                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
             cfg.protocol_q_grids.sf_cb = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5];
+                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
             cfg.protocol_q_grids.sb_cf = ...
-                [1e-4 2e-4 5e-4 1e-3 2e-3 5e-3 1e-2];
+                [2e-5 5e-5 1e-4 2e-4 5e-4 1e-3 2e-3 ...
+                 5e-3 1e-2 2e-2 5e-2];
             cfg.protocol_q_grids.sb_cb = ...
-                [5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 5e-2 0.1 0.2];
+                [5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 5e-2 0.1 0.2 0.5];
             cfg.protocol_q_grids.s7_clean = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5];
+                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
             cfg.protocol_q_grids.s7_busy = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5];
+                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
             cfg.q_grid_light = [0.05 0.1 0.2 0.5 1];
             cfg.q_grid_medium = [0.025 0.05 0.1 0.2];
             cfg.q_grid_heavy = [0.01 0.025 0.05];
@@ -175,10 +208,10 @@ function cfg = default_experiment_config(profile)
             cfg.tune_min_expected_arrivals = 20;
             cfg.tune_measure_max_us = 1e6;
             cfg.stats_sample_us = 500;
-            cfg.stability_rate_tolerance = 0.25;
-            cfg.stability_censor_tolerance = 0.10;
-            cfg.stability_slope_fraction = 0.25;
-            cfg.stability_require_slope = false;
+            cfg.stability_rate_tolerance = 0.05;
+            cfg.stability_censor_tolerance = 0.01;
+            cfg.stability_slope_fraction = 0.05;
+            cfg.stability_require_slope = true;
             cfg.run_cca_ablation = false;
             cfg.run_topology_robustness = false;
         case 'full'

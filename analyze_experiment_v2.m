@@ -54,7 +54,7 @@ function analysis = analyze_experiment_v2(output_dir)
     writetable(csma, csma_path);
 
     controlled_aloha = read_controlled_aloha_verification(output_dir, cfg);
-    acceptance = build_acceptance_checks(summary, theory, controlled_aloha);
+    acceptance = build_acceptance_checks(summary, theory, controlled_aloha, cfg);
     acceptance_path = fullfile(output_dir, 'acceptance_checks.csv');
     writetable(acceptance, acceptance_path);
 
@@ -64,7 +64,7 @@ function analysis = analyze_experiment_v2(output_dir)
     writetable(cca_ablation, cca_ablation_path);
 
     topology_clusters = build_topology_cluster_ci( ...
-        topology_conditions, topology_summary);
+        topology_conditions, topology_summary, cfg);
     topology_path = fullfile(output_dir, 'topology_cluster_ci.csv');
     writetable(topology_clusters, topology_path);
 
@@ -165,6 +165,7 @@ function value = read_optional_table(path)
 end
 
 function capacity = build_aloha_capacity_theory(cfg, summary)
+    conn_slot_us = analysis_conn_slot_us(cfg);
     n_nodes = max(1, round(config_scalar(cfg, 'n_nodes', 40)));
     M_values = config_numeric_vector(cfg, 'M_values');
     if isempty(M_values) && has_variables(summary, {'M'})
@@ -193,7 +194,7 @@ function capacity = build_aloha_capacity_theory(cfg, summary)
         for lambda_base = lambda_values
             for M = M_values
                 index = index + 1;
-                service_us = 190*M + 190/ps_opt;
+                service_us = conn_slot_us*M + conn_slot_us/ps_opt;
                 capacity_system = 1e6/service_us;
                 if strcmpi(mode, 'fixed_payload')
                     lambda_effective = lambda_base/M;
@@ -206,7 +207,7 @@ function capacity = build_aloha_capacity_theory(cfg, summary)
                     'load_mode',string(mode), ...
                     'lambda_base',lambda_base, ...
                     'lambda_effective',lambda_effective, ...
-                    'M',M, 'Tp_us',190*M, 'n_nodes',n_nodes, ...
+                    'M',M, 'Tp_us',conn_slot_us*M, 'n_nodes',n_nodes, ...
                     'q_opt',q_opt, 'ps_opt',ps_opt, ...
                     'service_cycle_us',service_us, ...
                     'capacity_system_pkt_s',capacity_system, ...
@@ -253,12 +254,13 @@ function value = empty_capacity_table()
 end
 
 function theory = build_theory_validation(conditions, cfg)
+    conn_slot_us = analysis_conn_slot_us(cfg);
     node_capacity = max(1, round(config_scalar(cfg, 'n_nodes', 128)) + 2);
     rows = cell(max(1,numel(conditions)*node_capacity),1);
     row_count = 0;
     for ci = 1:numel(conditions)
         condition = conditions{ci};
-        info = condition_info(condition);
+        info = condition_info(condition, cfg);
         if ~strcmp(info.protocol, 'sf_cb'), continue; end
         runs = evaluation_runs(condition);
         if isempty(runs), continue; end
@@ -364,8 +366,8 @@ function theory = build_theory_validation(conditions, cfg)
                 n_frames, n_success, empirical_ps, ci_low, ci_high, ...
                 ci_method, theory_ps, in_ci, attempts, ...
                 attempt_trials, empirical_attempt_probability, ...
-                service_cycle_approx(info.Tp_us, theory_ps), ...
-                service_cycle_approx(info.Tp_us, empirical_ps), NaN);
+                service_cycle_approx(info.Tp_us, theory_ps, conn_slot_us), ...
+                service_cycle_approx(info.Tp_us, empirical_ps, conn_slot_us), NaN);
 
             positive_frame_total = positive_frame_total + n_frames;
             positive_success_total = positive_success_total + n_success;
@@ -395,8 +397,8 @@ function theory = build_theory_validation(conditions, cfg)
                 mixture_theory_ps, NaN, mixture_attempts, ...
                 mixture_attempt_trials, ...
                 mixture_attempt_probability, ...
-                service_cycle_approx(info.Tp_us, mixture_theory_ps), ...
-                service_cycle_approx(info.Tp_us, empirical_ps), ...
+                service_cycle_approx(info.Tp_us, mixture_theory_ps, conn_slot_us), ...
+                service_cycle_approx(info.Tp_us, empirical_ps, conn_slot_us), ...
                 empirical_intercompletion);
         end
     end
@@ -485,9 +487,9 @@ function [low, high, method] = binomial_ci95(successes, trials)
     end
 end
 
-function value = service_cycle_approx(Tp_us, ps)
+function value = service_cycle_approx(Tp_us, ps, conn_slot_us)
     if isfinite(Tp_us) && isfinite(ps) && ps > 0
-        value = Tp_us + 190/ps;
+        value = Tp_us + conn_slot_us/ps;
     else
         value = NaN;
     end
@@ -515,7 +517,7 @@ function csma = build_csma_diagnostics(conditions, cfg)
     row_count = 0;
     for ci = 1:numel(conditions)
         condition = conditions{ci};
-        info = condition_info(condition);
+        info = condition_info(condition, cfg);
         if ~ismember(info.protocol, {'sb_cf','sb_cb'}), continue; end
         runs = evaluation_runs(condition);
         runs = runs(cellfun(@(r) isstruct(r) && isfield(r,'diagnostics') && ...
@@ -712,7 +714,7 @@ function controlled = read_controlled_aloha_verification(output_dir, cfg)
     end
 end
 
-function checks = build_acceptance_checks(summary, theory, controlled_aloha)
+function checks = build_acceptance_checks(summary, theory, controlled_aloha, cfg)
     if isempty(summary)
         checks = empty_acceptance_table();
         return;
@@ -764,7 +766,8 @@ function checks = build_acceptance_checks(summary, theory, controlled_aloha)
         rows{i} = struct( ...
             'protocol',string(protocol),'load_mode',string(load_mode), ...
             'lambda_base',lambda_base,'lambda_effective',lambda_effective, ...
-            'M',M,'Tp_us',numeric_alias(source,{'Tp_us'},190*M), ...
+            'M',M,'Tp_us',numeric_alias(source,{'Tp_us'}, ...
+                analysis_conn_slot_us(cfg)*M), ...
             'best_q',numeric_alias(source,{'best_q'},NaN), ...
             'stable_fraction',stable_fraction, ...
             'stability_class',stability_class, ...
@@ -930,7 +933,7 @@ end
 
 function row = cca_row_from_condition(condition, cfg)
     row = [];
-    info = condition_info(condition);
+    info = condition_info(condition, cfg);
     if ~ismember(info.protocol, {'sb_cf','sb_cb'}), return; end
     source = struct();
     if isfield(condition,'row') && isstruct(condition.row)
@@ -994,7 +997,8 @@ function row = cca_row_from_struct(source, cfg)
     row = struct( ...
         'protocol',string(protocol), 'load_mode',string(load_mode), ...
         'lambda_base',lambda_base, 'lambda_effective',lambda_effective, ...
-        'M',M, 'Tp_us',numeric_alias(source,{'Tp_us'},190*M), ...
+        'M',M, 'Tp_us',numeric_alias(source,{'Tp_us'}, ...
+            analysis_conn_slot_us(cfg)*M), ...
         'best_q',numeric_alias(source,{'best_q','q'},NaN), ...
         'q_source',string(text_alias(source,{'q_source'},'unknown')), ...
         'cca_variant',string(cca_variant), 'cca_mode',string(cca_mode), ...
@@ -1076,8 +1080,8 @@ function output = empty_cca_ablation_table()
                    'VariableNames',fields);
 end
 
-function output = build_topology_cluster_ci(conditions, csv_summary)
-    samples = collect_topology_samples(conditions, csv_summary);
+function output = build_topology_cluster_ci(conditions, csv_summary, cfg)
+    samples = collect_topology_samples(conditions, csv_summary, cfg);
     if isempty(samples)
         output = empty_topology_cluster_table();
         return;
@@ -1135,20 +1139,20 @@ function output = build_topology_cluster_ci(conditions, csv_summary)
     end
 end
 
-function samples = collect_topology_samples(conditions, csv_summary)
+function samples = collect_topology_samples(conditions, csv_summary, cfg)
     rows = cell(max(1,numel(conditions)+height(csv_summary)),1);
     keys = strings(0,1);
     count = 0;
     for i = 1:numel(conditions)
         if ~isfield(conditions{i},'row') || ~isstruct(conditions{i}.row), continue; end
-        row = topology_sample_from_struct(conditions{i}.row);
+        row = topology_sample_from_struct(conditions{i}.row, cfg);
         if isempty(row), continue; end
         key = topology_sample_key(row);
         if any(keys == key), continue; end
         count = count + 1; rows{count} = row; keys(count,1) = key;
     end
     for i = 1:height(csv_summary)
-        row = topology_sample_from_struct(table2struct(csv_summary(i,:)));
+        row = topology_sample_from_struct(table2struct(csv_summary(i,:)), cfg);
         if isempty(row), continue; end
         key = topology_sample_key(row);
         if any(keys == key), continue; end
@@ -1161,7 +1165,7 @@ function samples = collect_topology_samples(conditions, csv_summary)
     end
 end
 
-function row = topology_sample_from_struct(source)
+function row = topology_sample_from_struct(source, cfg)
     protocol = lower(text_value(source,'protocol','unknown'));
     load_mode = lower(text_value(source,'load_mode','unknown'));
     topology_seed = numeric_alias(source,{'topology_seed'},NaN);
@@ -1183,7 +1187,8 @@ function row = topology_sample_from_struct(source)
     row = struct( ...
         'protocol',string(protocol),'load_mode',string(load_mode), ...
         'lambda_base',lambda_base,'lambda_effective',lambda_effective, ...
-        'M',M,'Tp_us',numeric_alias(source,{'Tp_us'},190*M), ...
+        'M',M,'Tp_us',numeric_alias(source,{'Tp_us'}, ...
+            analysis_conn_slot_us(cfg)*M), ...
         'topology_seed',topology_seed, ...
         'stable_fraction',numeric_alias(source,{'stable_fraction'},NaN), ...
         'mean_delay_us',numeric_alias(source,{'mean_delay_us'},NaN), ...
@@ -1686,7 +1691,16 @@ function write_chinese_report(path, output_dir, cfg, summary, theory, capacity, 
     end
 
     line('## 1. 模型边界与公平口径\n\n');
-    line('主实验的所有协议共享 5 us 物理到达轨迹；协议只能在自己的合法竞争边界行动，因此中间到达产生的边界等待是真实接入时延的一部分。若到达相位在 38 个 5 us 相位上均匀，等待下一个 190 us 边界的均值为 92.5 us，即 0.4868 个预约帧。理论边界校验才应把到达强制对齐到 190 us；正式公平对比不应按各协议时隙另造到达。\n\n');
+    report_mmw_slot_us = analysis_mmw_slot_us(cfg);
+    report_conn_slot_us = analysis_conn_slot_us(cfg);
+    report_phase_count = round(report_conn_slot_us/report_mmw_slot_us);
+    report_phase_wait_us = (report_conn_slot_us-report_mmw_slot_us)/2;
+    line(['主实验的所有协议共享 %.0f us 物理到达轨迹；协议只能在自己的合法竞争边界行动，因此中间到达产生的边界等待是真实接入时延的一部分。', ...
+        '若到达相位在 %d 个 %.0f us 相位上均匀，等待下一个 %.0f us 边界的均值为 %.1f us，即 %.4f 个预约帧。', ...
+        '理论边界校验才应把到达强制对齐到 %.0f us；正式公平对比不应按各协议时隙另造到达。\n\n'], ...
+        report_mmw_slot_us,report_phase_count,report_mmw_slot_us, ...
+        report_conn_slot_us,report_phase_wait_us, ...
+        report_phase_wait_us/report_conn_slot_us,report_conn_slot_us);
     line('- `fixed_packet`：每个节点的包到达率固定，M 增大时业务量随包长增大。\n');
     line('- `fixed_payload`：使用 `lambda_effective=lambda_base/M`，使归一化有效载荷输入近似固定。\n');
     line('这两种负载定义在所有表和图中严格分开，不能混合平均。\n\n');
@@ -1694,17 +1708,26 @@ function write_chinese_report(path, output_dir, cfg, summary, theory, capacity, 
     write_stability_section(line, summary);
     write_acceptance_section(line, acceptance);
     write_theory_section(line, theory);
-    write_capacity_section(line, capacity);
+    write_capacity_section(line, capacity, cfg);
     write_csma_section(line, csma);
     write_cca_ablation_section(line, cca_ablation);
-    write_conn_comparison_section(line, summary);
+    write_conn_comparison_section(line, summary, cfg);
     write_topology_section(line, topology);
 
     line('## 8. 论文批量模型与当前实现不能直接互换\n\n');
-    line('论文模型在一次连接建立后发送由 M 个请求时隙对应的批量数据，并包含形成该批次的等待机制。当前 SF-CB 是“一个 190 us 预约帧成功后，发送一个持续 `Tp=190M us` 的长包”，没有形成 M 包批次的等待。两者的控制开销摊销方向相似，但队列状态、批量形成等待、一次服务移除的包数以及到达相位等待不同。因此可以比较预约成功概率和开销摊销趋势，却不能把论文总时延公式直接当作当前实现的理论曲线；出现 1–2 个 M 的最优点偏移并不单独证明代码错误。\n\n');
+    line(['论文模型在一次连接建立后发送由 M 个请求时隙对应的批量数据，并包含形成该批次的等待机制。', ...
+        '当前 SF-CB 是“一个 %.0f us 预约帧成功后，发送一个持续 `Tp=%.0fM us` 的长包”，没有形成 M 包批次的等待。', ...
+        '两者的控制开销摊销方向相似，但队列状态、批量形成等待、一次服务移除的包数以及到达相位等待不同。', ...
+        '因此可以比较预约成功概率和开销摊销趋势，却不能把论文总时延公式直接当作当前实现的理论曲线；', ...
+        '出现 1–2 个 M 的最优点偏移并不单独证明代码错误。\n\n'], ...
+        report_conn_slot_us,report_conn_slot_us);
 
     line('## 9. 服务周期近似的适用范围\n\n');
-    line('`Tp + 190/Ps` 是固定积压节点数 K、独立 Bernoulli 尝试、每次单例预约后立即发送一个长包时的近似。真实仿真中 K 会随到达与完成变化，成功后的 Tp 数据阶段会冻结下一次预约，空系统阶段和排空期也会改变相邻完成间隔。因此报告同时给出：按经验 K 分布加权的理论 Ps、由经验 Ps 代入的周期估计，以及完成时间戳直接得到的经验相邻完成间隔。后两者不是同一个统计量，不应期待逐点严格相等。\n\n');
+    line(['`Tp + %.0f/Ps` 是固定积压节点数 K、独立 Bernoulli 尝试、每次单例预约后立即发送一个长包时的近似。', ...
+        '真实仿真中 K 会随到达与完成变化，成功后的 Tp 数据阶段会冻结下一次预约，空系统阶段和排空期也会改变相邻完成间隔。', ...
+        '因此报告同时给出：按经验 K 分布加权的理论 Ps、由经验 Ps 代入的周期估计，以及完成时间戳直接得到的经验相邻完成间隔。', ...
+        '后两者不是同一个统计量，不应期待逐点严格相等。\n\n'], ...
+        report_conn_slot_us);
 
     line('## 10. 输出文件与解读限制\n\n');
     line('- `theory_validation.csv`：按 K 的预约成功率、二项 95%% CI、理论值及服务周期近似；`condition_mixture` 行是经验 K 混合，不使用同分布二项 CI。\n');
@@ -1834,7 +1857,7 @@ function write_theory_section(line, theory)
     line('这里的动态 K 分箱只用于模型诊断。由于同时检查许多 K-bin，不能把“所有未校正 95%% CI 都覆盖”作为主实验硬验收；稀疏分箱也不参与 coverage 汇总。正式概率硬门来自独立预注册的 `K=N、q=1/N` 受控试验。\n\n');
 end
 
-function write_capacity_section(line, capacity)
+function write_capacity_section(line, capacity, cfg)
     line('## 4. SF-CB 固定积压容量边界\n\n');
     if isempty(capacity)
         line('当前配置不足以生成容量边界。\n\n');
@@ -1843,8 +1866,8 @@ function write_capacity_section(line, capacity)
     n_nodes = capacity.n_nodes(1);
     q_opt = capacity.q_opt(1);
     ps_opt = capacity.ps_opt(1);
-    line('按固定积压 `K=N=%d` 且 `q*=1/N=%.6g`，单个 190 us 预约帧的最优单例成功概率为 `Ps*=%.6g`。该边界只描述饱和、独立 Bernoulli 尝试下的服务上限，不等同于有限负载的精确队列时延。\n\n', ...
-         n_nodes,q_opt,ps_opt);
+    line('按固定积压 `K=N=%d` 且 `q*=1/N=%.6g`，单个 %.0f us 预约帧的最优单例成功概率为 `Ps*=%.6g`。该边界只描述饱和、独立 Bernoulli 尝试下的服务上限，不等同于有限负载的精确队列时延。\n\n', ...
+         n_nodes,q_opt,analysis_conn_slot_us(cfg),ps_opt);
 
     target_lambda = 30;
     available = unique(capacity.lambda_base(isfinite(capacity.lambda_base)));
@@ -1931,7 +1954,7 @@ function write_cca_ablation_section(line, cca)
     line('\n相对吞吐以同一 `(协议,负载口径,lambda,M)` 内表现最好的变体归一化；相对时延以同一条件内最低的稳定时延归一化，只在稳定变体间比较。这样不会把不同 M 或不同负载的绝对时延直接平均。`directional`、`perfect/oracle`、`disabled` 及不同 `rx_sens_dbm` 均保留为独立变体；原始漏听高并不自动意味着有效有害 FN 高。\n\n');
 end
 
-function write_conn_comparison_section(line, summary)
+function write_conn_comparison_section(line, summary, cfg)
     line('## 6.1 Conn-Aloha 与 Conn-CSMA 直接对照\n\n');
     needed = {'protocol','load_mode','lambda_base','M','stable_fraction', ...
         'mean_delay_us','normalized_goodput_units_s'};
@@ -1979,14 +2002,15 @@ function write_conn_comparison_section(line, summary)
         end
         line('\n');
     end
-    line(['低 M 时，SB-CB 即使原始漏听很高，仍可能凭借 5 us 决策机会、', ...
-        'AP 单用户捕获和成功 NAV 保护，避开 SF-CB 的 190 us 边界等待及', ...
+    line(['低 M 时，SB-CB 即使原始漏听很高，仍可能凭借 %.0f us 决策机会、', ...
+        'AP 单用户捕获和成功 NAV 保护，避开 SF-CB 的 %.0f us 边界等待及', ...
         '空预约/碰撞预约，因此完成包时延更低。原始漏听率不是失败概率；', ...
         '只有有害 FN、晚启动及其造成的 RTS/数据失败才进入机制代价。M ', ...
         '增大后，CTS 扫描、晚启动干扰和失败事务超时会被更长数据阶段放大，', ...
         'SB-CB 可能先失稳或反超；另一方面 fixed-packet 下 SF-CB 在', ...
         '`lambda=30` 的固定积压容量理论只支持 M=1，短窗口中 M>=2 的', ...
-        '“稳定”不能推翻该饱和边界。\n\n']);
+        '“稳定”不能推翻该饱和边界。\n\n'], ...
+        analysis_mmw_slot_us(cfg),analysis_conn_slot_us(cfg));
     line(['把 SF-CB 改成 unslotted 只能去掉边界相位等待，不能保证总时延', ...
         '下降：经典纯 Aloha 的易碰撞时间窗由一帧扩大到约两帧，吞吐上限', ...
         '也低于 slotted Aloha。在本场景中它还会重新引入 RTS 与 CTS 扫描', ...
@@ -2038,7 +2062,7 @@ function write_topology_section(line, topology)
     line('\n每个 topology seed 先形成一个条件级观测，再跨 seed 计算 Student-t 95%% CI；同一拓扑内的多个 run 和海量包不会增加这里的独立样本数。若任一拓扑未达到稳定判据，汇总稳态时延置为 NaN，而吞吐、积压斜率和稳定比例仍保留用于判断失稳。单个拓扑时可报告均值，但无法估计 t 区间。\n\n');
 end
 
-function info = condition_info(condition)
+function info = condition_info(condition, cfg)
     row = struct();
     if isfield(condition,'row') && isstruct(condition.row), row = condition.row; end
     info.protocol = lower(text_value(row, 'protocol', 'unknown'));
@@ -2046,7 +2070,8 @@ function info = condition_info(condition)
     info.lambda_base = numeric_value(row, 'lambda_base', NaN);
     info.lambda_effective = numeric_value(row, 'lambda_effective', NaN);
     info.M = numeric_value(row, 'M', NaN);
-    info.Tp_us = numeric_value(row, 'Tp_us', 190*info.M);
+    info.Tp_us = numeric_value(row, 'Tp_us', ...
+        analysis_conn_slot_us(cfg)*info.M);
     info.best_q = numeric_value(row, 'best_q', NaN);
 end
 
@@ -2168,6 +2193,30 @@ function out = text_alias(s, fields, fallback)
             out = char(string(s.(field)));
             return;
         end
+    end
+end
+
+function value = analysis_mmw_slot_us(cfg)
+% Preserve the timing of historical result directories that predate the
+% explicit mmWave timing fields; new result directories use the slot config.
+    if isstruct(cfg) && isfield(cfg,'mmw_slot_us')
+        value = mmw_timing_config(cfg).SLOT_US;
+    elseif isstruct(cfg) && isfield(cfg,'arrival_tick_us') && ...
+            isequal(double(cfg.arrival_tick_us),5)
+        value = 5;
+    else
+        value = mmw_timing_config().SLOT_US;
+    end
+end
+
+function value = analysis_conn_slot_us(cfg)
+    if isstruct(cfg) && isfield(cfg,'mmw_slot_us')
+        value = mmw_timing_config(cfg).CONN_SLOT_US;
+    elseif isstruct(cfg) && isfield(cfg,'arrival_tick_us') && ...
+            isequal(double(cfg.arrival_tick_us),5)
+        value = 190;
+    else
+        value = mmw_timing_config().CONN_SLOT_US;
     end
 end
 

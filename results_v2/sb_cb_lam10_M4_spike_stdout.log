@@ -1,0 +1,16 @@
+SB-CB spike rerun base: C:\Users\01\Desktop\delay2.0\delay2.0\results_v2\20260726_181043_20f5418a8885\combined_view
+q grid: [0.005 0.0075 0.01 0.0125 0.015 0.02 0.025 0.03 0.04 0.05 0.075 0.1]
+Tune: 3 seeds, 2.00 s measure. Eval: 5 seeds, 3.00 s measure.
+
+=== v2 experiment a6ccf7195cee | profile=analysis ===
+Output: C:\Users\01\Desktop\delay2.0\delay2.0\results_v2\20260726_191557_a6ccf7195cee
+Starting parallel pool (parpool) using the 'local' profile ...
+Connected to parallel pool with 4 workers.
+[1/1] sb_cb_fixed_packet_lam10_M4 (lambda_eff=10)
+=== completed in 3970.6 s ===
+
+SB-CB spike rerun complete.
+Rerun directory: C:\Users\01\Desktop\delay2.0\delay2.0\results_v2\20260726_191557_a6ccf7195cee
+Combined summary: C:\Users\01\Desktop\delay2.0\delay2.0\results_v2\20260726_191557_a6ccf7195cee\combined_summary.csv
+Combined delay plot: C:\Users\01\Desktop\delay2.0\delay2.0\results_v2\20260726_191557_a6ccf7195cee\combined_view\figures\delay_by_M.png
+Parallel pool using the 'Processes' profile is shutting down.

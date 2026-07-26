@@ -17,7 +17,7 @@ function testPartialSfCbAndSbCf(testCase)
     lambda_base = [30;30;30];
     lambda_effective = [30;30;30];
     M = [1;1;1];
-    Tp_us = [190;190;190];
+    Tp_us = [198;198;198];
     best_q = [0.2;0.2;0.2];
     stable_fraction = [1;0;1];
     mean_delay_us = [500;NaN;700];
@@ -38,8 +38,8 @@ function testPartialSfCbAndSbCf(testCase)
     empirical_ps = successes/trials;
     theoretical_ps = (1-1/40)^39;
     ci_low = 0.363; ci_high = 0.382; probability_pass = 1;
-    empirical_service_cycle_us = 696;
-    theoretical_service_cycle_us = 700;
+    empirical_service_cycle_us = 726;
+    theoretical_service_cycle_us = 730;
     service_relative_error = abs(empirical_service_cycle_us- ...
         theoretical_service_cycle_us)/theoretical_service_cycle_us;
     controlled = table(K,q,trials,successes,empirical_ps,theoretical_ps, ...
@@ -52,10 +52,10 @@ function testPartialSfCbAndSbCf(testCase)
         'reservation_full_frames_by_k',[0;100;100], ...
         'reservation_success_frames_by_k',[0;20;32], ...
         'reservation_attempts_by_k',[0;20;40]);
-    packet_log = struct('completion_us',[380;760;1140;1520]);
+    packet_log = struct('completion_us',[396;792;1188;1584]);
     aloha_run = struct('diagnostics',aloha_diag,'packet_log',packet_log);
     row = struct('protocol',"sf_cb",'load_mode',"fixed_packet", ...
-        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',190,'best_q',0.2);
+        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',198,'best_q',0.2);
     condition = struct('row',row,'evaluation',{{aloha_run}});
     save(fullfile(root,'checkpoints','sf_cb.mat'),'condition');
 
@@ -63,20 +63,20 @@ function testPartialSfCbAndSbCf(testCase)
         'raw_listening_busy_opportunities',100,'raw_listening_misses',90, ...
         'eligible_cca_tp',8,'eligible_cca_fn',2, ...
         'eligible_cca_fp',1,'eligible_cca_tn',9, ...
-        'late_start_attempts',1,'failed_attempts',1,'collision_waste_us',190);
+        'late_start_attempts',1,'failed_attempts',1,'collision_waste_us',198);
     csma_run = struct('diagnostics',csma_diag,'packet_log',struct('completion_us',[]));
     row = struct('protocol',"sb_cf",'load_mode',"fixed_packet", ...
-        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',190,'best_q',0.2);
+        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',198,'best_q',0.2);
     condition = struct('row',row,'evaluation',{{csma_run}});
     save(fullfile(root,'checkpoints','sb_cf.mat'),'condition');
 
     failure_diag = struct('cca_mode','directional', ...
         'rts_fail_total',2,'rts_failure_detection_delay_us',300, ...
-        'data_fail_sinr',4,'data_failure_transaction_delay_us',760);
+        'data_fail_sinr',4,'data_failure_transaction_delay_us',792);
     failure_run = struct('diagnostics',failure_diag, ...
         'packet_log',struct('completion_us',[]));
     row = struct('protocol',"sb_cb",'load_mode',"fixed_packet", ...
-        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',190,'best_q',0.2);
+        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',198,'best_q',0.2);
     condition = struct('row',row,'evaluation',{{failure_run}});
     save(fullfile(root,'checkpoints','sb_cb.mat'),'condition');
 
@@ -91,7 +91,7 @@ function testPartialSfCbAndSbCf(testCase)
     verifyEqual(testCase,csma.eligible_fnr(sb_cf_diag),0.2,'AbsTol',1e-12);
     sb_cb_diag = csma.protocol == "sb_cb";
     verifyEqual(testCase,csma.mean_rts_failure_detection_delay_us(sb_cb_diag),150);
-    verifyEqual(testCase,csma.mean_data_failure_transaction_delay_us(sb_cb_diag),190);
+    verifyEqual(testCase,csma.mean_data_failure_transaction_delay_us(sb_cb_diag),198);
     checks = analysis.acceptance_checks;
     sf = checks.protocol == "sf_cb";
     verifyEqual(testCase,checks.rate_relative_error(sf),0.02,'AbsTol',1e-12);
@@ -168,7 +168,7 @@ function testCcaAblationTopologyClustersAndCapacity(testCase)
     lambda_base = 30;
     lambda_effective = 30;
     M = 1;
-    Tp_us = 190;
+    Tp_us = 198;
     best_q = 0.025;
     stable_fraction = 1;
     mean_delay_us = 200;
@@ -191,7 +191,7 @@ function testCcaAblationTopologyClustersAndCapacity(testCase)
         'failed_attempts',3,'collision_channel_time_us',25, ...
         'collision_tx_airtime_us',50, ...
         'rts_fail_total',2,'rts_failure_detection_delay_us',300, ...
-        'data_fail_sinr',4,'data_failure_transaction_delay_us',760);
+        'data_fail_sinr',4,'data_failure_transaction_delay_us',792);
     run = struct('diagnostics',diag,'packet_log',struct('completion_us',[]));
     condition = struct('row',cca_row,'evaluation',{{run}});
     save(fullfile(root,'checkpoints_cca','directional.mat'),'condition');
@@ -217,7 +217,7 @@ function testCcaAblationTopologyClustersAndCapacity(testCase)
         end
     end
     unstable = synthetic_topology_row(11,NaN,800);
-    unstable.M = 2; unstable.Tp_us = 380;
+    unstable.M = 2; unstable.Tp_us = 396;
     unstable.stable_fraction = 0; unstable.p95_delay_us = NaN;
     unstable.backlog_slope_pkt_s = 25; unstable.completion_ratio = 0.7;
     topology_rows(end+1) = unstable;
@@ -234,7 +234,7 @@ function testCcaAblationTopologyClustersAndCapacity(testCase)
     verifyEqual(testCase, ...
         cca.mean_rts_failure_detection_delay_us(directional),150);
     verifyEqual(testCase, ...
-        cca.mean_data_failure_transaction_delay_us(directional),190);
+        cca.mean_data_failure_transaction_delay_us(directional),198);
     verifyTrue(testCase,any(cca.cca_variant == "perfect"));
     verifyEqual(testCase,cca.eligible_fnr(cca.cca_variant == "perfect"),0);
 
@@ -252,7 +252,7 @@ function testCcaAblationTopologyClustersAndCapacity(testCase)
     capacity = analysis.aloha_capacity_theory;
     cap = capacity(capacity.load_mode == "fixed_packet" & capacity.M == 1,:);
     ps = 40*(1/40)*(1-1/40)^39;
-    expected_rho = 40*30*(190+190/ps)/1e6;
+    expected_rho = 40*30*(198+198/ps)/1e6;
     verifyEqual(testCase,cap.q_opt,1/40,'AbsTol',1e-12);
     verifyEqual(testCase,cap.rho,expected_rho,'AbsTol',1e-12);
     verifyTrue(testCase,isfile(fullfile(root,'figures','cca_ablation_diagnostics.png')));
@@ -266,7 +266,7 @@ end
 
 function row = synthetic_cca_row(variant,mode,sensitivity,delay,goodput)
     row = struct('protocol',"sb_cb",'load_mode',"fixed_packet", ...
-        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',190, ...
+        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',198, ...
         'best_q',0.025,'q_source',"primary_tuned", ...
         'cca_variant',variant,'cca_mode',mode,'rx_sens_dbm',sensitivity, ...
         'stable_fraction',1,'mean_delay_us',delay,'p95_delay_us',1.5*delay, ...
@@ -276,7 +276,7 @@ end
 
 function row = synthetic_topology_row(seed,delay,goodput)
     row = struct('protocol',"sf_cb",'load_mode',"fixed_packet", ...
-        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',190, ...
+        'lambda_base',30,'lambda_effective',30,'M',1,'Tp_us',198, ...
         'topology_seed',seed,'stable_fraction',1, ...
         'mean_delay_us',delay,'p95_delay_us',1.5*delay, ...
         'normalized_goodput_units_s',goodput,'goodput_pkt_s',goodput, ...

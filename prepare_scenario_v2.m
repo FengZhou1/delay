@@ -5,7 +5,7 @@ function scenario = prepare_scenario_v2(cfg, topology_seed)
         topology_seed = cfg.topology_seed;
     end
     utils = sim_utils();
-    [SYS, PHY, MMW, SUB7, ~] = utils.get_common_params();
+    [SYS, PHY, MMW, SUB7, ~] = utils.get_common_params(cfg);
     SYS.N_MLO = cfg.n_nodes;
     SYS.N_SECTORS = cfg.n_sectors;
 

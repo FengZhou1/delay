@@ -1,14 +1,14 @@
 function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
-%SIMULATE_SB_CF_V2 Connection-free directional CSMA on a 5-us state machine.
+%SIMULATE_SB_CF_V2 Connection-free directional CSMA on the mmWave grid.
 %   result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
 %
 % Timing rules used here are intentionally explicit:
 %   * a new HOL packet starts with zero DIFS credit;
 %   * the next HOL after a success starts with zero DIFS credit;
 %   * a failed transmission retries only after a fresh full DIFS;
-%   * arrivals at a 5-us boundary are enqueued before that boundary's
+%   * arrivals at a mmWave-slot boundary are enqueued before that boundary's
 %     access decision;
-%   * a successful data frame completes at the end of its last 5-us slot;
+%   * a successful data frame completes at the end of its last mmWave slot;
 %   * there is no ACK airtime.
 %
 % CCA modes:
@@ -24,19 +24,19 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     validate_inputs(trace, scenario, cfg, M, q);
 
     protocol = 'sb_cf';
-    dt_us = 5;
+    dt_us = double(scenario.MMW.SLOT_TIME_US);
     n_nodes = cfg.n_nodes;
-    Tp_us = 190 * double(M);
+    Tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * double(M);
     n_data_slots = round(Tp_us / dt_us);
     if abs(n_data_slots * dt_us - Tp_us) > 1e-9
         error('simulate_sb_cf_v2:NonIntegralPayload', ...
-              'Tp must be an integer number of 5-us state-machine slots.');
+              'Tp must be an integer number of mmWave slots.');
     end
 
     difs_us = double(scenario.MMW.DIFS_US);
     if abs(difs_us / dt_us - round(difs_us / dt_us)) > 1e-9
         error('simulate_sb_cf_v2:NonIntegralDIFS', ...
-              'DIFS must be an integer number of 5-us slots.');
+              'DIFS must be an integer number of mmWave slots.');
     end
 
     phy = scenario.PHY;
@@ -81,7 +81,7 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     ap_lock_was_capture = false;
 
     % CCA and harmful-start truth depend only on the set/state of active
-    % transmitters.  A frame occupies tens to hundreds of 5-us slots, so
+    % transmitters. A frame occupies multiple mmWave slots, so
     % cache these vectors until a start, finish, or lock failure changes
     % that state.  Per-slot counters are still accumulated below.
     cca_cache_valid = false;
@@ -94,7 +94,7 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     cached_single_user_only = false(n_nodes,1);
 
     diagnostics = initialise_diagnostics(cca_mode, seed, Tp_us, difs_us);
-    % These counters are touched on almost every 5-us boundary.  Keep them
+    % These counters are touched on almost every mmWave boundary. Keep them
     % as local scalars in the hot loop and publish them to diagnostics once.
     d_raw_busy_opp = 0;
     d_raw_misses = 0;
@@ -138,10 +138,10 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     if isfield(trace, 'hard_end_us')
         hard_end_us = min(hard_end_us, double(trace.hard_end_us));
     end
-    if abs(hard_end_us / dt_us - round(hard_end_us / dt_us)) > 1e-9
-        error('simulate_sb_cf_v2:NonIntegralHorizon', ...
-              'The hard horizon must be an integer number of 5-us slots.');
-    end
+    % Experimental horizons may be specified in decimal microseconds. The
+    % state machine extends by less than one slot so the last grid-aligned
+    % arrival before the requested horizon is still processed.
+    hard_end_us = ceil(hard_end_us / dt_us) * dt_us;
     sample_capacity = max(1, ceil(hard_end_us / sample_period_us) + 2);
     backlog_sample_us = zeros(sample_capacity,1);
     backlog_sample_n = zeros(sample_capacity,1);
@@ -154,7 +154,7 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
                 pkt.arrival_us(arrival_index) <= t_us + 1e-9
             if pkt.arrival_us(arrival_index) < t_us - 1e-9
                 error('simulate_sb_cf_v2:ArrivalOffGrid', ...
-                      'An arrival was skipped by the 5-us state machine.');
+                      'An arrival was skipped by the mmWave state machine.');
             end
             u = pkt.node_id(arrival_index);
             if u < 1 || u > n_nodes || u ~= round(u)
@@ -635,9 +635,9 @@ function validate_inputs(trace, scenario, cfg, M, q)
         error('simulate_sb_cf_v2:BadScenario', ...
               'scenario must contain MMW and PHY structures.');
     end
-    if cfg.arrival_tick_us ~= 5
+    if cfg.arrival_tick_us ~= scenario.MMW.SLOT_TIME_US
         error('simulate_sb_cf_v2:BadArrivalGrid', ...
-              'SB-CF v2 requires the common 5-us arrival grid.');
+              'SB-CF v2 requires the common mmWave-slot arrival grid.');
     end
     if M < 1 || M ~= round(M)
         error('simulate_sb_cf_v2:BadM', 'M must be a positive integer.');

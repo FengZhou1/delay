@@ -1,0 +1,3328 @@
+{
+  "source": "C:\\Users\\01\\Downloads\\11-25-2187-03-00bq-specification-framework-for-tgbq.docx",
+  "page_hint_count": 17,
+  "items": [
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "T1",
+      "text": "IEEE P802.11\nWireless LANs"
+    },
+    {
+      "kind": "table",
+      "page_hint": 1,
+      "rows": [
+        [
+          "Specification Framework for TGbq"
+        ],
+        [
+          "Date: 2026-[-05-]{+0+}{+7+}-[-22-]{+2+}{+1+}"
+        ],
+        [
+          "Author(s):"
+        ],
+        [
+          "Name",
+          "Affiliation",
+          "Address",
+          "Phone",
+          "email"
+        ],
+        [
+          "Cheng Chen",
+          "Intel Corporation",
+          "",
+          "",
+          "HYPERLINK \"mailto:cheng.chen@intel.com\"cheng.chen@intel.com"
+        ]
+      ]
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "T1",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "T1",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "T1",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "T1",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "T1",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "T1",
+      "text": "AbstractThis document provides the framework from which the draft TGbq amendment will be developed.  The document provides an outline of each the functional blocks that will be a part of the final amendment.  The document is intended to reflect the working consensus of the group on the broad outline for the draft specification.  As such it is expected to begin with minimal detail reflecting agreement on specific techniques and highlighting areas on which agreement is still required. It may also begin with an incomplete feature list with additional features added as they are justified. The document will evolve over time until it includes sufficient detail on all the functional blocks and their inter-dependencies so that work can begin on the draft amendment itself.AbstractThis document provides the framework from which the draft TGbq amendment will be developed.  The document provides an outline of each the functional blocks that will be a part of the final amendment.  The document is intended to reflect the working consensus of the group on the broad outline for the draft specification.  As such it is expected to begin with minimal detail reflecting agreement on specific techniques and highlighting areas on which agreement is still required. It may also begin with an incomplete feature list with additional features added as they are justified. The document will evolve over time until it includes sufficient detail on all the functional blocks and their inter-dependencies so that work can begin on the draft amendment itself."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 1,
+      "style": "Heading1",
+      "text": "Revision history"
+    },
+    {
+      "kind": "table",
+      "page_hint": 3,
+      "rows": [
+        [
+          "Revision",
+          "Date",
+          "Changes"
+        ],
+        [
+          "0",
+          "Jan 23, 2026",
+          "Initial version"
+        ],
+        [
+          "1",
+          "Mar 22, 2026",
+          "Added motions passed in 2026 March meeting"
+        ],
+        [
+          "2",
+          "May 22, 2026",
+          "Added motions passed in 2026 May meeting"
+        ],
+        [
+          "{+3+}",
+          "{+July 2+}{+1+}{+, 2026+}",
+          "{+Added motions passed in 2026 +}{+July +}{+meeting+}\n{+Changed all “non-AP IMMW STA” instances to “IMMW non-AP STA”+}\n{+Unified +}{+different forms for the sub-7 GHz, including Sub-7 GHz, Sub-7GHz, sub-7 GHz, and sub7 to be sub-7 GHz.+}"
+        ]
+      ]
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 3,
+      "style": "Heading1",
+      "text": "NOTEs from the editor"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 3,
+      "style": "ListParagraph",
+      "text": "Further editorial changes by the editor are reflected in track mode."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 3,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 5,
+      "style": "Heading1",
+      "text": "Abbreviations and acronyms"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+A-MPDU+}{+          +}{+a+}{+ggregated MAC Protocol Data Unit+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "AP\t\taccess point"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+BCC                  +}{+b+}{+inary +}{+c+}{+onvolutional +}{+c+}{+oding+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+BPSK                +}{+binary+}{+ +}{+p+}{+hase +}{+s+}{+hift +}{+k+}{+eying+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "BW\t\tbandwidth"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+CRC                  c+}{+yclic +}{+r+}{+edundancy +}{+c+}{+heck+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+DL                     downlink+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "EHT\t\textremely high throughput"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "ELR                  enhanced long range"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "FFT                   fast Fourier transform"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "GI                      guard interval"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "ICF                    initial Control frame"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "ICR                    initial Control response"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "IFFT                  inverse fast Fourier transform"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "IMMW\t             Integrated Millimeter Wave"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+LDP+}{+C                +}{+l+}{+ow-+}{+d+}{+ensity +}{+p+}{+arity-+}{+c+}{+heck+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "LTF                   long training field"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+MCS                  +}{+modulation and coding scheme+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "MIMO\t             multiple-input and multiple-output"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "ML\t\tmulti-link"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "MLD\t\tmulti-link device"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "mmWave           Millimeter Wave"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+MPDU              +}{+ +}{+MAC Protocol Data Unit+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+NAV+}{+                  netwo+}{+rk allocation vector+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "NDP\t\tnull data PPDU"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+OFDM               +}{+orthogonal frequency division m+}{+odulation+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "OFDMA \torthogonal frequency division multiple access"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "PPDU\t\tphysical layer (PHY) protocol data unit"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+P2P+}{+                    peer-to-peer+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+QAM+}{+                 q+}{+uadrature +}{+a+}{+mplitude +}{+m+}{+odulation+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+Q+}{+PSK                +}{+q+}{+uadrature +}{+p+}{+hase +}{+s+}{+hift +}{+k+}{+eying+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "SIG                    signal"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "SP                      service period"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+SS                      spatial stream+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "STA\t\tstation"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "STF                   short training field"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "SU\t\tsingle user"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+TRN                  training+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "TTLM \t             TID-To-link mapping"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "TXOP\t\ttransmit opportunity"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "{+UL                     uplink+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "VHT                  very high throughput"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "Heading1",
+      "text": "IMMW PHY"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "Heading2",
+      "text": "General"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "",
+      "text": "This section describes the functional blocks in the IMMW PHY."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 6,
+      "style": "ListParagraph",
+      "text": "1.25 MHz is the only supported subcarrier spacing for data portion in IMMW PPDU."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "[Motion #5, [1] and [6-10]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "The data portion of IMMW PPDU uses the EHT non-OFDMA tone plan of the same FFT size as below:"
+    },
+    {
+      "kind": "table",
+      "page_hint": 7,
+      "rows": [
+        [
+          "",
+          "11bq 320MHz",
+          "11bq 640MHz"
+        ],
+        [
+          "FFT Size",
+          "256",
+          "512"
+        ],
+        [
+          "# data tones",
+          "234",
+          "468"
+        ],
+        [
+          "# pilot tones",
+          "8",
+          "16"
+        ],
+        [
+          "# guard /DC tones",
+          "11/3",
+          "23/5"
+        ],
+        [
+          "Tone spacing",
+          "1.25MHz"
+        ],
+        [
+          "Symbol duration without GI",
+          "800ns"
+        ]
+      ]
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "[Motion #11, [1] and [8, 6, 9, 10]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "IMMW specifies two types of PPDU format:"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "IMMW SU PPDU format for data transmission."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "IMMW NDP format."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "[Motion #17, [1] and [20]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "IMMW will define only two GI values of 50ns and 100ns for IMMW data portion."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "Mandatory and optional requirements of these two GI values are TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "[Motion #18, [1] and [21, 6, 8, 9, 22, 23]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "An IMMW non-AP STA that uses omnidirectional or quasi-omnidirectional antennas for transmission and/or reception is supported by 802.11bq. Such IMMW non-AP STAs shall support beam establishment and beam tracking procedures with IMMW STAs that support directional transmission and/or reception."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "[Motion #19, [1] and [24-26]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "11bq defines an Antenna Pattern Reciprocity capability field for an IMMW STA to indicate whether it supports antenna pattern reciprocity"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "Antenna Pattern Reciprocity indicates that the transmit antenna pattern associated with an antenna weight vector is the same as the receive antenna pattern for the same antenna weight vector for the same IMMW antenna"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "Note: An IMMW antenna is a single element antenna, a phased array or a set of switched beam antennas utilized by an IMMW STA."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "[Motion #32, [1] and [40]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "11bq defines a polarization capability field that indicates the antenna polarizations supported by an IMMW AP or a non‑AP STA."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "[Motion #59, [1] and [52, 55, 56]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "{+802.11ac LDPC rate-matching is used in 802.11bq.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 7,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+77+}{+, [1] and [+}{+72+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+LDPC is the only coding scheme for data portion of IMMW SU PPDU and 2xLDPC is optionally supported for IMMW SU PPDU in 11bq.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+[Motion #7+}{+8+}{+, [1] and [7+}{+3+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+The+}{+ following MCSs for IMMW SU PPDU are defined in 802.11bq:+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+MCS0~7+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+MCS17: QPSK+R2/3+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+MCS19: 16QAM+R2/3+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+MCS20: 16QAM+R5/6+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+NOTE: MCS index in 802.11bq is TBD+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+[Motion #32, [1] and [+}{+73+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+802.11bq defines one variant of IMMW NDP without TRN field and one variant of IMMW NDP with TRN field.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+97+}{+, [1] and [+}{+9+}{+3]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+IMMW PPDU may include a field which provides additional receive processing time at the end of the IMMW PPDU.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "{+[Motion #9+}{+9+}{+, [1] and [9+}{+6+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "Heading2",
+      "text": "Bandwidth and channelization"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "Define 320 MHz and 640 MHz bandwidth modes in 802.11bq."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "[Motion #6, [1] and [9, 6, 8, 10, 11]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "Channels with same BW are non-overlapping."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "Center frequencies for adjacent channels of X MHz BW are spaced by X MHz."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "[Motion #10, [1] and [15]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "11bq only defines 320 MHz and 640 MHz bandwidth mode."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "11bq optionally supports SU-MIMO with two spatial streams."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "[Motion #56, [1] and [52]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "Heading2",
+      "text": "IMMW Preamble"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "IMMW PPDU format starts with mmW preamble (M-Preamble) that consists of M-STF, M-LTF, and SIG field"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "SIG field structure (e.g., number of SIG fields, encoding structure) TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "[Motion #20, [1] and [27-32, 34]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "The preamble of IMMW SU PPDU is illustrated as follows."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "NOTE: The name and the structure of SIG(s) subfield are TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 8,
+      "style": "ListParagraph",
+      "text": "[Motion #21, [1] and [31, 27-30, 31-34]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "For a 640 MHz IMMW SU PPDU, M-STF, M-LTF and SIG(s) have a frequency duplicated format based on 320 MHz."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "Whether to apply phase rotation is TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "[Motion #22, [1] and [33, 27-30]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "The preamble of IMMW SU PPDU format for bandwidth 640MHz is defined as below."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "The corresponding subfields M-STF, M-LTF and SIG(s) of 320MHz IMMW SU PPDU are duplicated over 640MHz"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "IMMW-STF and IMMW-LTF are defined based on PPDU BW 640MHz"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "NOTE: the phase rotation between 320MHz segments is TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "NOTE: the name and structure of SIG(s) subfield is TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "[Motion #23, [1] and [29, 33, 27, 28, 30]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "For a given PPDU BW, the definition of M-STF and M-LTF subfields are the same for all IMMW PPDUs."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "[Motion #24, [1] and [32, 34, 27-29]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "SIG of BW 320MHz IMMW PPDUs uses 4x frequency domain duplication."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "[Motion #38, [1] and [43, 44]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "M-STF of 320MHz IMMW PPDUs uses 2x frequency domain duplication."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "[Motion #39, [1] and [43, 44]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The design target of M-Preamble of IMMW PPDUs is about 6 dB more reliable than data portion with MCS0."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "[Motion #40, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "M-STF field in IMMW PPDUs has the length of 6.4us."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": "[Motion #41, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Both M-LTF and SIG in IMMW PPDU use the same phase rotation sequence to reduce PAPR. [Motion #42, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "M-LTF sequence in each of frequency duplicated blocks is 52 tone 20MHz L-LTF sequence in sub{+-+}7 {+GHz +}plus 4 extra tones [-1 -1 -1 1]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Note that [-1 -1 -1 1] are the additional 4 values mapped to extra tones [-28 -27 27 28] of L-SIG in 11ax/be/bn."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #43, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "11bq defines the Guard Interval for M-LTF as 400ns."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #44, [1] and [44, 46, 47, 49]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The non-IMMW modulated fields (M-STF, M-LTF and SIG) for BW320 PPDU are defined with the following format:"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "M-LTF and SIG(s) are FD four times (4x) duplicated (80MHz DUP)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "M-LTF and SIG(s) use the same tone plan"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "M-STF is FD two times (2x) Duplicated (160MHz DUP)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Number of tones (e.g., 52/56 etc.) & detailed tone plan TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The name and structure of SIG(s) subfield is TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Phase rotation TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #45, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Non-IMMW modulated fields (M-STF, M-LTF and SIG) in 11bq for BW320 PPDU are defined based on the same FFT size of 256."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #46, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "M-STF frequency domain sequence for BW320 PPDU in 11bq is given by:"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "EHTS-120:8:120, set value 0 for tones at indices of +/-64,"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "where EHTS-120:8:120= {M, 0, -M}*(1+j)/√2 and M= {–1, –1, –1, 1, 1, 1, –1, 1, 1, 1, –1, 1, 1, –1, 1} are defined in 802.11ax/be."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #47, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The M-LTF field is defined as below:"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "GI2 followed by four copies of IFFT output of M-LTF"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Length of GI2 is TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #48, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The M-LTF and SIG subfield of 320 MHz PPDU is defined as four times duplication of VHT 20MHz tone plan. The 320MHz loaded tones are shown in the following table:"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #49, [1] and [43-48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The M-LTF and SIG subfields of 320MHz IMMW PPDUs apply 8-segment rotation [1 1 1 1 -1 1 1 -1] in frequency domain with each polarity for one 40MHz segment, from negative frequency to positive frequency."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Note: the phase rotation sequence is the same as the one defined in the data portion of UHR ELR PPDU."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #50, [1] and [43-46, 48]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The tone spacing for the M-LTF and SIG in the M-Preamble is 1.25 MHz."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #51, [1] and [44, 49]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The tone plan is the same for the M-LTF & SIG in the M-preamble."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #52, [1] and [44, 49]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "1.25 MHz subcarrier spacing is used for both preamble and data part."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #53, [1] and [50]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "4x IMMW-LTF with SCS=1.25MHz is the only IMMW-LTF type defined for IMMW SU PPDU in 11bq."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #54, [1] and [51]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The 4x EHT-LTF sequences EHTLTF-122,122 and EHTLTF-244,244 of BW20/40 defined in 11be are reused for IMMW-LTF of BW320/640 in IMMW SU PPDU, respectively."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #55, [1] and [51]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The SIG structure for IMMW SU PPDU is as follows:"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "The SIG field of  IMMW SU PPDU includes M-SIG and IMMW-SIG"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "Note: M-SIG serves the similar purpose as U-SIG in 802.11be/bn."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #57, [1] and [53]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "SIG(s) consists of M-SIG followed by IMMW-SIG for IMMW SU PPDU."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "[Motion #58, [1] and [54]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+The same phase rotation is applied to M-LTF and SIG in 640 +}{+MHz.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+7+}{+4+}{+, [1] and [+}{+68+}{+]+}{+]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+The M-LTF and SIG subfields on the upper 320 MHz of 640 MHz IMMW PPDUs apply 8-segment rotation [1 1 -1 -1 -1 1 -1 1] in frequency domain with each polarity for one 40 MHz segment, from low frequency to high frequency+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Note the lower 320 MHz of 640 MHz uses the same 8-segment rotation as 320 MHz mode.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+75+}{+, [1] and [+}{+69+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Both M-LTF and SIG(s) subfields of 640 MHz IMMW PPDUs apply the same 16-segment phase rotation +}{+[1 +}{+1 1 1 -1 1 1 -1 1 1 -1 -1 -+}{+1 1+}{+ -1 1] as below+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+The phase rotation applied in frequency domain with each polarity for one 40 MHz segment, from negative frequency to positive frequency+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Note: the first 8 entries of [1 1 1 1 -1 1 1 -1] applied on the lower 320 MHz are the same phase rotation applied for M-LTF/SIG(s) subfields of 320 MHz IMMW PPDUs+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+7+}{+6+}{+, [1] and [+}{+70, 71+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+M-SIG includes Version Independent fields and may include the Version Dependent fields.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+88+}{+, [1] and [+}{+86-89+}{+]+}{+]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+The +}{+GI of M-SIG and IMMW-SIG is defined as 200 ns per OFDM symbol.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+8+}{+9+}{+, [1] and [+}{+86-89+}{+]+}{+]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+M-SIG is encoded by BCC using BPSK with ½ code rate.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+90+}{+, [1] and [+}{+8+}{+8, 86+}{+]+}{+]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+IMMW-SIG is encoded by BCC using BPSK with ½ code rate.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+9+}{+1+}{+, [1] and [+}{+88, 86+}{+]+}{+]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+The IMMW-STF and IMMW-LTF in 802.11bq for SU PPDU with single spatial stream is defined with following format+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+4.8 +}{+usec+}{+ IMMW-STF and 4 OFDM symbols of IMMW-LTFs with GI per symbol+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Note: The IMMW-STF sequence is TBD+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+92+}{+, [1] and [+}{+87+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+M+}{+-SIG in 802.11bq is defined with two OFDM symbols, using MCS +}{+0,  encoded+}{+ using a single BCC with 4-bit CRC and 6-bit tail. The BCC is the same as the BCC used in 802.11bn U-SIG.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+9+}{+3+}{+, [1] and [+}{+87+}{+]+}{+]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+MCS0 is the only MCS used for all SIG fields in all IMMW PPDUs in 802.11bq+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Whether including a field for IMMW-SIG MCS indication for future generation is TBD+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+9+}{+4+}{+, [1] and [+}{+8+}{+9+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+IMMW-STF is defined with 0.2 µs periodicity+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Note the IMMW-STF symbol is loaded every 4th tone (i.e., 5 MHz of tone spacing)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+9+}{+5+}{+, [1] and [+}{+90, 91+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+The following frequency domain sequences are defined for IMMW-STF in IMMW SU PPDU+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Reuse 1x EHT-LTF sequences of BW20/40 defined in 11be for IMMW-STF of BW320/640 respectively+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Multiplication with (1+j)/+}{+sqrt(+}{+2) TBD+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+9+}{+6+}{+, [1] and [+}{+9+}{+2+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+The+}{+ LENGTH field in an IMMW PPDU is defined as an absolute duration value, according to the following equation+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+LENGTH= +}{+TXTIME-+}{+T+}{+M-+}{+P+}{+reamble+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Note+}{+ +}{+1: TM−Preamble indicates the total duration of M-STF, M-LTF and M-SIG.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+Note 2: The time unit of the LENGTH field is 1 +}{+μs+}{+.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+9+}{+8+}{+, [1] and [+}{+94, 95+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "Heading2",
+      "text": "{+MIMO+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+802+}{+.11bq allows 2 SS MIMO transmission using two different polarizations for IMMW SU-MIMO.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "",
+      "text": "{+[Motion #+}{+81+}{+, [1] and [+}{+75+}{+]+}{+]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "Heading2",
+      "text": "PHY feature #"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 9,
+      "style": "Heading1",
+      "text": "IMMW MAC"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "Heading2",
+      "text": "General"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "In TGbq, a STA affiliated with an MLD defined by TGbq that supports operation on a mmWave link shall be referred to as an IMMW STA."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "If the STA is a non-AP STA, then it is referred to as a non-AP IMMW STA and if the STA is an AP, then it is referred to as an IMMW AP."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #1, [1] and [2-3]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "An MLD that has at least one affiliated IMMW STA shall have at least one other affiliated STA that is operating on an enabled link located in the [-S-][-ub-]{+s+}{+ub+}-7GHz band."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #12, [1] and [16, 3, 17]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "An MLD that has at least one affiliated IMMW STA shall not perform operations (such as TTLM or ML Reconfiguration) which will lead to the IMMW STA(s) being the only affiliated STA(s) with that MLD or the mmWave link(s) being the only enabled link(s)."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #13, [1] and [16, 3, 17]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "There is no Beacon frame transmitted in the mmWave link by an IMMW AP."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #29, [1] and [38]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "SIFS duration in IMMW link is defined in 11bq to be 16us."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #37, [1] and [41]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "An IMMW AP MLD may support having more than one link operating on non-overlapping channels on the mmWave band."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #60, [1] and [57, 58]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "When an IMMW AP MLD has more than one IMMW link, a non-AP MLD with single mmW radio shall not have more than one IMMW setup link."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "TBD whether multi mmW radio non-AP MLD are allowed in 11bq."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #61, [1] and [57]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "When a non-AP MLD determines a Listen Interval during multi-link setup, it shall not consider IMMW link(s) that is requested for multi-link setup."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "[Motion #64, [1] and [60]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "{+Each IMMW STA needs to announce the following parameters for MPDU and A-MPDU operation through the sub-7 GHz link(s) that its affiliated MLD has+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "{+[Motion #6+}{+8+}{+, [1] and [60]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "{+Single MPDU in IMMW PPDU needs to be always carried in A-MPDU subframe.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "{+[Motion #69, [1] and [64]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "Heading2",
+      "text": "IMMW scheduling"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 10,
+      "style": "ListParagraph",
+      "text": "TGbq defines a new mechanism or reuses an existing mechanism (with necessary enhancements) to set up a schedule for exchanging frame(s) between IMMW STAs (IMMW STA 1 and IMMW STA 2) operating on a mmWave link through STAs (STA 1 and STA 2) operating on a [-S-][-ub-]{+s+}{+ub+}-7 GHz link."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "IMMW STA 1 is affiliated with the same MLD as STA 1."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "IMMW STA 2 is affiliated with the same MLD as STA 2."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "How to set up a schedule is TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #4, [1] and [5]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "Two IMMW MLDs can set up a schedule for performing frame exchanges on the mmW link via a [-S-][-ub-]{+s+}{+ub+}-7 link that they operate on."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "Schedule can be on-demand or periodic."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #15, [1] and [18]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "An IMMW STA shall not transmit frames to a peer IMMW STA outside of a service period (SP) negotiated between them."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #30, [1] and [39]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "A frame exchange sequence, that is not used for beam establishment procedure, within a negotiated service period on the IMMW link shall be initiated with ICF/ICR frame exchange."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #33, [1] and [41, 42]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "For 11bq, all service periods, except the ones that are used exclusively for Beam establishment procedure, are established for frame exchanges between only two peer STAs"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "TBD for service periods used exclusively for Beam establishment."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #34, [1] and [41]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "The negotiation of an SP on IMMW link identifies which STA is the unique service period initiator, except the ones that are used exclusively for Beam establishment procedure"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "The service period initiator is the STA that performs channel access during the service period and initiates the frame exchanges"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "Note: TxOP sharing is not part of this"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #35, [1] and [41]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "Frame exchanges on the mmW link shall occur only within an SP that is already established. [Motion #62, [1] and [59]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "Negotiation of on-demand SP for an IMMW link needs to account for the unavailability of both the initiator and the responder STAs operating on the IMMW link."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "Whether the signaling for on-demand SP negotiation is performed via a management frame or a control frame is TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #65, [1] and [61]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "The IMMW AP and the IMMW STA can negotiate, via sub-7 GHz signaling, a service period (SP) for beam establishment procedure on the mmWave link."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "TBD whether the SP is exclusively for beam establishment or not."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "[Motion #66, [1] and [62]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "{+On-demand SP negotiation is for an agreement for a single non-periodic IMMW SP.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "{+[Motion #6+}{+8+}{+, [1] and [6+}{+4+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "{+The Service Period Initiator (TXOP holder) may allocate medium time within an obtained TXOP to the peer IMMW STA in a SP for two peer IMMW STAs+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "{+The mechanism of the medium time allocation is TBD.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 11,
+      "style": "ListParagraph",
+      "text": "{+The +}{+case where the Service Period Initiator is a non-AP STA and the other peer is an AP is TBD.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+70+}{+, [1] and [6+}{+5+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+Within +}{+an TXOP+}{+, +}{+an IMMW+}{+ STA shall not perform TXOP Return after TXOP sharing.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+[Motion #7+}{+2+}{+, [1] and [65]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+An “+}{+on-demand+}{+” SP on the IMMW link between an IMMW AP MLD and an IMMW non-AP MLD is negotiated via the sub7 link or the IMMW link+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+This negotiation can be initiated by the AP MLD or the non-AP MLD.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+[Motion #7+}{+3+}{+, [1] and [6+}{+6, 67+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+The request frame for on-demand service period (SP) negotiation may indicate the requested SP duration+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+The negotiation is performed on an IMMW link or a sub-7GHz link+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+Details are TB+}{+D+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+80+}{+, [1] and [+}{+74+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "Heading2",
+      "text": "IMMW Channel Access"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "11bq defines a single channel access function (example: a single set of channel access parameters) that is used for any TID on an IMMW link"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "Channel access function for beam establishment is separate"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "[Motion #36, [1] and [41]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "On the mmW link: a responder transmits an ICR in response to a received ICF, and if the responder is unable to participate in the requested TXOP, the ICR includes explicit feedback indicating that the responder cannot participate in the TXOP."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "scope of the feedback is TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "[Motion #63, [1] and [59]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+An IMMW STA shall maintain a single NAV timer for +}{+the medium+}{+ access.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+71+}{+, [1] and [6+}{+5+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "Heading2",
+      "text": "{+P2P+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+In 802.11bq, two IMMW MLDs can perform P2P operation between them on the +}{+mmWave+}{+ band.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+102+}{+, [1] and [+}{+98+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "Heading2",
+      "text": "MAC feature #"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "",
+      "text": "Description for MAC feature #"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 12,
+      "style": "Heading1",
+      "text": "IMMW beamforming"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "Heading2",
+      "text": "General"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "11bq amendment defines:"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "At least one beam establishment procedure that allows STAs to determine the antenna settings necessary to establish a mmWave link."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "At least one beam tracking procedure that allows two STAs to optimize antenna settings for an existing mmWave link."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "NOTE: The specific procedures for beam establishment and beam tracking are TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "[Motion #8, [1] and [13-14]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "Heading2",
+      "text": "Beam establishment"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "11bq defines a mechanism for an MLD to perform a beam establishment procedure in a mmWave band, assisted by its affiliated STA in [-S-][-ub-]{+s+}{+ub+}-7 GHz band."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "[Motion #2, [1] and [4]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "11bq defines new frames or reuses/enhances existing frames, where a STA affiliated with an MLD and operating in a [-Sub-]{+s+}{+ub+}-7 GHz band indicates information to facilitate beam establishment for a mmWave band."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "Details are TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "[Motion #3, [1] and [4]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "11bq defines new frames or reuses/enhances existing frames, where a STA affiliated with an MLD and operating in [-S-][-ub-]{+s+}{+ub+}-7GHz band reports the result of a beam establishment procedure in the mmWave band."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "Details are TBD."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "[Motion #16, [1] and [19]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "11bq The IMMW beam establishment procedure supports training M transmit antenna patterns and training N receive antenna patterns, where M and N are negotiated"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "Note: M ≥ 1, N ≥ 1, M + N > 2"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "[Motion #26, [1] and [36, 37]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "11bq defines or modifies a frame exchange in a sub-7 GHz link to allow IMMW STAs to establish a set of parameters for the upcoming beam establishment in a mmWave link"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "The parameters include the following"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "Information on target start time of the training sequence at the mmWave link"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "Number(s) of transmit sectors (M) to be trained"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "Number(s) of receive sectors (N) to be trained"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "Other parameters TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "The training sequence is TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "[Motion #31, [1] and [40]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "{+802.11bq defines modularized beam training in the beam establishment process, which consists of one or multiple modules. The sequence of modules and the parameters for each module are negotiated during BE setup with at least the following parameters per module+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "{+# +}{+of Tx sectors to scan+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "{+# of Rx sectors to scan+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "{+UL/DL (direction)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "{+Note: “Tx/Rx sectors to scan” signaling is TBD and for instance can be a vector with number of sectors per antenna panel+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 13,
+      "style": "ListParagraph",
+      "text": "{+Note: as part of the parameters per module, whether the NDP PPDUs include TRN or not is TBD+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+Note: whether multiple modules can be done in a single IMMW SP is TBD+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+82+}{+, [1] and [+}{+76+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+For 2D beam establishment using NDP without TRN field, switching Tx beam first is used.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+83+}{+, [1] and [+}{+77+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+In 802.11bq, each IMMW STA determines its own Tx and Rx antenna patterns in beam training and +}{+exchange+}{+ such information with its peer IMMW STA, including the number of antennas and sectors to search and whether it can use quasi-+}{+omni Tx+}{+ and Rx. 11bq defines signaling to support this.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+Note: +}{+TBD signaling for quasi-omni related indication can be implicit or explicit.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+84+}{+, [1] and [+}{+78+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+The beam establishment receiver may terminate the +}{+mmWave+}{+ beam establishment procedure via sub-7 GHz, once the receiver successfully receives one or more NDPs in the beam establishment procedure.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+[Motion #8+}{+5+}{+, [1] and [7+}{+9, 80+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+The beam establishment procedure for a single STA can be done in multiple SPs+}{+.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+The AP may indicate +}{+the multiple+}{+ SPs in the sub-7 GHz+}{+.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+[Motion #8+}{+6+}{+, [1] and [+}{+81+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+802.11bq defines a broadcast SP exclusively used for DL beam measurement for more than one non-AP IMMW STAs+}{+.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+Note 1: non-AP IMMW STAs can include both associated non-AP STAs and unassociated non-AP STAs.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+Note 2: Uplink is not allowed in this broadcast SP.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+Other details are TBD+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+[Motion #8+}{+7+}{+, [1] and [8+}{+2+}{+-85+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+11bq shall define a mechanism to enable the IMMW SP initiator of an IMMW SP used to do IMMW beam-establishment to transmit a frame indicating an early termination of the IMMW +}{+SP beam+}{+ establishment via sub-7 link.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+The frame may initiate a negotiation of a new SP for the IMMW beam establishment+}{+.+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "{+[Motion #+}{+101+}{+, [1] and [+}{+97+}{+]]+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "Heading2",
+      "text": "Beam tracking"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "The beam tracking training of multiple beams can be enabled within a single PPDU."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "[Motion #7, [1] and [12]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "Feedback resulting from the beam tracking procedure may be sent over the mmWave link."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "[Motion #9, [1] and [13-14]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "11bq defines a mechanism for an IMMW STA operating in a mmWave band to initiate a beam tracking procedure"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "Details are TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "[Motion #25, [1] and [35]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "11bq defines new or reuses/enhances existing signaling mechanism(s) in a mmWave link for an IMMW STA to facilitate beam tracking procedure for a mmWave band"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 14,
+      "style": "ListParagraph",
+      "text": "TBD on using frame or NDP PPDU"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "Details are TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "[Motion #27, [1] and [35]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "11bq defines new frames or reuses/enhances existing frames for exchange over a mmWave link, where an IMMW STA reports the result of beam tracking procedure in the mmWave band"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "Details are TBD"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "[Motion #28, [1] and [35]]"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": ""
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "Heading1",
+      "text": "References"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "[-11-25/2163r-][-21-]{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2163-13-00bq-tgbq-compendium-of-motions.pptx\"+}{+11-25/2163r+}{+2+}{+8+}: TGbq compendium of motions, Edward Au (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1126-02-00bq-mlo-aided-60-ghz-operation.pptx\"11-25/1126r2: MLO aided 60 GHz operation, Abhishek Patil (Qualcomm)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1443-02-00bq-on-demand-mmwave-link-activation-follow-up.pptx\"11-25/1443r2: On-demand mmWave link activation - follow up, Jonghoe Koo (Samsung Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-0841-02-00bq-some-considerations-for-mlo-based-bft-announcement.pptx\"11-25/0841r2: Some considerations for MLO-based BFT Announcement, Hongwon Lee(LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-0433-04-00bq-channel-access-for-immw.pptx\"11-25/0433r4: Channel Access for IMMW, Dongju Cha (LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1737-01-00bq-high-level-thoughts-on-bw-modes-and-numerology-in-immw.pptx\"11-25/1737r1: High Level Thoughts on BW Modes and Numerology in IMMW, Lin Yang (Qualcomm Inc.)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1300-00-00bq-on-numerology-and-bandwidth-for-immw.pptx\"11-25/1300r0: On Numerology and Bandwidth for IMMW, Jiqing Ni (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1846-00-00bq-thoughts-on-numerology-and-tone-plan-for-immw.pptx\"11-25/1846r0: Thoughts on Numerology and Tone Plan for IMMW, Shengquan Hu (Mediatek)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1887-02-00bq-high-level-thoughts-on-immw-numerology.pptx\"11-25/1887r2: High level thoughts on IMMW Numerology, Juan Fang (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1990-03-00bq-discussion-on-immw-numerology.pptx\"11-25/1990r3: Discussion on IMMW Numerology, Bo Gong (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-0822-01-00bq-discussion-on-numerology-and-bandwidth-for-11bq.pptx\"11-25/0822r1: Discussion on Numerology and Bandwidth for 11bq, Eunsung Park (LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1975-00-00bq-enabling-multi-beam-training-per-ppdu.pptx\"11-25/1975r0: Enabling Multi-Beam Training per PPDU, Mengshi Hu (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1959-01-00bq-beam-establishment-and-beam-tracking.pptx\"11-25/1959r1: Beam Establishment and Beam Tracking, Claudio da Silva (MediaTek)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1553-01-00bq-millimeter-wave-beacon-as-backbone-of-beam-management.pptx\"11-25/1553r1: Millimeter Wave Beacon as Backbone of Beam Management, Bilal Sadiq (Samsung Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1618-01-00bq-immw-channelization.pptx\"11-25/1618r1: IMMW Channelization, Cheng Chen (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1126-03-00bq-mlo-aided-60-ghz-operation.pptx\"11-25/1126r3: MLO aided 60 GHz operation, Abhishek Patil (Qualcomm)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1341-01-00bq-discussion-on-mmwave-link-management.pptx\"11-25/1341r1, Discussion on mmWave Link Management, Liuming Lu (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2304-01-00bq-immw-considerations-for-ul-operation.pptx\"11-25/2304r1: IMMW: Considerations for UL operation, Abhishek Patil (Qualcomm)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1153-01-00bq-mlo-based-bft-signaling-follow-up.pptx\"11-25/1153r1: MLO-based BFT signaling follow-up\t, Hongwon Lee (LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0109-00-00bq-immw-ppdu-format.pptx\"11-26/0109r0: IMMW PPDU format, Yan Xin (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0092-03-00bq-discussion-on-channel-delay-and-gi-in-immw.pptx\"11-26/0092r3: Discussion on Channel Delay and GI in IMMW, Genadiy Tsodik (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0026-00-00bq-evaluation-on-gi-options-in-immw.pptx\"11-26/0026r0: Evaluation on GI Options in IMMW, Xu Chen (Xiaomi)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0116-00-00bq-follow-up-thoughts-on-gi-options.pptx\"11-26/0116r0: Follow Up Thoughts on GI Options, Subharthi Banerjee (NXP Semiconductors)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2393-02-00bq-a-real-world-path-loss-measurement-of-60ghz-omnidirectional-antennas.pptx\"11-25/2393r2: A Real-World Path Loss Measurement of 60GHz Omnidirectional Antennas, Ning Gao (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-0366-00-00bq-simulation-of-indoor-millimeter-wave-signal-received-power-using-an-omnidirectional-antenna-pattern.pptx\"11-25/0366r0: Simulation of Indoor Millimeter-Wave Signal Received Power Using an Omnidirectional Antenna Pattern, Ning Gao (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2064-00-00bq-omni-directional-antenna-for-immw-follow-up.pptx\"11-25/2064r0: Omni-directional Antenna for IMMW Follow Up, Ning Gao (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0471-01-00bq-high-level-thoughts-on-immw-ppdu-format.pptx\"11-26/0471r1: High Level Thoughts on IMMW PPDU Format, Lin Yang (Qualcomm Inc.)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0492-01-00bq-further-thoughts-on-immw-ppdu-format.pptx\"11-26/0492r1: Further thoughts on IMMW PPDU format, Xu Chen (Xiaomi)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0567-02-00bq-thoughts-on-immw-ppdu-format-design.pptx\"11-26/0567r2: Thoughts on IMMW PPDU Format Design, Shengquan Hu (Mediatek)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0570-00-00bq-high-level-thoughts-on-immw-ppdu-format-design.pptx\"11-26/0570r0: High level thoughts on IMMW PPDU format design, Juan Fang (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0579-01-00bq-consideration-of-immw-su-ppdu-format.pptx\"11-26/0579r1: Consideration of IMMW SU PPDU format, Yan Xin (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0601-01-00bq-thoughts-on-immw-preamble-structure.pptx\"11-26/0601r1: Thoughts-on-IMMW-Preamble-Structure, Rui Cao (NXP)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 15,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2331-03-00bq-ppdu-structure-for-11bq.pptx\"11-25/2331r3: PPDU Structure for 11bq, Eunsung Park (LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2029-01-00bq-on-immw-ppdu.pptx\"11-25/2029r1: On IMMW PPDU, Jiqing Ni (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0478-04-00bq-dynamic-beam-tracking-procedure-discussion.pptx\"11-26/0478r4: Dynamic beam tracking procedure discussion, Hongwon Lee (LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0532-00-00bq-negotiating-number-of-tx-and-rx-beams-for-beam-establishment.pptx\"11-26/0532r0: Negotiating Number of TX and RX Beams for Beam Establishment, Wei-Han Chen (MediaTek)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2010-01-00bq-sub-7-ghz-assisted-beam-establishment-for-immw.pptx\"11-25/2010r1: Sub-7 GHz-assisted Beam Establishment for IMMW, Wei-Han Chen (MediaTek)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1619-00-00bq-immw-discovery-association-and-beacon.pptx\"11-25/1619r0: IMMW Discovery, Association, and Beacon, Cheng Chen (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-2305-01-00bq-scheduling-in-the-immw-link.pptx\"11-25/2305r1: Scheduling in the IMMW link, Laurent Cariou (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0505-02-00bq-immw-beam-establishment-considerations.pptx\"11-26/0505r2: IMMW beam establishment considerations, Cheng Chen (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0510-04-00bq-thoughts-on-channel-access-in-immw.pptx\"11-26/0510r4: Thoughts on channel access in IMMW, Dmitry Akhmetov (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0156-01-00bq-channel-access-for-immw-stas.pptx\"11-26/0156r1: Channel Access for IMMW STAs, Liuming Lu (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0839-01-00bq-preamble-design-for-immw-ppdu.pptx\"11-26/0839r1: Preamble design for IMMW PPDU, Bo Gong (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0869-00-00bq-11bq-preamble-design.pptx\"11-26/0869r0: 11bq preamble design, Juan Fang (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0836-00-00bq-preamble-design-for-immw-ppdu.pptx\"11-26/0836r0: Preamble Design for IMMW PPDU, Lin Yang (Qualcomm Inc.)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0872-01-00bq-duscussion-on-preamble-of-immw-su-ppdu.pptx\"11-26/0872r1: Duscussion on Preamble of IMMW SU PPDU, Wei Lin (Xiaomi)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0778-00-00bq-thoughts-on-immw-ppdu-preamble-design.pptx\"11-26/0778r0: Thoughts on IMMW PPDU Preamble Design\t, Shengquan Hu (Mediatek)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0927-00-00bq-m-preamble-designs-for-immw-ppdu.pptx\"11-26/0927r0: M-preamble designs for IMMW PPDU, Rui Cao (NXP)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0916-01-00bq-preamble-design-for-immw.pptx\"11-26/0916r1: preamble design for IMMW, Jiqing Ni (OPPO)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1620-02-00bq-considerations-on-numerology-for-immw-follow-up.pptx\"11-25/1620r2: Considerations on Numerology for IMMW-Follow Up, Insik Jung (LGE)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0911-00-00bq-considerations-on-immw-ltf-design-for-11bq.pptx\"11-26/0911r0: Considerations on IMMW-LTF Design for 11bq, Shengquan Hu (Mediatek)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0922-00-00bq-feasibility-of-su-mimo-in-immw.pptx\"11-26/0922r0: Feasibility of SU-MIMO in IMMW, Wee Kiat New (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0918-02-00bq-discussion-on-the-sig-structure-in-immw-ppdu.pptx\"11-26/0918r2: Discussion on the SIG Structure in IMMW PPDU, Genadiy Tsodik (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0480-03-00bq-considerations-on-sig.pptx\"11-26/0480r3: Considerations on SIG, Eunsung Park (LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0957-01-00bq-immw-polarization-considerations.pptx\"11-26/0957r1: IMMW Polarization Considerations, Ratnesh Kumbhkar (Intel)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1643-00-00bq-support-of-dual-polarization.pptx\"11-25/1643r0: Support of Dual Polarization, Dong Wei (Futurewei Technologies)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0834-01-00bq-multi-radio-operation-on-mmw-link.pptx\"11-26/0834r0: Multi-radio operation on mmW link, Abhishek Patil (Qualcomm)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1002-00-00bq-deterministic-low-latency-10-gbps-in-the-mmwave-band-for-ieee-802-11bq.pptx\"11-26/1002r0: Deterministic Low-Latency ~10 Gbps in the mmWave band for IEEE 802.11bq, Luna Xin Li (Huawei)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0509-03-00bq-immw-channel-access.pptx\"11-26/0509r3: IMMW Channel Access, Giovanni Chisci, (Qualcomm Technologies Inc)."
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-1563-02-00bq-discussion-on-time-synchronization-for-immw.pptx\"11-25/1563r2: Discussion on Time Synchronization for IMMW, Insun Jang (LG Electronics)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0618-02-00bq-immw-on-demand-operation.pptx\"11-26/0618r2: IMMW On-Demand Operation, Javier Perez-Ramirez (Ofinno)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0888-04-00bq-immw-service-period-for-beam-establishment.pptx\"11-26/0888r4: IMMW Service Period for Beam Establishment, Safi Hoque (Ofinno)"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0908-00-00bq-on-demand-sp.pptx\"+}{+11-26/0908+}{+r0:+}{+ +}{+On-demand SP+}{+, +}{+Laurent Cariou (Intel)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0497-01-00bq-a-mpdu-and-mpdu-operation.pptx\"+}{+11-26/0497+}{+r1+}{+: +}{+A-MPDU and MPDU operation+}{+, +}{+Liwen Chu (NXP)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0929-01-00bq-medium-access-and-frame-exchanges-in-a-sp.pptx\"+}{+11-26/0929+}{+r1+}{+: +}{+Medium Access and Frame Exchanges in a SP+}{+, +}{+Liwen Chu (NXP)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/25/11-25-0428-03-00bq-mmwave-link-mac-txop-protection-medium-access-power-save.pptx\"+}{+11-26/0428r3+}{+: +}{+mmWave+}{+ Link MAC: TXOP Protection, Medium Access, Power Save+}{+, +}{+Liwen Chu (NXP)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1117-00-00bq-discussion-on-service-period.pptx\"+}{+11-26/1117r0+}{+: +}{+Discussion-on-service-period+}{+, +}{+Xiangxin+}{+ Gu (+}{+Spreadtrum+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1300-00-00bq-phase-rotation-for-m-preamble-in-immw.pptx\"+}{+11-26/1300r0+}{+: +}{+Phase Rotation for M-Preamble in IMMW+}{+, +}{+Eunsung Park (LG Electronics)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1308-00-00bq-m-ltf-and-sig-field-papr-reduction-for-640mhz.pptx\"+}{+11-26/1308r0+}{+: +}{+M-LTF and SIG Field PAPR Reduction for 640MHz+}{+, +}{+Lin Yang (Qualcomm Inc.)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1320-00-00bq-phase-rotation-for-640mhz-m-preamble-papr-reduction.pptx\"+}{+11-26/1320r0+}{+: +}{+Phase Rotation for 640MHz M-Preamble PAPR Reduction+}{+, +}{+Shengquan Hu (+}{+Mediatek+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1367-00-00bq-immw-640mhz-preamble-papr-studies.pptx\"+}{+11-26/1367r0+}{+: +}{+IMMW 640MHz Preamble PAPR Studies+}{+, +}{+Subharthi+}{+ Banerjee (NXP Semiconductors)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1315-00-00bq-ldpc-rate-matching-in-802-1bq.pptx\"+}{+11-26/1315r0+}{+: +}{+LDPC rate matching in 802.1bq+}{+, +}{+Juan Fang (Intel)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1319-00-00bq-regarding-new-mcss-and-2xldpc-for-immw-su-ppdu.pptx\"+}{+11-26/1319r0+}{+: +}{+Regarding new MCSs and 2xLDPC for IMMW SU PPDU+}{+, +}{+Shengquan Hu (+}{+Mediatek+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0493-04-00bq-further-details-on-on-demand-schedule.pptx\"+}{+11-26/0493r4+}{+: +}{+Further Details on On-demand Schedule+}{+, +}{+Insun Jang (LG Electronics)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1321-01-00bq-feasibility-of-su-mimo-in-immw-follow-up.pptx\"+}{+11-26/1321r1+}{+: +}{+Feasibility of SU-MIMO in IMMW: Follow up+}{+, +}{+Wee Kiat New (Huawei)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1302-00-00bq-discussion-on-beam-establishment-and-channel-access.pptx\"+}{+11-26/1302r0+}{+: +}{+Discussion on Beam Establishment and Channel Access+}{+, +}{+Lin Yang (Qualcomm Inc.)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1335-01-00bq-high-level-thought-on-beam-establishment-with-timing-uncertainty-and-cca.pptx\"+}{+11-26/1335r1+}{+: +}{+High level thought on Beam Establishment with Timing Uncertainty and CCA+}{+, +}{+Juan Fang (Intel)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1309-00-00bq-immw-beamforming-configurations.pptx\"+}{+11-26/1309r0+}{+: +}{+IMMW Beamforming Configurations+}{+, +}{+Cheng Chen (Intel)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1326-00-00bq-early-termination-in-beam-establishment.pptx\"+}{+11-26/1326r0+}{+: +}{+Early Termination in Beam Establishment+}{+, +}{+Mengshi+}{+ Hu (Huawei)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1031-01-00bq-enhancement-on-immw-beam-establishment.pptx\"+}{+11-26/1031r+}{+1+}{+: +}{+Enhancement on IMMW Beam Establishment+}{+, +}{+Tingting Fan (+}{+Ofinno+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0888-05-00bq-immw-service-period-for-beam-establishment.pptx\"+}{+11-26/+}{+088+}{+8+}{+r5+}{+: +}{+IMMW Service Period for Beam Establishment+}{+, +}{+Safi Hoque (+}{+Ofinno+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 16,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0494-01-00bq-pre-association-reachability-check-for-immw.pptx\"+}{+11-26/0494r1+}{+: +}{+Pre-association Reachability Check for IMMW+}{+, +}{+Jinho Choi (Samsung Electronics)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0045-00-00bq-discussion-on-mmwave-link-setup.pptx\"+}{+11-26/0045r+}{+0+}{+: +}{+Discussion on +}{+mmWave+}{+ Link Setup+}{+, +}{+Shuang Fan (+}{+Sanechips+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0489-00-00bq-tx-and-rx-beam-pair-discovery-for-beam-establishment.pptx\"+}{+11-26/0489r0+}{+: +}{+TX and RX Beam Pair Discovery for Beam Establishment+}{+, +}{+Bilal Sadiq (Samsung Electronics)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0903-01-00bq-thoughts-on-beam-establishment-and-beam-tracking.pptx\"+}{+11-26/0903r+}{+1+}{+: +}{+Thoughts-on-beam-establishment-and-beam-tracking+}{+, +}{+Xiangxin+}{+ Gu (+}{+Spreadtrum+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1314-00-00bq-high-level-discussion-on-the-sig-design-and-content.pptx\"+}{+11-26/1314r0+}{+: +}{+High Level Discussion on the SIG Design and Content+}{+, +}{+Genadiy Tsodik (Huawei)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1312-00-00bq-802-11bq-preamble-design-follow-up.pptx\"+}{+11-26/1312r0+}{+: +}{+802.11bq preamble design follow up+}{+, +}{+Juan Fang (Intel)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1299-00-00bq-considerations-on-sig-follow-up.pptx\"+}{+11-26/1299r0+}{+: +}{+Considerations on SIG Follow-up+}{+, +}{+Eunsung Park (LG Electronics)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1318-00-00bq-thoughts-on-sig-field-design-for-11bq.pptx\"+}{+11-26/1318r0+}{+: +}{+Thoughts on SIG Field Design for 11bq+}{+, +}{+Shengquan Hu (+}{+Mediatek+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1370-00-00bq-thoughts-on-immw-stf-design.pptx\"+}{+11-26/1370r0+}{+: +}{+Thoughts on IMMW-STF Design+}{+, +}{+Teja Pasupuleti (NXP)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1418-00-00bq-considerations-for-immw-stf.pptx\"+}{+11-26/+}{+1418r0+}{+: +}{+Considerations for IMMW-STF+}{+, +}{+Ratnesh Kumbhkar (Intel)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1316-00-00bq-immw-stf-field-design-for-11bq.pptx\"+}{+11-26/1316r0+}{+: +}{+IMMW-STF Field Design for 11bq+}{+, +}{+Shengquan Hu (+}{+Mediatek+}{+)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1361-00-00bq-consideration-of-immw-ndp-format.pptx\"+}{+11-26/1361r0+}{+: +}{+Consideration of IMMW NDP format+}{+, +}{+Yan Xin (Huawei)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1327-00-00bq-discussion-on-the-length-indication-for-immw-ppdu.pptx\"+}{+11-26/1327r0+}{+: +}{+Discussion on the Length Indication for IMMW PPDU+}{+, +}{+Yulin Huang (Huawei)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1365-00-00bq-thoughts-on-immw-length-field-indication.pptx\"+}{+11-26/1365r0+}{+: +}{+Thoughts on IMMW Length Field Indication+}{+, +}{+Subharthi+}{+ Banerjee (NXP Semiconductors)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1372-02-00bq-packet-extension-in-immw-ppdu.pptx\"+}{+11-26/1372r2+}{+: +}{+Packet Extension in IMMW PPDU+}{+, +}{+Yanchun+}{+ Li (ZTE)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-1325-00-00bq-discussion-on-immw-beam-establishment.pptx\"+}{+11-26/1325r0+}{+: +}{+Discussion on IMMW beam establishment+}{+, +}{+Kaiying Lu (MediaTek USA)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "ListParagraph",
+      "text": "{+HYPERLINK \"https://mentor.ieee.org/802.11/dcn/26/11-26-0924-01-00bq-discussions-on-peer-to-peer-communications-for-immw.pptx\"+}{+11-26/0924r+}{+1+}{+: +}{+Discussions on peer-to-peer communications for IMMW+}{+, +}{+Narengerile (Huawei)+}"
+    },
+    {
+      "kind": "paragraph",
+      "page_hint": 17,
+      "style": "Title",
+      "text": "End of the document"
+    }
+  ],
+  "comments": []
+}
