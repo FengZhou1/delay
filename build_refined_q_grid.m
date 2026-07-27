@@ -1,8 +1,9 @@
 function [fine_q,meta] = build_refined_q_grid(coarse_q,center_index, ...
-        n_points,scale_mode,q_floor)
+        n_points,scale_mode,q_floor,neighbor_span)
 %BUILD_REFINED_Q_GRID Build a bounded local q grid around a coarse point.
-%   Interior points use their immediate coarse neighbors as the bracket.
-%   A coarse boundary hit expands geometrically by one coarse-grid ratio.
+%   Interior points use NEIGHBOR_SPAN coarse points on each side as the
+%   bracket. A coarse boundary hit expands geometrically by the number of
+%   missing neighbors.
 %   AUTO uses linear spacing for q>=0.05 and log spacing otherwise.
 
     if nargin < 3 || isempty(n_points)
@@ -14,8 +15,11 @@ function [fine_q,meta] = build_refined_q_grid(coarse_q,center_index, ...
     if nargin < 5 || isempty(q_floor)
         q_floor = 1e-7;
     end
+    if nargin < 6 || isempty(neighbor_span)
+        neighbor_span = 1;
+    end
 
-    coarse_q = unique(double(coarse_q(:).'));
+    coarse_q = unique_q_tol(double(coarse_q(:).'));
     if numel(coarse_q) < 2
         error('build_refined_q_grid:TooFewCoarsePoints', ...
             'At least two distinct coarse q values are required.');
@@ -33,23 +37,30 @@ function [fine_q,meta] = build_refined_q_grid(coarse_q,center_index, ...
         error('build_refined_q_grid:BadQ', ...
             'coarse_q must lie in the interval (0,1].');
     end
+    if neighbor_span < 1 || neighbor_span ~= round(neighbor_span)
+        error('build_refined_q_grid:BadNeighborSpan', ...
+            'neighbor_span must be a positive integer.');
+    end
 
     center_q = coarse_q(center_index);
-    expanded_lower = false;
-    expanded_upper = false;
-    if center_index == 1
+    left_available = center_index - 1;
+    right_available = numel(coarse_q) - center_index;
+    left_index = max(1,center_index-neighbor_span);
+    right_index = min(numel(coarse_q),center_index+neighbor_span);
+    lo = coarse_q(left_index);
+    hi = coarse_q(right_index);
+
+    missing_left = max(0,neighbor_span-left_available);
+    missing_right = max(0,neighbor_span-right_available);
+    expanded_lower = missing_left > 0;
+    expanded_upper = missing_right > 0;
+    if missing_left > 0
         ratio = coarse_q(2)/coarse_q(1);
-        lo = max(q_floor,coarse_q(1)/ratio);
-        hi = coarse_q(2);
-        expanded_lower = lo < center_q;
-    elseif center_index == numel(coarse_q)
+        lo = max(q_floor,coarse_q(1)/(ratio^missing_left));
+    end
+    if missing_right > 0
         ratio = coarse_q(end)/coarse_q(end-1);
-        lo = coarse_q(end-1);
-        hi = min(1,coarse_q(end)*ratio);
-        expanded_upper = hi > center_q;
-    else
-        lo = coarse_q(center_index-1);
-        hi = coarse_q(center_index+1);
+        hi = min(1,coarse_q(end)*(ratio^missing_right));
     end
 
     mode = lower(char(scale_mode));
@@ -72,7 +83,11 @@ function [fine_q,meta] = build_refined_q_grid(coarse_q,center_index, ...
 
     % Retain the coarse center even when it is not exactly one of the
     % equally-spaced values.  This adds at most one point.
-    fine_q = unique([base center_q]);
+    % LOGSPACE can return (for example) 0.04999999999999999 while the
+    % retained coarse centre is exactly 0.05.  Exact UNIQUE would then
+    % create two numerically identical neighbours.  Besides wasting a
+    % simulation, that can falsely satisfy the stable-neighbour guard.
+    fine_q = unique_q_tol([base center_q]);
     fine_q = fine_q(fine_q >= q_floor & fine_q <= 1);
     meta = struct( ...
         'center_q',center_q, ...
@@ -80,5 +95,16 @@ function [fine_q,meta] = build_refined_q_grid(coarse_q,center_index, ...
         'bracket_right_q',hi, ...
         'scale_mode',string(mode), ...
         'expanded_lower',expanded_lower, ...
-        'expanded_upper',expanded_upper);
+        'expanded_upper',expanded_upper, ...
+        'neighbor_span',neighbor_span);
+end
+
+function q = unique_q_tol(q)
+    q = sort(double(q(:).'));
+    if isempty(q)
+        return;
+    end
+    absolute_tolerance = 1e-12;
+    keep = [true, diff(q) > absolute_tolerance];
+    q = q(keep);
 end

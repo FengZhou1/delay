@@ -22,15 +22,16 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         error('simulate_sb_cb_v2:BadTick', ...
               'SB-CB v2 requires arrival_tick_us = mmw_slot_us.');
     end
-    if M < 1 || M ~= round(M)
-        error('simulate_sb_cb_v2:BadM', 'M must be a positive integer.');
+    is_saturation = isfield(cfg,'traffic_mode') && ...
+        strcmpi(char(cfg.traffic_mode),'saturation');
+    if ~isscalar(M) || ~isfinite(M) || M <= 0 || ...
+            (~is_saturation && (M < 1 || M ~= round(M)))
+        error('simulate_sb_cb_v2:BadM', ...
+            'M must be an integer >=1 for delay or positive for saturation.');
     end
     if ~isscalar(q) || ~isfinite(q) || q <= 0 || q > 1
         error('simulate_sb_cb_v2:BadQ', 'q must lie in (0,1].');
     end
-    is_saturation = isfield(cfg,'traffic_mode') && ...
-        strcmpi(char(cfg.traffic_mode),'saturation');
-
     n_nodes = cfg.n_nodes;
     n_sectors = cfg.n_sectors;
     if scenario.SYS.N_MLO ~= n_nodes || scenario.SYS.N_SECTORS ~= n_sectors
@@ -61,7 +62,12 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     sifs_us = MMW.SIFS_US;
     cts_us = MMW.CTS_US;
     cts_sweep_us = n_sectors * cts_us;
-    tp_us = double(MMW.CONN_OVERHEAD_US) * double(M);
+    if is_saturation
+        payload_timing = saturation_payload_timing(cfg,M);
+        tp_us = payload_timing.actual_payload_us;
+    else
+        tp_us = double(MMW.CONN_OVERHEAD_US) * double(M);
+    end
     durations = [difs_us, rts_us, sifs_us, cts_us, tp_us];
     if any(mod(durations, TICK_US) ~= 0)
         error('simulate_sb_cb_v2:NonIntegralDuration', ...

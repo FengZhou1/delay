@@ -11,15 +11,22 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     else
         error('simulate_s7_v2:BadProtocol', 'Expected s7_clean or s7_busy.');
     end
-    if M < 1 || M ~= round(M)
-        error('simulate_s7_v2:BadM', 'M must be an integer >= 1.');
-    end
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
+    if ~isscalar(M) || ~isfinite(M) || M <= 0 || ...
+            (~is_saturation && (M < 1 || M ~= round(M)))
+        error('simulate_s7_v2:BadM', ...
+            'M must be an integer >=1 for delay or positive for saturation.');
+    end
 
     n_mlo = cfg.n_nodes;
     n_total = n_mlo + n_slo;
-    tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * M;
+    if is_saturation
+        payload_timing = saturation_payload_timing(cfg,M);
+        tp_us = payload_timing.actual_payload_us;
+    else
+        tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * M;
+    end
     slot_us = scenario.SUB7.SLOT_TIME_US;
     difs_us = scenario.SUB7.DIFS_US;
     req_us = scenario.SUB7.ICF_US;

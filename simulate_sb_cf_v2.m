@@ -28,7 +28,12 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
         strcmpi(char(cfg.traffic_mode),'saturation');
     dt_us = double(scenario.MMW.SLOT_TIME_US);
     n_nodes = cfg.n_nodes;
-    Tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * double(M);
+    if is_saturation
+        payload_timing = saturation_payload_timing(cfg,M);
+        Tp_us = payload_timing.actual_payload_us;
+    else
+        Tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * double(M);
+    end
     n_data_slots = round(Tp_us / dt_us);
     if abs(n_data_slots * dt_us - Tp_us) > 1e-9
         error('simulate_sb_cf_v2:NonIntegralPayload', ...
@@ -609,8 +614,12 @@ function validate_inputs(trace, scenario, cfg, M, q)
         error('simulate_sb_cf_v2:BadArrivalGrid', ...
               'SB-CF v2 requires the common mmWave-slot arrival grid.');
     end
-    if M < 1 || M ~= round(M)
-        error('simulate_sb_cf_v2:BadM', 'M must be a positive integer.');
+    is_saturation = isfield(cfg,'traffic_mode') && ...
+        strcmpi(char(cfg.traffic_mode),'saturation');
+    if ~isscalar(M) || ~isfinite(M) || M <= 0 || ...
+            (~is_saturation && (M < 1 || M ~= round(M)))
+        error('simulate_sb_cf_v2:BadM', ...
+            'M must be an integer >=1 for delay or positive for saturation.');
     end
     if q <= 0 || q > 1
         error('simulate_sb_cf_v2:BadQ', 'q must lie in (0,1].');

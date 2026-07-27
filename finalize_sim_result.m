@@ -186,6 +186,14 @@ function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
     summary.collision_tx_airtime_us_total = collision_tx_airtime;
     summary.collision_channel_time_us_measure = collision_channel_time_measure;
     summary.collision_tx_airtime_us_measure = collision_tx_airtime_measure;
+    summary.stability_rate_ok = rate_ok;
+    summary.stability_censor_ok = censor_ok;
+    summary.stability_slope_ok = slope_ok;
+    summary.stability_rate_relative_error = ...
+        abs(departure_rate_system-arrival_rate_system) / ...
+        max(arrival_rate_system,1);
+    summary.stability_allowed_censored = allowed_censored;
+    summary.stability_slope_limit_pkt_s = slope_tol;
     summary.stable = stable;
     summary.sim_end_us = raw.sim_end_us;
     summary.packet_conservation_ok = true;

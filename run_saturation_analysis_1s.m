@@ -2,7 +2,8 @@
 %
 % Default analysis profile:
 %   40 saturated MLO stations, 8 sectors, fixed topology seed 20260325
-%   M = [1:6 8 10 15 20], hence Tp = 198*M us
+%   M = [0.1 0.2 0.4 0.6 1:6 8 10 15 20]
+%   fractional payloads are rounded to the nearest 9-us mmWave slot
 %   0.2 s warm-up + 1 s measurement, no drain
 %   protocol-specific coarse q scan + local logarithmic fine scan
 %   3 independent evaluation seeds at the selected q

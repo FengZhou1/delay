@@ -37,6 +37,7 @@ function report = run_v2_tests(output_dir)
         @test_all_protocol_conservation, ...
         @test_serial_parallel_packet_equivalence, ...
         @test_analysis_protocol_q_grid_and_filter, ...
+        @test_independent_q_validation_flow, ...
         @test_runner_checkpoint_resume_and_guard};
     names = cellfun(@func2str, tests, 'UniformOutput', false);
     elapsed_s = zeros(numel(tests),1);
@@ -167,6 +168,17 @@ function test_neighbor_stable_q_selection()
     [q,idx,meta] = select_best_q_v2(none,true,true);
     assert(isnan(q) && isnan(idx) && meta.selection_mode=="no_stable_q", ...
         'A grid with no stable q returned a finite best q.');
+
+    wide = fake_q_grid(0.1:0.1:0.7, ...
+        [1 1 1 1 1 0 0],[9 7 5 1 6 NaN NaN]);
+    [q,~,meta] = select_best_q_v2(wide,true,true,2);
+    assert(abs(q-0.3)<1e-12 && ...
+        meta.selection_mode=="wide_neighbor_stable" && ...
+        meta.neighbor_radius_used==2, ...
+        'The preferred two-neighbor basin did not reject a cliff-side q.');
+    assert(~isempty(meta.ranked_candidate_q) && ...
+        abs(meta.ranked_candidate_q(1)-q)<1e-12, ...
+        'The selected q is not first in the validation-candidate ranking.');
 end
 
 function test_refined_q_grid_and_edge_expansion()
@@ -179,12 +191,21 @@ function test_refined_q_grid_and_edge_expansion()
     [low,meta] = build_refined_q_grid([0.005 0.01 0.02],2,5,'auto',1e-7);
     assert(any(abs(low-0.01)<1e-12) && meta.scale_mode=="log", ...
         'Low-q logarithmic refinement omitted its coarse center.');
+    assert(numel(low)==5 && all(diff(low)>1e-12), ...
+        ['A numerically duplicated logarithmic centre survived q-grid ', ...
+         'deduplication.']);
 
     [edge,meta] = build_refined_q_grid([2e-5 5e-5 1e-4],1,5, ...
         'auto',1e-7);
     assert(min(edge)<2e-5 && abs(max(edge)-5e-5)<1e-15 && ...
            meta.expanded_lower, ...
         'A lower-bound coarse optimum did not expand the q range.');
+
+    [wide,meta] = build_refined_q_grid( ...
+        [0.001 0.002 0.005 0.01 0.02],3,9,'auto',1e-7,2);
+    assert(abs(min(wide)-0.001)<1e-15 && ...
+           abs(max(wide)-0.02)<1e-15 && meta.neighbor_span==2, ...
+        'Wide first-pass refinement did not span two coarse neighbors.');
 end
 
 function test_all_censored_cohort_is_unstable()
@@ -655,6 +676,7 @@ function test_analysis_protocol_q_grid_and_filter()
     cfg.n_tune_runs=1;
     cfg.q_coarse_tune_runs=1;
     cfg.q_fine_tune_runs=1;
+    cfg.q_validation_runs=0;
     cfg.n_eval_runs=1;
     cfg.warmup_us=0;
     cfg.measure_us=2e4;
@@ -756,6 +778,53 @@ function test_runner_checkpoint_resume_and_guard()
     end
     assert(rejected, ...
         'A scientifically different config reused an existing output directory.');
+    clear cleanup;
+    remove_test_output(output_dir);
+end
+
+function test_independent_q_validation_flow()
+    output_dir = tempname;
+    cleanup = onCleanup(@() remove_test_output(output_dir));
+    cfg = default_experiment_config('analysis');
+    cfg.protocols = {'sf_cf'};
+    cfg.load_modes = {'fixed_packet'};
+    cfg.lambda_values = 5;
+    cfg.M_values = 1;
+    cfg.warmup_us = 0;
+    cfg.measure_us = 1e5;
+    cfg.drain_max_us = 2e5;
+    cfg.tune_warmup_us = 0;
+    cfg.tune_measure_us = 1e5;
+    cfg.tune_drain_max_us = 2e5;
+    cfg.tune_measure_max_us = 1e5;
+    cfg.q_coarse_tune_runs = 1;
+    cfg.q_fine_tune_runs = 2;
+    cfg.q_validation_runs = 1;
+    cfg.q_validation_max_candidates = 2;
+    cfg.n_eval_runs = 1;
+    cfg.protocol_q_grids.sf_cf = ...
+        [0.01 0.02 0.05 0.1 0.2 0.4 0.6 0.8 1];
+    cfg.stability_rate_tolerance = 1;
+    cfg.stability_censor_tolerance = 1;
+    cfg.stability_require_slope = false;
+    cfg.parallel = false;
+    cfg.run_preflight_tests = false;
+    cfg.output_dir = output_dir;
+    cfg.resume = false;
+
+    experiment = run_experiment(cfg);
+    row = experiment.summary(1,:);
+    assert(row.q_validation_runs==1 && ...
+           row.q_validation_candidates_tested>=1 && ...
+           row.q_validation_passed && isfinite(row.best_q), ...
+        'Independent q validation did not select a finite validated q.');
+    checkpoint = load(fullfile(output_dir,'checkpoints', ...
+        'sf_cf_fixed_packet_lam5_M1.mat'),'condition');
+    tune = checkpoint.condition.tuning;
+    assert(~isempty(tune.q_validation_records) && ...
+           tune.q_validation_selected_rank==1 && ...
+           abs(tune.q_validation_records(1).q-row.best_q)<1e-12, ...
+        'The q-validation record does not match the final selected q.');
     clear cleanup;
     remove_test_output(output_dir);
 end

@@ -3,7 +3,9 @@ function experiment = run_saturation_experiment(cfg)
 %
 % The current protocol state machines are reused with one persistent virtual
 % HOL packet per MLO station.  q is selected independently for every
-% (protocol,M) condition by maximizing successful payload airtime.
+% (protocol,M) condition by maximizing actual successful payload
+% throughput. Fractional requested M values are mapped to integer mmWave
+% DATA slots by saturation_payload_timing.
 
     if nargin < 1 || isempty(cfg)
         cfg = default_saturation_config('smoke');
@@ -58,7 +60,7 @@ function experiment = run_saturation_experiment(cfg)
         M = cfg.M_values(mi);
         for pi = 1:numel(cfg.protocols)
             protocol = cfg.protocols{pi};
-            tag = sprintf('%s_M%d',protocol,M);
+            tag = sprintf('%s_M%s',protocol,format_M_tag(M));
             if ~isempty(cfg.condition_filter) && ...
                     ~ismember(tag,cfg.condition_filter)
                 continue;
@@ -188,7 +190,7 @@ end
 
 function row = summarize_q(q,stage,runs,cfg)
     summary = cellfun(@(x) x.summary,runs,'UniformOutput',false);
-    th = cellfun(@(x) x.payload_airtime_fraction,summary);
+    th = cellfun(@(x) x.effective_payload_fraction,summary);
     pkt_s = cellfun(@(x) x.completed_pkt_s,summary);
     fairness = cellfun(@(x) x.jain_fairness,summary);
     collision = cellfun(@(x) collision_fraction(x.diagnostics,cfg),runs);
@@ -220,7 +222,7 @@ function [best_idx,meta] = select_grid_entry(grid)
     best_idx = candidates(order(1));
     all_q = [grid.q];
     meta = struct();
-    meta.selection_mode = 'maximum_payload_airtime';
+    meta.selection_mode = 'maximum_effective_payload_throughput';
     if numel(candidates) > 1
         meta.selection_mode = 'one_se_tie_collision_fairness_q';
     end
@@ -274,6 +276,7 @@ end
 function condition = summarize_condition(protocol,M,best_q,grid,runs,selection,cfg)
     summaries = cellfun(@(x) x.summary,runs,'UniformOutput',false);
     th = cellfun(@(x) x.payload_airtime_fraction,summaries);
+    effective_th = cellfun(@(x) x.effective_payload_fraction,summaries);
     pkt_s = cellfun(@(x) x.completed_pkt_s,summaries);
     norm_s = cellfun(@(x) x.normalized_goodput_units_s,summaries);
     bits = cellfun(@(x) x.goodput_bit_s,summaries);
@@ -284,18 +287,25 @@ function condition = summarize_condition(protocol,M,best_q,grid,runs,selection,c
     slo_airtime = cellfun(@(x) slo_metric(x.diagnostics, ...
         'slo_payload_overlap_us',cfg.measure_us),runs);
 
-    timing = mmw_timing_config(cfg);
+    payload_timing = saturation_payload_timing(cfg,M);
     row = struct();
     row.protocol = string(protocol);
     row.study_type = "saturation_throughput";
     row.M = M;
-    row.Tp_us = timing.CONN_SLOT_US*M;
+    row.requested_Tp_us = payload_timing.nominal_payload_us;
+    row.Tp_us = payload_timing.actual_payload_us;
+    row.payload_slots = payload_timing.payload_slots;
+    row.effective_M = payload_timing.effective_M;
+    row.payload_quantization_error_us = ...
+        payload_timing.quantization_error_us;
     row.best_q = best_q;
     row.q_selection_mode = string(selection.selection_mode);
     row.q_search_boundary_hit = selection.boundary_hit;
     row.n_eval_runs = numel(runs);
     row.payload_airtime_fraction_mean = mean(th);
     row.payload_airtime_fraction_ci95 = ci95(th);
+    row.effective_payload_fraction_mean = mean(effective_th);
+    row.effective_payload_fraction_ci95 = ci95(effective_th);
     row.completed_pkt_s_mean = mean(pkt_s);
     row.completed_pkt_s_ci95 = ci95(pkt_s);
     row.normalized_goodput_units_s_mean = mean(norm_s);
@@ -433,9 +443,16 @@ function seed = bounded_seed(value)
     seed = mod(round(double(value)),2^31-2)+1;
 end
 
+function tag = format_M_tag(M)
+    tag = sprintf('%.12g',double(M));
+    tag = strrep(tag,'-','m');
+    tag = strrep(tag,'.','p');
+    tag = strrep(tag,'+','');
+end
+
 function manifest = make_manifest(cfg,cfg_hash,code_fingerprint,output_dir, ...
         status,verification_status)
-    manifest = struct('schema_version','2.1-saturation', ...
+    manifest = struct('schema_version','2.2-saturation', ...
         'study_type','saturation_throughput', ...
         'config_hash',cfg_hash,'code_fingerprint',code_fingerprint, ...
         'profile',cfg.profile,'status',status, ...

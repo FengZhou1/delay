@@ -31,9 +31,9 @@ function cfg = validate_saturation_config(cfg)
 
     cfg.M_values = unique(double(cfg.M_values(:).'),'stable');
     if isempty(cfg.M_values) || any(~isfinite(cfg.M_values)) || ...
-            any(cfg.M_values < 1) || any(cfg.M_values ~= round(cfg.M_values))
+            any(cfg.M_values <= 0)
         error('validate_saturation_config:MValues', ...
-            'Saturation M values must be positive integers.');
+            'Saturation M values must be finite positive numbers.');
     end
     if cfg.n_nodes < 1 || cfg.n_nodes ~= round(cfg.n_nodes) || ...
             cfg.n_sectors < 1 || cfg.n_sectors ~= round(cfg.n_sectors) || ...
@@ -91,6 +91,10 @@ function cfg = validate_saturation_config(cfg)
     % Reuse the current timing/PHY validation, then restore the saturation
     % horizon which deliberately has no arrival drain.
     delay_cfg = cfg;
+    % validate_experiment_config deliberately keeps the non-saturated delay
+    % axis at integer M>=1.  Validate the shared PHY/timing with a neutral
+    % integer here without weakening the delay-study contract.
+    delay_cfg.M_values = 1;
     delay_cfg.lambda_values = 0;
     delay_cfg.load_modes = {'fixed_packet'};
     delay_cfg.q_coarse = cfg.protocol_q_grids.sf_cf;

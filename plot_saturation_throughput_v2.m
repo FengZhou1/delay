@@ -12,10 +12,19 @@ function output = plot_saturation_throughput_v2(output_dir)
             'saturation_summary.csv was not found in %s.',output_dir);
     end
     data = readtable(summary_path,'VariableNamingRule','preserve');
-    required = {'protocol','M','Tp_us','payload_airtime_fraction_mean'};
+    required = {'protocol','M','Tp_us'};
     if any(~ismember(required,data.Properties.VariableNames))
         error('plot_saturation_throughput_v2:Columns', ...
             'The saturation summary is missing required plot columns.');
+    end
+    if ismember('effective_payload_fraction_mean',data.Properties.VariableNames)
+        throughput_column = 'effective_payload_fraction_mean';
+    elseif ismember('payload_airtime_fraction_mean',data.Properties.VariableNames)
+        % Backward compatibility for results created before fractional M.
+        throughput_column = 'payload_airtime_fraction_mean';
+    else
+        error('plot_saturation_throughput_v2:Columns', ...
+            'No effective-payload throughput column was found.');
     end
 
     protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
@@ -52,7 +61,7 @@ function output = plot_saturation_throughput_v2(output_dir)
         keep = string(data.protocol) == string(protocol);
         if ~any(keep), continue; end
         x = double(data.Tp_us(keep));
-        y = double(data.payload_airtime_fraction_mean(keep));
+        y = double(data.(throughput_column)(keep));
         valid = isfinite(x) & isfinite(y);
         x = x(valid); y = y(valid);
         [x,order] = sort(x); y = y(order);

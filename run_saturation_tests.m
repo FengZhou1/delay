@@ -21,6 +21,8 @@ function report = run_saturation_tests(output_dir)
     cfg1.run_preflight_tests = false;
     cfg1.parallel = false;
     cfg1 = validate_saturation_config(cfg1);
+    rows(end+1) = check_close('fractional_M_scan_count', ... %#ok<AGROW>
+        sum(ismembertol(cfg1.M_values,[0.1 1],1e-12)),2,0);
     scenario1 = prepare_scenario_v2(cfg1,cfg1.topology_seed);
     trace1 = make_saturation_trace(cfg1);
 
@@ -36,6 +38,35 @@ function report = run_saturation_tests(output_dir)
     sf_cb = run_protocol_v2('sf_cb',trace_cb,scenario1,cfg_cb,2,1,102);
     rows(end+1) = check_close('single_node_sf_cb_airtime', ... %#ok<AGROW>
         sf_cb.summary.payload_airtime_fraction,2/3,1e-12);
+
+    % Fractional M is saturation-only. In the main eight-sector setup,
+    % M=0.1 maps to two 9-us DATA slots (not one complete 198-us connection
+    % slot), and throughput uses the actual integer-slot payload.
+    cfg_default_sectors = default_saturation_config('smoke');
+    fractional_default = saturation_payload_timing(cfg_default_sectors,0.1);
+    rows(end+1) = check_close('fractional_M01_payload_slots_8sectors', ... %#ok<AGROW>
+        fractional_default.payload_slots,2,0);
+    rows(end+1) = check_close('fractional_M01_actual_Tp_8sectors', ... %#ok<AGROW>
+        fractional_default.actual_payload_us,2*timing1.SLOT_US,0);
+    fractional = saturation_payload_timing(cfg1,0.1);
+    fractional_cycle_us = conn1_us + fractional.actual_payload_us;
+    cfg_fractional = cfg1;
+    cfg_fractional.measure_us = fractional_cycle_us*100;
+    cfg_fractional.arrival_end_us = cfg_fractional.measure_us;
+    cfg_fractional.sim_hard_end_us = cfg_fractional.measure_us;
+    trace_fractional = make_saturation_trace(cfg_fractional);
+    sf_cb_fractional = run_protocol_v2('sf_cb',trace_fractional,scenario1, ...
+        cfg_fractional,0.1,1,103);
+    expected_fractional = fractional.actual_payload_us / fractional_cycle_us;
+    rows(end+1) = check_close('single_node_sf_cb_M01_effective_payload', ... %#ok<AGROW>
+        sf_cb_fractional.summary.effective_payload_fraction, ...
+        expected_fractional,1e-12);
+    rows(end+1) = check_close('single_node_sf_cb_M01_not_full_conn_slot', ... %#ok<AGROW>
+        sf_cb_fractional.summary.Tp_us,fractional.actual_payload_us,0);
+    rows(end+1) = check_close('single_node_sf_cb_M01_normalized_goodput', ... %#ok<AGROW>
+        sf_cb_fractional.summary.normalized_goodput_units_s, ...
+        fractional.effective_M * ...
+        sf_cb_fractional.summary.completed_pkt_s,1e-12);
 
     % Forty-node classic Aloha must match the analytical saturation law.
     cfg40 = default_saturation_config('smoke');
@@ -74,7 +105,7 @@ function report = run_saturation_tests(output_dir)
         q_values = smoke_cfg.protocol_q_grids.(protocol);
         q_test = q_values(min(numel(q_values),ceil(numel(q_values)/2)));
         result = run_protocol_v2(protocol,smoke_trace,smoke_scenario, ...
-            smoke_cfg,1,q_test,300+i);
+            smoke_cfg,0.1,q_test,300+i);
         observed = result.summary.payload_airtime_fraction;
         passed = result.summary.saturated && isfinite(observed) && ...
             observed >= 0 && observed <= 1 && ...

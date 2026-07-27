@@ -15,8 +15,14 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
         error('simulate_aloha_v2:BadProtocol', ...
               'protocol must be ''sf_cf'' or ''sf_cb''.');
     end
-    if ~isscalar(M) || ~isfinite(M) || M < 1 || M ~= round(M)
-        error('simulate_aloha_v2:BadM', 'M must be a positive integer scalar.');
+    is_saturation = isfield(cfg,'traffic_mode') && ...
+        strcmpi(char(cfg.traffic_mode),'saturation');
+    valid_delay_M = isscalar(M) && isfinite(M) && M >= 1 && M == round(M);
+    valid_saturation_M = isscalar(M) && isfinite(M) && M > 0;
+    if (~is_saturation && ~valid_delay_M) || ...
+            (is_saturation && ~valid_saturation_M)
+        error('simulate_aloha_v2:BadM', ...
+            'M must be an integer >=1 for delay or positive for saturation.');
     end
     if ~isscalar(q) || ~isfinite(q) || q <= 0 || q > 1
         error('simulate_aloha_v2:BadQ', 'q must be in the interval (0,1].');
@@ -51,8 +57,6 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
     end
 
     n_nodes = double(cfg.n_nodes);
-    is_saturation = isfield(cfg,'traffic_mode') && ...
-        strcmpi(char(cfg.traffic_mode),'saturation');
     n_packets = double(trace.n_packets);
     arrival_us = double(trace.times_us(:));
     node_id = double(trace.node_id(:));
@@ -73,7 +77,12 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
             'scenario.MMW.CONN_OVERHEAD_US is required.');
     end
     reservation_us = double(scenario.MMW.CONN_OVERHEAD_US);
-    Tp_us = reservation_us * double(M);
+    if is_saturation
+        payload_timing = saturation_payload_timing(cfg,M);
+        Tp_us = payload_timing.actual_payload_us;
+    else
+        Tp_us = reservation_us * double(M);
+    end
     if strcmp(protocol, 'sf_cf')
         contention_slot_us = Tp_us;
     else
@@ -379,6 +388,11 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
     diagnostics.protocol = protocol;
     diagnostics.M = double(M);
     diagnostics.Tp_us = Tp_us;
+    if is_saturation
+        diagnostics.requested_Tp_us = payload_timing.nominal_payload_us;
+        diagnostics.payload_slots = payload_timing.payload_slots;
+        diagnostics.effective_M = payload_timing.effective_M;
+    end
     diagnostics.q = double(q);
     diagnostics.seed = double(seed);
     diagnostics.contention_slot_us = contention_slot_us;

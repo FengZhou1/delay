@@ -15,15 +15,17 @@ function cfg = default_saturation_config(profile)
     % retained where prepare_scenario_v2 and the protocol simulators expect
     % them, but the saturation runner never generates stochastic arrivals.
     cfg = default_experiment_config('smoke');
-    cfg.schema_version = '2.1-saturation';
+    cfg.schema_version = '2.2-saturation';
     cfg.profile = profile;
     cfg.study_type = 'saturation_throughput';
     cfg.traffic_mode = 'saturation';
     cfg.protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
 
-    % Integer M values preserve the current slot model while spanning almost
-    % exactly the legacy plot's 0--4000 us horizontal range.
-    cfg.M_values = [1:6, 8, 10, 15, 20];
+    % Fractional points reproduce the short-payload portion of the legacy
+    % saturated-throughput sweep.  DATA airtime is quantized to an integer
+    % number of 9-us mmWave slots; effective payload is never promoted to a
+    % full 198-us connection slot.
+    cfg.M_values = [1/10, 1/5, 2/5, 3/5, 1:6, 8, 10, 15, 20];
     cfg.warmup_us = 2e5;
     cfg.measure_us = 1e6;
     cfg.drain_max_us = 0;
@@ -62,7 +64,7 @@ function cfg = default_saturation_config(profile)
 
     switch profile
         case 'smoke'
-            cfg.M_values = [1 2];
+            cfg.M_values = [1/10 1];
             cfg.warmup_us = 0;
             cfg.measure_us = 2e4;
             cfg.n_tune_runs = 1;

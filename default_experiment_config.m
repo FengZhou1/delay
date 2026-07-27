@@ -46,6 +46,11 @@ function cfg = default_experiment_config(profile)
     cfg.q_coarse_tune_runs = 1;
     cfg.q_fine_tune_runs = 3;
     cfg.q_fine_points = 5;
+    cfg.q_max_refinement_passes = 1;
+    cfg.q_refine_neighbor_span = 1;
+    cfg.q_preferred_neighbor_radius = 1;
+    cfg.q_validation_runs = 0;
+    cfg.q_validation_max_candidates = 1;
     cfg.q_refine_scale = 'auto';
     cfg.q_refine_floor = 1e-7;
     cfg.q_require_stable_neighbors = false;
@@ -181,9 +186,14 @@ function cfg = default_experiment_config(profile)
             cfg.q_coarse = [0.01 0.025 0.05];
             cfg.q_refine_points = 0;
             cfg.q_two_stage_tuning = true;
-            cfg.q_coarse_tune_runs = 1;
+            cfg.q_coarse_tune_runs = 2;
             cfg.q_fine_tune_runs = 3;
-            cfg.q_fine_points = 5;
+            cfg.q_fine_points = 9;
+            cfg.q_max_refinement_passes = 2;
+            cfg.q_refine_neighbor_span = 2;
+            cfg.q_preferred_neighbor_radius = 2;
+            cfg.q_validation_runs = 2;
+            cfg.q_validation_max_candidates = 3;
             cfg.q_refine_scale = 'auto';
             cfg.q_refine_floor = 1e-7;
             cfg.q_require_stable_neighbors = true;
@@ -191,18 +201,23 @@ function cfg = default_experiment_config(profile)
             cfg.adaptive_q_grid = false;
             cfg.protocol_q_grids_enabled = true;
             cfg.protocol_q_grids.sf_cf = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
+                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
+                 5e-2 0.1 0.2 0.4 0.6 0.8 1];
             cfg.protocol_q_grids.sf_cb = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
+                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
+                 5e-2 0.1 0.2 0.4 0.6 0.8 1];
             cfg.protocol_q_grids.sb_cf = ...
-                [2e-5 5e-5 1e-4 2e-4 5e-4 1e-3 2e-3 ...
-                 5e-3 1e-2 2e-2 5e-2];
+                [1e-5 2e-5 5e-5 1e-4 2e-4 5e-4 1e-3 2e-3 ...
+                 5e-3 1e-2 2e-2 5e-2 0.1 0.2 0.5 1];
             cfg.protocol_q_grids.sb_cb = ...
-                [5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 5e-2 0.1 0.2 0.5];
+                [1e-4 2e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
+                 5e-2 0.1 0.2 0.4 0.6 0.8 1];
             cfg.protocol_q_grids.s7_clean = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
+                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
+                 5e-2 0.1 0.2 0.4 0.6 0.8 1];
             cfg.protocol_q_grids.s7_busy = ...
-                [0.005 0.01 0.025 0.05 0.1 0.2 0.5 1];
+                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
+                 5e-2 0.1 0.2 0.4 0.6 0.8 1];
             cfg.q_grid_light = [0.05 0.1 0.2 0.5 1];
             cfg.q_grid_medium = [0.025 0.05 0.1 0.2];
             cfg.q_grid_heavy = [0.01 0.025 0.05];
