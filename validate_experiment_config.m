@@ -76,6 +76,14 @@ function cfg = validate_experiment_config(cfg)
     % config and result manifest state the actual connection-slot duration.
     cfg.mmw_conn_slot_slots = timing.CONN_SLOT_SLOTS;
     cfg.mmw_conn_slot_us = timing.CONN_SLOT_US;
+    if ~isscalar(cfg.data_sinr_th_db) || ~isfinite(cfg.data_sinr_th_db) || ...
+            ~isscalar(cfg.cts_sinr_th_db) || ~isfinite(cfg.cts_sinr_th_db)
+        error('validate_experiment_config:BadSinrThreshold', ...
+            'DATA and CTS SINR thresholds must be finite scalars in dB.');
+    end
+    % Keep old analysis/scripts readable while making CTS the sole control
+    % threshold. RTS reception itself no longer uses an SINR threshold.
+    cfg.ctrl_sinr_th_db = cfg.cts_sinr_th_db;
     if cfg.n_tune_runs < 1 || cfg.n_tune_runs ~= round(cfg.n_tune_runs) || ...
             cfg.n_eval_runs < 1 || cfg.n_eval_runs ~= round(cfg.n_eval_runs)
         error('validate_experiment_config:BadRunCount', ...

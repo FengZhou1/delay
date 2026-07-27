@@ -4,8 +4,10 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 %
 % The simulator advances on the common mmWave physical grid. A packet that
 % becomes HOL must observe a complete DIFS before its first (or retried)
-% p-persistent RTS.  The AP captures at most one RTS while idle, then runs
-% SIFS, an eight-sector CTS sweep, SIFS, and one directional data transfer.
+% p-persistent RTS. AP-side RTS reception uses a classic collision model:
+% exactly one non-overlapping RTS must occupy its complete frame. The AP
+% then runs SIFS, an eight-sector CTS sweep, SIFS, and one directional data
+% transfer. CTS and data use separate physical SINR thresholds.
 % Directional CCA, half-duplex CTS loss, NAV, late RTS interference, and
 % per-packet delay accounting are all evaluated on the same timeline.
 
@@ -42,7 +44,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     ap_sector_tx = PHY.AP_Sector_Tx_Matrix;
     noise_w = 10.^((PHY.NOISE_DBM - 30) / 10);
     sens_w = 10.^((cfg.rx_sens_dbm - 30) / 10);
-    ctrl_sinr_th = PHY.CTRL_SINR_TH_DB;
+    cts_sinr_th = PHY.CTS_SINR_TH_DB;
     data_sinr_th = PHY.DATA_SINR_TH_DB;
     collect_diagnostics = true;
     if isfield(cfg,'collect_diagnostics')
@@ -94,13 +96,12 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     prev_sensed_busy = false(n_nodes, 1);
     prev_difs_observe = false(n_nodes, 1);
 
-    % Per-node RTS state.  min SINR is accumulated over the whole RTS.
+    % Per-node RTS state. Any overlap marks every involved RTS collided.
     rts_active = false(n_nodes, 1);
     rts_remaining = zeros(n_nodes, 1);
     rts_packet_id = zeros(n_nodes, 1);
     rts_started_ap_idle = false(n_nodes, 1);
     rts_ap_idle_all = false(n_nodes, 1);
-    rts_min_sinr_db = inf(n_nodes, 1);
     rts_had_overlap = false(n_nodes, 1);
     waiting_cts = false(n_nodes, 1);
     cts_timeout_us = inf(n_nodes, 1);
@@ -370,7 +371,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                 rts_packet_id(u) = pid;
                 rts_started_ap_idle(u) = ap_state == AP_IDLE;
                 rts_ap_idle_all(u) = ap_state == AP_IDLE;
-                rts_min_sinr_db(u) = inf;
                 rts_had_overlap(u) = false;
                 difs_count(u) = 0;
 
@@ -394,6 +394,8 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             if nnz(active_before) < 2
                 diagnostics.rts_simultaneous_events = ...
                     diagnostics.rts_simultaneous_events + 1;
+                diagnostics.rts_collision_events = ...
+                    diagnostics.rts_collision_events + 1;
             end
         end
 
@@ -429,9 +431,9 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             [harmful_start,self_decodable,control_harm,data_harm,rts_harm] = ...
                 counterfactual_rts_truth(listeners,active_rts,ap_state==AP_IDLE, ...
                     ap_cts_active,data_tx_active,current_sector,winner_id, ...
-                    node_sectors,rts_min_sinr_db,ap_rx,int_matrix, ...
+                    node_sectors,ap_rx,int_matrix, ...
                     ap_sector_tx,noise_w, ...
-                    ctrl_sinr_th,data_sinr_th);
+                    cts_sinr_th,data_sinr_th);
         else
             harmful_start = false(n_nodes,1);
             self_decodable = false(n_nodes,1);
@@ -489,19 +491,9 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                 sum(eligible_listeners & rts_harm);
         end
 
-        % AP reception of RTSs.  Capture is possible only if the AP stayed
-        % idle for the complete RTS.  SINR is accumulated per candidate.
-        active_ids = find(active_rts).';
-        if ap_state == AP_IDLE
-            for u = active_ids
-                interferers = active_rts;
-                interferers(u) = false;
-                desired = ap_rx(u,u);
-                interference = sum(ap_rx(u,interferers));
-                sinr_db = 10*log10(desired / (noise_w + interference + eps));
-                rts_min_sinr_db(u) = min(rts_min_sinr_db(u), sinr_db);
-            end
-        else
+        % RTS decoding never uses power, capture, or SINR. The AP must stay
+        % idle and the RTS must remain the only active RTS for its full frame.
+        if ap_state ~= AP_IDLE
             rts_ap_idle_all(active_rts) = false;
         end
 
@@ -568,7 +560,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                         diagnostics.icr_miss_halfduplex + 1;
                 elseif cts_listen_ticks(u) < cts_ticks
                     diagnostics.icr_miss_timing = diagnostics.icr_miss_timing + 1;
-                elseif cts_min_sinr_db(u) < ctrl_sinr_th
+                elseif cts_min_sinr_db(u) < cts_sinr_th
                     diagnostics.icr_miss_low_sinr = ...
                         diagnostics.icr_miss_low_sinr + 1;
                 else
@@ -628,19 +620,18 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         prev_difs_observe = queue_len > 0 & listeners & ~locked & ...
                             nav_until_us <= t;
 
-        % Advance RTS timers and perform strongest-signal SINR capture at
-        % the common completion boundary.
+        % Advance RTS timers and accept only one complete collision-free RTS.
         rts_remaining(active_rts) = rts_remaining(active_rts) - 1;
         finishing = rts_active & rts_remaining == 0;
-        captured = 0;
+        successful_rts = 0;
         if any(finishing) && ap_state == AP_IDLE
             candidates = find(finishing & rts_started_ap_idle & ...
-                              rts_ap_idle_all & ...
-                              rts_min_sinr_db >= ctrl_sinr_th);
-            if ~isempty(candidates)
-                desired = diag(ap_rx);
-                [~, strongest_pos] = max(desired(candidates));
-                captured = candidates(strongest_pos);
+                              rts_ap_idle_all & ~rts_had_overlap);
+            if numel(candidates) > 1
+                error('simulate_sb_cb_v2:MultipleClassicRtsSuccess', ...
+                    'Classic RTS collision logic produced multiple winners.');
+            elseif numel(candidates) == 1
+                successful_rts = candidates(1);
             end
         end
 
@@ -653,13 +644,11 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             if rts_had_overlap(u)
                 diagnostics.rts_simultaneous_attempts = ...
                     diagnostics.rts_simultaneous_attempts + 1;
+                diagnostics.rts_collision_attempts = ...
+                    diagnostics.rts_collision_attempts + 1;
             end
-            if u == captured
-                diagnostics.rts_capture_success = diagnostics.rts_capture_success + 1;
-                if rts_had_overlap(u)
-                    diagnostics.rts_capture_with_overlap = ...
-                        diagnostics.rts_capture_with_overlap + 1;
-                end
+            if u == successful_rts
+                diagnostics.rts_success = diagnostics.rts_success + 1;
             else
                 diagnostics.rts_fail_total = diagnostics.rts_fail_total + 1;
                 failed_interval_start_us(end+1,1) = next_t-rts_us; %#ok<AGROW>
@@ -670,8 +659,9 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                 elseif ~rts_ap_idle_all(u)
                     diagnostics.rts_fail_ap_became_busy = ...
                         diagnostics.rts_fail_ap_became_busy + 1;
-                elseif rts_min_sinr_db(u) < ctrl_sinr_th
-                    diagnostics.rts_fail_sinr = diagnostics.rts_fail_sinr + 1;
+                elseif rts_had_overlap(u)
+                    diagnostics.rts_fail_collision = ...
+                        diagnostics.rts_fail_collision + 1;
                 else
                     diagnostics.rts_fail_capture_lost = ...
                         diagnostics.rts_fail_capture_lost + 1;
@@ -682,24 +672,23 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             rts_packet_id(u) = 0;
             rts_started_ap_idle(u) = false;
             rts_ap_idle_all(u) = false;
-            rts_min_sinr_db(u) = inf;
             rts_had_overlap(u) = false;
             difs_count(u) = 0;
             prev_difs_observe(u) = false;
         end
 
-        if captured > 0
+        if successful_rts > 0
             if ap_state ~= AP_IDLE
                 error('simulate_sb_cb_v2:ConcurrentAPTransaction', ...
-                      'An RTS was captured while the AP was not idle.');
+                      'An RTS succeeded while the AP was not idle.');
             end
-            winner_id = captured;
-            winner_packet_id = head_packet_id(queues, queue_head, captured);
+            winner_id = successful_rts;
+            winner_packet_id = head_packet_id(queues, queue_head, successful_rts);
             if winner_packet_id <= 0
-                error('simulate_sb_cb_v2:CapturedEmptyQueue', ...
-                      'Captured RTS has no HOL packet.');
+                error('simulate_sb_cb_v2:SuccessfulRtsEmptyQueue', ...
+                      'Successful RTS has no HOL packet.');
             end
-            locked(captured) = true;
+            locked(successful_rts) = true;
             winner_cts_ok = false;
             ap_state = AP_SIFS_PRE;
             ap_phase_end_us = next_t + sifs_us;
@@ -733,8 +722,9 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         diagnostics.cca_eligible_fp + diagnostics.cca_eligible_tn);
     diagnostics.harmful_missed_opportunities = diagnostics.cca_eligible_fn;
     diagnostics.false_alarm_opportunities = diagnostics.cca_eligible_fp;
-    diagnostics.rts_capture_rate = safe_ratio( ...
-        diagnostics.rts_capture_success, diagnostics.rts_attempts);
+    diagnostics.rts_capture_rate = 0;
+    diagnostics.rts_success_rate = safe_ratio( ...
+        diagnostics.rts_success, diagnostics.rts_attempts);
     diagnostics.icr_miss_rate = safe_ratio( ...
         diagnostics.icr_expected - diagnostics.icr_decoded, ...
         diagnostics.icr_expected);
@@ -743,6 +733,12 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     diagnostics.seed = double(seed);
     diagnostics.cca_mode = char(cfg.cca_mode);
     diagnostics.tp_us = tp_us;
+    diagnostics.rts_reception_model = 'classic_collision';
+    diagnostics.cts_reception_model = 'sector_scan_half_duplex_plus_sinr';
+    diagnostics.data_reception_model = 'directional_sinr';
+    diagnostics.rts_sinr_used = false;
+    diagnostics.cts_sinr_th_db = cts_sinr_th;
+    diagnostics.data_sinr_th_db = data_sinr_th;
     diagnostics.rts_wasted_us = diagnostics.rts_fail_total * rts_us;
     diagnostics.collision_tx_airtime_us = sum(max(0, ...
         failed_interval_end_us-failed_interval_start_us));
@@ -793,8 +789,8 @@ end
 
 function [harmful,self_decodable,control_harm,data_harm,rts_harm] = ...
         counterfactual_rts_truth(listeners,active_rts,ap_idle,ap_cts_active, ...
-        data_tx_active,current_sector,winner_id,node_sectors,rts_min_sinr_db, ...
-        ap_rx,int_matrix,ap_sector_tx,noise_w,ctrl_th_db,data_th_db)
+        data_tx_active,current_sector,winner_id,node_sectors, ...
+        ap_rx,int_matrix,ap_sector_tx,noise_w,cts_th_db,data_th_db)
 % Per-listener counterfactual truth for an RTS starting in this interval.
 % A start is harmful only when it changes an existing decodable RTS, CTS,
 % or data reception into an undecodable one.  Own-link decodability is kept
@@ -807,34 +803,14 @@ function [harmful,self_decodable,control_harm,data_harm,rts_harm] = ...
     data_harm = false(n_nodes,1);
     rts_harm = false(n_nodes,1);
     candidates = find(listeners);
-    active_ids = find(active_rts).';
-
-    if ap_idle
-        if ~isempty(candidates)
-            own_interference = sum(ap_rx(candidates,active_ids),2);
-            own_desired = ap_rx(sub2ind(size(ap_rx),candidates,candidates));
-            own_sinr_db = 10*log10(own_desired ./ ...
-                (noise_w+own_interference+eps));
-            self_decodable(candidates) = own_sinr_db >= ctrl_th_db;
-        end
-        for u = active_ids
-            if rts_min_sinr_db(u) < ctrl_th_db
-                continue;
-            end
-            other = active_rts;
-            other(u) = false;
-            base_interference = sum(ap_rx(u,other));
-            before_db = 10*log10(ap_rx(u,u) / ...
-                (noise_w+base_interference+eps));
-            if before_db < ctrl_th_db
-                continue;
-            end
-            if ~isempty(candidates)
-                after_db = 10*log10(ap_rx(u,u) ./ ...
-                    (noise_w+base_interference+ap_rx(u,candidates).'+eps));
-                rts_harm(candidates) = rts_harm(candidates) | ...
-                    (after_db < ctrl_th_db);
-            end
+    if ap_idle && ~isempty(candidates)
+        if any(active_rts)
+            % Any hypothetical overlap destroys both RTS frames.
+            rts_harm(candidates) = true;
+        else
+            % With an idle AP and no other RTS, classic reception succeeds
+            % independently of received power.
+            self_decodable(candidates) = true;
         end
     end
 
@@ -855,13 +831,13 @@ function [harmful,self_decodable,control_harm,data_harm,rts_harm] = ...
             base_interference = sum(int_matrix(active_rts,u));
             desired = ap_sector_tx(u,current_sector);
             before_db = 10*log10(desired/(noise_w+base_interference+eps));
-            if before_db < ctrl_th_db
+            if before_db < cts_th_db
                 continue;
             end
             if ~isempty(candidates)
                 after_db = 10*log10(desired ./ ...
                     (noise_w+base_interference+int_matrix(candidates,u)+eps));
-                harmed = after_db < ctrl_th_db;
+                harmed = after_db < cts_th_db;
                 harmed(candidates==u) = true; % half-duplex CTS loss
                 control_harm(candidates) = control_harm(candidates) | harmed;
             end
@@ -879,6 +855,8 @@ function diagnostics = initialize_diagnostics()
         'cca_eligible_data_harm','cca_eligible_rts_harm', ...
         'cca_eligible_decodable_negative', ...
         'rts_attempts','rts_simultaneous_attempts','rts_simultaneous_events', ...
+        'rts_success','rts_collision_attempts','rts_collision_events', ...
+        'rts_fail_collision', ...
         'rts_capture_success','rts_capture_with_overlap','rts_fail_total', ...
         'rts_fail_ap_busy_start','rts_fail_ap_became_busy','rts_fail_sinr', ...
         'rts_fail_capture_lost','rts_response_wait_entries', ...
