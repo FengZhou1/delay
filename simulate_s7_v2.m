@@ -14,6 +14,8 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     if M < 1 || M ~= round(M)
         error('simulate_s7_v2:BadM', 'M must be an integer >= 1.');
     end
+    is_saturation = isfield(cfg,'traffic_mode') && ...
+        strcmpi(char(cfg.traffic_mode),'saturation');
 
     n_mlo = cfg.n_nodes;
     n_total = n_mlo + n_slo;
@@ -61,6 +63,8 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     diag.slo_collision_timeouts = 0;
     diag.mlo_payload_success = 0;
     diag.slo_payload_success = 0;
+    diag.slo_payload_success_measure = 0;
+    diag.slo_payload_overlap_us = 0;
     diag.collision_waste_us = 0;
     diag.collision_channel_time_us = 0;
     diag.collision_tx_airtime_us = 0;
@@ -71,6 +75,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     system_area = 0;
     service_area = 0;
     payload_overlap = 0;
+    saturation_per_node_completions = zeros(n_mlo,1);
     sample_t = zeros(ceil(cfg.measure_us/max(1,cfg.stats_sample_us))+4,1);
     sample_n = zeros(size(sample_t));
     sample_idx = 0;
@@ -212,17 +217,30 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
             for k = 1:numel(mlo_done)
                 u = mlo_done(k);
                 pid = node_packets{u}(head_pos(u));
-                pkt.completion_us(pid) = t;
-                head_pos(u) = head_pos(u) + 1;
-                backlog = backlog - 1;
                 diag.mlo_payload_success = diag.mlo_payload_success + 1;
                 payload_overlap = payload_overlap + interval_overlap_us( ...
                     t-tp_us, t, cfg.warmup_us, cfg.arrival_end_us);
+                if is_saturation
+                    if t >= cfg.warmup_us && t < cfg.arrival_end_us
+                        saturation_per_node_completions(u) = ...
+                            saturation_per_node_completions(u) + 1;
+                    end
+                    pkt.hol_us(pid) = t;
+                    pkt.first_attempt_us(pid) = NaN;
+                    pkt.completion_us(pid) = NaN;
+                    pkt.attempts(pid) = 0;
+                    pkt.difs_wait_us(pid) = 0;
+                    pkt.probability_wait_us(pid) = 0;
+                else
+                    pkt.completion_us(pid) = t;
+                    head_pos(u) = head_pos(u) + 1;
+                    backlog = backlog - 1;
+                end
                 state(u) = IDLE;
                 deadline(u) = inf;
                 difs_elapsed(u) = 0;
                 can_count_prev(u) = false;
-                if head_pos(u) <= arrived_tail(u)
+                if ~is_saturation && head_pos(u) <= arrived_tail(u)
                     next_pid = node_packets{u}(head_pos(u));
                     pkt.hol_us(next_pid) = t;
                 end
@@ -231,6 +249,14 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
             slo_done = ending(ending_state == TX_DATA_SLO);
             if ~isempty(slo_done)
                 diag.slo_payload_success = diag.slo_payload_success + numel(slo_done);
+                slo_overlap = interval_overlap_us(t-tp_us,t, ...
+                    cfg.warmup_us,cfg.arrival_end_us);
+                diag.slo_payload_overlap_us = ...
+                    diag.slo_payload_overlap_us + numel(slo_done)*slo_overlap;
+                if t >= cfg.warmup_us && t < cfg.arrival_end_us
+                    diag.slo_payload_success_measure = ...
+                        diag.slo_payload_success_measure + numel(slo_done);
+                end
                 state(slo_done) = IDLE;
                 deadline(slo_done) = inf;
                 difs_elapsed(slo_done) = 0;
@@ -349,5 +375,11 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     raw.backlog_sample_us = sample_t(1:sample_idx);
     raw.backlog_sample_n = sample_n(1:sample_idx);
     raw.diagnostics = diag;
-    result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+    if is_saturation
+        raw.saturation_per_node_completions = ...
+            saturation_per_node_completions;
+        result = finalize_saturation_result(raw,cfg,protocol,M,q);
+    else
+        result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+    end
 end

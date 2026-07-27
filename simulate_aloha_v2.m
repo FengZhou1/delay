@@ -51,6 +51,8 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
     end
 
     n_nodes = double(cfg.n_nodes);
+    is_saturation = isfield(cfg,'traffic_mode') && ...
+        strcmpi(char(cfg.traffic_mode),'saturation');
     n_packets = double(trace.n_packets);
     arrival_us = double(trace.times_us(:));
     node_id = double(trace.node_id(:));
@@ -109,6 +111,7 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
     payload_success_overlap_us = 0;
     payload_attempt_overlap_us = 0;
     payload_collision_overlap_us = 0;
+    saturation_per_node_completions = zeros(n_nodes,1);
 
     slots_started = 0;
     slots_completed = 0;
@@ -443,7 +446,13 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
     raw.backlog_sample_n = double(backlog_sample_n(:));
     raw.diagnostics = diagnostics;
 
-    result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+    if is_saturation
+        raw.saturation_per_node_completions = ...
+            saturation_per_node_completions;
+        result = finalize_saturation_result(raw,cfg,protocol,M,q);
+    else
+        result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+    end
 
     function enqueue_until(limit_us)
         while next_arrival <= n_packets && arrival_us(next_arrival) <= limit_us
@@ -479,11 +488,31 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
             error('simulate_aloha_v2:BadCompletionOrder', ...
                   'Attempted to complete a non-HOL packet.');
         end
-        completion_us(packet_id) = when_us;
-        head(u) = head(u) + 1;
-        if head(u) <= tail(u)
-            next_packet = ids_u(head(u));
-            hol_us(next_packet) = when_us;
+        if is_saturation
+            if when_us >= measure_left && when_us < measure_right
+                saturation_per_node_completions(u) = ...
+                    saturation_per_node_completions(u) + 1;
+            end
+            % Reuse the persistent packet id as the next virtual HOL.  All
+            % per-packet accounting is reset because it now denotes a new
+            % saturated packet becoming HOL at this completion boundary.
+            hol_us(packet_id) = when_us;
+            first_attempt_us(packet_id) = NaN;
+            completion_us(packet_id) = NaN;
+            attempts(packet_id) = 0;
+            first_eligible_us(packet_id) = NaN;
+            boundary_wait_us(packet_id) = 0;
+            probability_wait_us(packet_id) = 0;
+            collision_delay_us(packet_id) = 0;
+            control_delay_us(packet_id) = 0;
+            data_delay_us(packet_id) = 0;
+        else
+            completion_us(packet_id) = when_us;
+            head(u) = head(u) + 1;
+            if head(u) <= tail(u)
+                next_packet = ids_u(head(u));
+                hol_us(next_packet) = when_us;
+            end
         end
     end
 

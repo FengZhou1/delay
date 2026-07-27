@@ -24,6 +24,8 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     validate_inputs(trace, scenario, cfg, M, q);
 
     protocol = 'sb_cf';
+    is_saturation = isfield(cfg,'traffic_mode') && ...
+        strcmpi(char(cfg.traffic_mode),'saturation');
     dt_us = double(scenario.MMW.SLOT_TIME_US);
     n_nodes = cfg.n_nodes;
     Tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * double(M);
@@ -116,6 +118,7 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     system_area_measure_us = 0;
     service_area_measure_us = 0;
     payload_success_overlap_us = 0;
+    saturation_per_node_completions = zeros(n_nodes,1);
     failed_capacity = max(1024, 4 * n_packets);
     failed_interval_start_us = zeros(failed_capacity,1);
     failed_interval_end_us = zeros(failed_capacity,1);
@@ -406,9 +409,7 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
             succeeded = was_ap_lock && ~tx_failed(u);
 
             if succeeded
-                pkt.completion_us(pid) = t_next_us;
                 completed_n = completed_n + 1;
-                backlog_n = backlog_n - 1;
                 diagnostics.successful_attempts = ...
                     diagnostics.successful_attempts + 1;
                 payload_success_overlap_us = payload_success_overlap_us + ...
@@ -418,13 +419,28 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
                     error('simulate_sb_cf_v2:QueueCorruption', ...
                           'Successful packet is not the node HOL packet.');
                 end
-                next_pid = queue_next(pid);
-                queue_head(u) = next_pid;
-                if next_pid == 0
-                    queue_tail(u) = 0;
-                    has_packet(u) = false;
+                if is_saturation
+                    if t_next_us >= measurement_left_us && ...
+                            t_next_us < measurement_right_us
+                        saturation_per_node_completions(u) = ...
+                            saturation_per_node_completions(u) + 1;
+                    end
+                    pkt.hol_us(pid) = t_next_us;
+                    pkt.first_attempt_us(pid) = NaN;
+                    pkt.completion_us(pid) = NaN;
+                    pkt.attempts(pid) = 0;
+                    pkt.probability_wait_us(pid) = 0;
                 else
-                    pkt.hol_us(next_pid) = t_next_us;
+                    pkt.completion_us(pid) = t_next_us;
+                    backlog_n = backlog_n - 1;
+                    next_pid = queue_next(pid);
+                    queue_head(u) = next_pid;
+                    if next_pid == 0
+                        queue_tail(u) = 0;
+                        has_packet(u) = false;
+                    else
+                        pkt.hol_us(next_pid) = t_next_us;
+                    end
                 end
             else
                 diagnostics.failed_attempts = diagnostics.failed_attempts + 1;
@@ -559,7 +575,13 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     raw.backlog_sample_n = backlog_sample_n;
     raw.diagnostics = diagnostics;
 
-    result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+    if is_saturation
+        raw.saturation_per_node_completions = ...
+            saturation_per_node_completions;
+        result = finalize_saturation_result(raw,cfg,protocol,M,q);
+    else
+        result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+    end
 end
 
 function validate_inputs(trace, scenario, cfg, M, q)

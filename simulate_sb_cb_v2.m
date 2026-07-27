@@ -28,6 +28,8 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     if ~isscalar(q) || ~isfinite(q) || q <= 0 || q > 1
         error('simulate_sb_cb_v2:BadQ', 'q must lie in (0,1].');
     end
+    is_saturation = isfield(cfg,'traffic_mode') && ...
+        strcmpi(char(cfg.traffic_mode),'saturation');
 
     n_nodes = cfg.n_nodes;
     n_sectors = cfg.n_sectors;
@@ -138,6 +140,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     system_area_measure_us = 0;
     service_area_measure_us = 0;
     payload_success_overlap_us = 0;
+    saturation_per_node_completions = zeros(n_nodes,1);
 
     left_measure_us = cfg.warmup_us;
     right_measure_us = cfg.arrival_end_us;
@@ -203,10 +206,23 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                             error('simulate_sb_cb_v2:WinnerQueueMismatch', ...
                                   'Winner packet is no longer the queue head.');
                         end
-                        packet_log.completion_us(pid) = t;
-                        [queues, queue_head, queue_len, packet_log] = ...
-                            pop_successful_head(queues, queue_head, queue_len, ...
-                                                 packet_log, winner_id, t);
+                        if is_saturation
+                            if t >= left_measure_us && t < right_measure_us
+                                saturation_per_node_completions(winner_id) = ...
+                                    saturation_per_node_completions(winner_id) + 1;
+                            end
+                            packet_log.hol_us(pid) = t;
+                            packet_log.first_attempt_us(pid) = NaN;
+                            packet_log.completion_us(pid) = NaN;
+                            packet_log.attempts(pid) = 0;
+                            packet_log.probability_wait_us(pid) = 0;
+                            collision_delay_accum_us(pid) = 0;
+                        else
+                            packet_log.completion_us(pid) = t;
+                            [queues, queue_head, queue_len, packet_log] = ...
+                                pop_successful_head(queues, queue_head, queue_len, ...
+                                                     packet_log, winner_id, t);
+                        end
                         attempt_start_us(winner_id) = NaN;
                         attempt_packet_id(winner_id) = 0;
                     else
@@ -784,7 +800,13 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     raw.backlog_sample_n = backlog_sample_n;
     raw.diagnostics = diagnostics;
 
-    result = finalize_sim_result(raw, trace, cfg, 'sb_cb', M, q);
+    if is_saturation
+        raw.saturation_per_node_completions = ...
+            saturation_per_node_completions;
+        result = finalize_saturation_result(raw,cfg,'sb_cb',M,q);
+    else
+        result = finalize_sim_result(raw, trace, cfg, 'sb_cb', M, q);
+    end
 end
 
 function [harmful,self_decodable,control_harm,data_harm,rts_harm] = ...
