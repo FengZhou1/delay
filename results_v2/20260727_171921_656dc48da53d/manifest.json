@@ -1,0 +1,20 @@
+{
+  "schema_version": "2.0",
+  "config_hash": "656dc48da53d",
+  "code_fingerprint": "73fab4ae760960d6",
+  "profile": "analysis",
+  "status": "completed",
+  "created_at": "2026-07-27T20:49:05",
+  "matlab_version": "24.2.0.2712019 (R2024b)",
+  "computer": "PCWIN64",
+  "output_dir": "C:\\Users\\Administrator\\Documents\\delay\\results_v2\\20260727_171921_656dc48da53d",
+  "material_passport": {
+    "origin_skill": "experiment-agent",
+    "origin_mode": "run/validate",
+    "origin_date": "2026-07-22",
+    "verification_status": "VERIFIED",
+    "version_label": "exp_result_v2"
+  },
+  "duration_s": 12583.7028762,
+  "n_conditions": 216
+}
