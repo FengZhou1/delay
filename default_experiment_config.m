@@ -84,8 +84,11 @@ function cfg = default_experiment_config(profile)
     cfg.cca_mode = 'directional';           % directional | oracle | disabled
     cfg.rx_sens_dbm = -62;
     cfg.noise_dbm = -90;
-    cfg.data_sinr_th_db = 18;
-    cfg.ctrl_sinr_th_db = 10;
+    cfg.data_sinr_th_db = 21;
+    cfg.cts_sinr_th_db = 6;
+    % Deprecated compatibility alias. RTS now uses a classic collision
+    % model; this threshold is used only for CTS decoding.
+    cfg.ctrl_sinr_th_db = cfg.cts_sinr_th_db;
     cfg.rx_sens_sweep_dbm = [-72, -67, -62, -57, -52];
     cfg.cca_ablation_modes = {'directional', 'oracle', 'disabled'};
     cfg.run_cca_ablation = false;

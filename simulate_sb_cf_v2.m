@@ -16,10 +16,10 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
 %   oracle      - CCA exactly follows the harmful-transmission ground truth;
 %   disabled    - CCA always reports idle.
 %
-% The AP locks to at most one frame.  When several stations start at the
-% same boundary, the station with the strongest expected AP power is the
-% only capture candidate.  It is accepted only if its first-slot SINR meets
-% the data threshold.  Its SINR is checked again in every occupied slot.
+% The AP does not know the transmitting STA in advance and therefore
+% receives omnidirectionally. Reception follows the classic collision
+% model: any overlap between two or more data frames makes every
+% overlapping frame fail. No AP-side antenna gain, capture, or SINR is used.
 
     validate_inputs(trace, scenario, cfg, M, q);
 
@@ -41,10 +41,6 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
 
     phy = scenario.PHY;
     int_matrix = phy.Int_Matrix;       % (transmitter, listener)
-    ap_rx = phy.AP_Rx_Matrix;          % (desired STA, transmitting STA)
-    desired_ap_power = diag(ap_rx);
-    noise_w = 10.^((double(phy.NOISE_DBM) - 30) / 10);
-    data_sinr_linear = 10.^(double(phy.DATA_SINR_TH_DB) / 10);
     cca_threshold_w = 10.^((double(cfg.rx_sens_dbm) - 30) / 10);
     cca_mode = lower(char(cfg.cca_mode));
 
@@ -78,7 +74,6 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     tx_failed = false(n_nodes, 1);
 
     ap_lock = 0;
-    ap_lock_was_capture = false;
 
     % CCA and harmful-start truth depend only on the set/state of active
     % transmitters. A frame occupies multiple mmWave slots, so
@@ -220,8 +215,8 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
         end
 
         % CCA is evaluated from transmissions already in progress at the
-        % boundary.  A newly starting simultaneous transmission is handled
-        % by the AP capture rule below.
+        % boundary. Newly starting simultaneous frames are handled by the
+        % classic AP collision rule below.
         if cca_cache_valid
             active_before = cached_active_before;
             listeners = cached_listeners;
@@ -240,8 +235,7 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
                 raw_directional_busy = listener_power > cca_threshold_w;
             end
             [harmful, sinr_harmful, self_undecodable, single_user_only] = ...
-                harmful_if_started(n_nodes, active_before, ap_lock, ...
-                    tx_failed, ap_rx, desired_ap_power, noise_w, data_sinr_linear);
+                harmful_if_started(n_nodes, active_before);
             cached_active_before = active_before;
             cached_listeners = listeners;
             cached_raw_directional_busy = raw_directional_busy;
@@ -348,64 +342,29 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
                 end
             end
 
-            if lock_was_present
-                % The AP cannot acquire another user during a locked frame.
-                tx_failed(start_ids) = true;
-                diagnostics.late_start_rejections = ...
-                    diagnostics.late_start_rejections + n_starts;
+            if ~active_was_present && n_starts == 1
+                % A single non-overlapping frame is the only decodable case.
+                ap_lock = start_ids(1);
             else
-                % The strongest newly starting station is the sole capture
-                % candidate.  Existing failed transmissions remain interferers.
-                [~, strongest_local] = max(desired_ap_power(start_ids));
-                candidate = start_ids(strongest_local);
+                % Every frame participating in any overlap fails. This also
+                % invalidates a previously clean frame when a late sender
+                % starts before that frame ends.
                 all_active = find(tx_active);
-                initial_sinr = ap_sinr(candidate, all_active, ap_rx, noise_w);
-                initial_sinr = initial_sinr(1);
-
-                losers = start_ids(start_ids ~= candidate);
-                if ~isempty(losers)
-                    tx_failed(losers) = true;
-                    diagnostics.simultaneous_loser_attempts = ...
-                        diagnostics.simultaneous_loser_attempts + numel(losers);
-                    diagnostics.capture_opportunities = ...
-                        diagnostics.capture_opportunities + 1;
+                if ap_lock > 0 && ~tx_failed(ap_lock)
+                    diagnostics.partial_collisions = ...
+                        diagnostics.partial_collisions + 1;
                 end
-
-                if all(initial_sinr >= data_sinr_linear)
-                    ap_lock = candidate;
-                    ap_lock_was_capture = n_starts > 1;
-                    if ap_lock_was_capture
-                        diagnostics.capture_candidates = ...
-                            diagnostics.capture_candidates + 1;
-                    end
-                else
-                    tx_failed(candidate) = true;
-                    diagnostics.initial_sinr_rejections = ...
-                        diagnostics.initial_sinr_rejections + 1;
-                    if n_starts > 1
-                        diagnostics.capture_initial_failures = ...
-                            diagnostics.capture_initial_failures + 1;
-                    end
-                    ap_lock = 0;
-                    ap_lock_was_capture = false;
-                end
-            end
-        end
-
-        % The locked frame is checked in every occupied slot, including its
-        % first slot.  A transition from decodable to undecodable is a partial
-        % collision; the AP remains locked until that frame ends.
-        if ap_lock > 0 && tx_active(ap_lock) && ~tx_failed(ap_lock)
-            current_sinr = ap_sinr(ap_lock, find(tx_active), ap_rx, noise_w);
-            current_sinr = current_sinr(1);
-            if all(current_sinr < data_sinr_linear)
-                tx_failed(ap_lock) = true;
-                cca_cache_valid = false;
-                diagnostics.partial_collisions = diagnostics.partial_collisions + 1;
-                if ap_lock_was_capture
-                    diagnostics.capture_partial_failures = ...
-                        diagnostics.capture_partial_failures + 1;
-                end
+                tx_failed(all_active) = true;
+                ap_lock = 0;
+                diagnostics.classic_collision_events = ...
+                    diagnostics.classic_collision_events + 1;
+                diagnostics.classic_collision_attempts = ...
+                    diagnostics.classic_collision_attempts + numel(all_active);
+                diagnostics.simultaneous_loser_attempts = ...
+                    diagnostics.simultaneous_loser_attempts + n_starts;
+                diagnostics.late_start_rejections = ...
+                    diagnostics.late_start_rejections + ...
+                    double(active_was_present || lock_was_present)*n_starts;
             end
         end
 
@@ -444,7 +403,6 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
             u = finished_ids(k);
             pid = tx_packet_id(u);
             was_ap_lock = (ap_lock == u);
-            was_capture = was_ap_lock && ap_lock_was_capture;
             succeeded = was_ap_lock && ~tx_failed(u);
 
             if succeeded
@@ -456,11 +414,6 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
                 payload_success_overlap_us = payload_success_overlap_us + ...
                     interval_overlap_us(tx_start_us(u), t_next_us, ...
                         measurement_left_us, measurement_right_us);
-                if was_capture
-                    diagnostics.capture_successes = ...
-                        diagnostics.capture_successes + 1;
-                end
-
                 if queue_head(u) ~= pid
                     error('simulate_sb_cf_v2:QueueCorruption', ...
                           'Successful packet is not the node HOL packet.');
@@ -486,10 +439,6 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
                 end
                 failed_interval_start_us(failed_interval_count) = tx_start_us(u);
                 failed_interval_end_us(failed_interval_count) = t_next_us;
-                if was_capture
-                    diagnostics.capture_failures = ...
-                        diagnostics.capture_failures + 1;
-                end
             end
 
             % Both a new HOL and a failed retry must earn a fresh DIFS.
@@ -501,7 +450,6 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
             tx_failed(u) = false;
             if was_ap_lock
                 ap_lock = 0;
-                ap_lock_was_capture = false;
             end
         end
 
@@ -651,58 +599,20 @@ function validate_inputs(trace, scenario, cfg, M, q)
               'Trace packet count does not match its event vectors.');
     end
     if size(scenario.PHY.Int_Matrix,1) ~= cfg.n_nodes || ...
-            size(scenario.PHY.Int_Matrix,2) ~= cfg.n_nodes || ...
-            size(scenario.PHY.AP_Rx_Matrix,1) ~= cfg.n_nodes || ...
-            size(scenario.PHY.AP_Rx_Matrix,2) ~= cfg.n_nodes
+            size(scenario.PHY.Int_Matrix,2) ~= cfg.n_nodes
         error('simulate_sb_cf_v2:BadPowerMatrix', ...
-              'Scenario power matrices do not match cfg.n_nodes.');
+              'The STA-side CCA power matrix does not match cfg.n_nodes.');
     end
 end
 
 function [harmful, sinr_harmful, self_undecodable, single_user_only] = ...
-        harmful_if_started(n_nodes, active_ids, ap_lock, ...
-        tx_failed, ap_rx, desired_power, noise_w, sinr_threshold)
-% Under the locked single-user receiver model every hypothetical start while
-% ap_lock is present is harmful, even when both links would satisfy an SINR
-% test.  Separate subcategories retain the physical-SINR explanation.
-    if isempty(active_ids)
-        own_interference = zeros(n_nodes, 1);
-    else
-        own_interference = sum(ap_rx(:, active_ids), 2);
-    end
-    own_sinr = desired_power ./ (noise_w + own_interference + eps);
-    self_undecodable = own_sinr < sinr_threshold;
-
+        harmful_if_started(n_nodes, active_ids)
+% Under classic collision reception, starting while any data frame is
+% active is harmful regardless of received power or relative direction.
+    harmful = repmat(~isempty(active_ids),n_nodes,1);
     sinr_harmful = false(n_nodes, 1);
-    if ap_lock > 0 && ~tx_failed(ap_lock)
-        other_active = active_ids(active_ids ~= ap_lock);
-        if isempty(other_active)
-            base_interference = 0;
-        else
-            base_interference = sum(ap_rx(ap_lock, other_active));
-        end
-        candidate_sinr_after_start = desired_power(ap_lock) ./ ...
-            (noise_w + base_interference + ap_rx(ap_lock,:).' + eps);
-        sinr_harmful = candidate_sinr_after_start < sinr_threshold;
-        sinr_harmful(ap_lock) = false;
-    end
-    locked_single_user = false(n_nodes, 1);
-    if ap_lock > 0
-        locked_single_user(:) = true;
-        locked_single_user(ap_lock) = false;
-    end
-    single_user_only = locked_single_user & ~sinr_harmful & ~self_undecodable;
-    harmful = locked_single_user | sinr_harmful | self_undecodable;
-end
-
-function value = ap_sinr(candidate, active_ids, ap_rx, noise_w)
-    interferers = active_ids(active_ids ~= candidate);
-    if isempty(interferers)
-        interference = 0;
-    else
-        interference = sum(ap_rx(candidate, interferers));
-    end
-    value = ap_rx(candidate, candidate) / (noise_w + interference + eps);
+    self_undecodable = false(n_nodes, 1);
+    single_user_only = harmful;
 end
 
 function diagnostics = initialise_diagnostics(cca_mode, seed, Tp_us, difs_us)
@@ -711,6 +621,9 @@ function diagnostics = initialise_diagnostics(cca_mode, seed, Tp_us, difs_us)
     diagnostics.seed = double(seed);
     diagnostics.Tp_us = Tp_us;
     diagnostics.difs_us = difs_us;
+    diagnostics.ap_receive_mode = 'omnidirectional';
+    diagnostics.data_reception_model = 'classic_collision';
+    diagnostics.data_sinr_used = false;
     diagnostics.raw_listening_misses = 0;
     diagnostics.raw_listening_busy_opportunities = 0;
     diagnostics.eligible_cca_tp = 0;
@@ -744,6 +657,8 @@ function diagnostics = initialise_diagnostics(cca_mode, seed, Tp_us, difs_us)
     diagnostics.capture_failures = 0;
     diagnostics.initial_sinr_rejections = 0;
     diagnostics.partial_collisions = 0;
+    diagnostics.classic_collision_events = 0;
+    diagnostics.classic_collision_attempts = 0;
     diagnostics.attempts = 0;
     diagnostics.successful_attempts = 0;
     diagnostics.failed_attempts = 0;
