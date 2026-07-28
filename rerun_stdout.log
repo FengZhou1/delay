@@ -1,0 +1,37 @@
+Source results: C:\Users\Administrator\Documents\delay\results_v2\20260728_013738_004bf801fbbb
+Unstable conditions to rerun: 28
+  sf_cb_fixed_packet_lam5_M2
+  sb_cf_fixed_packet_lam5_M4
+  sb_cf_fixed_packet_lam5_M5
+  sb_cf_fixed_packet_lam5_M6
+  sb_cf_fixed_packet_lam10_M2
+  sb_cf_fixed_packet_lam10_M3
+  sb_cf_fixed_packet_lam10_M4
+  sf_cf_fixed_packet_lam10_M5
+  sb_cf_fixed_packet_lam10_M5
+  sf_cf_fixed_packet_lam10_M6
+  sb_cf_fixed_packet_lam10_M6
+  sb_cf_fixed_packet_lam15_M2
+  sf_cf_fixed_packet_lam15_M3
+  sb_cf_fixed_packet_lam15_M3
+  sf_cf_fixed_packet_lam15_M4
+  sb_cf_fixed_packet_lam15_M4
+  s7_busy_fixed_packet_lam15_M4
+  sf_cf_fixed_packet_lam15_M5
+  sf_cb_fixed_packet_lam15_M5
+  sb_cf_fixed_packet_lam15_M5
+  sb_cb_fixed_packet_lam15_M5
+  s7_busy_fixed_packet_lam15_M5
+  sf_cf_fixed_packet_lam15_M6
+  sf_cb_fixed_packet_lam15_M6
+  sb_cf_fixed_packet_lam15_M6
+  sb_cb_fixed_packet_lam15_M6
+  s7_busy_fixed_packet_lam15_M6
+  sf_cb_fixed_payload_lam10_M2
+Targeted rerun: warm-up=0.5 s, measure=2.0 s, drain<=4.0 s, eval_runs=5, validation_runs=5
+
+=== v2 experiment 4d022d8fe72d | profile=analysis ===
+Output: C:\Users\Administrator\Documents\delay\results_v2\20260728_123641_4d022d8fe72d
+正在使用 'Processes' 配置文件启动并行池(parpool)...
+已连接到具有 4 个工作进程的并行池。
+[1/28] sf_cb_fixed_packet_lam5_M2 (lambda_eff=5)

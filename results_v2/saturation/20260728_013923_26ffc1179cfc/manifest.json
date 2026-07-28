@@ -1,0 +1,18 @@
+{
+  "schema_version": "2.2-saturation",
+  "study_type": "saturation_throughput",
+  "config_hash": "26ffc1179cfc",
+  "code_fingerprint": "d917fe4ee11b5b7c",
+  "profile": "analysis",
+  "status": "completed",
+  "verification_status": "VERIFIED",
+  "output_dir": "C:\\Users\\Administrator\\Documents\\delay\\results_v2\\saturation\\20260728_013923_26ffc1179cfc",
+  "updated_at": "2026-07-28 03:51:33",
+  "origin_skill": "experiment-agent",
+  "origin_mode": "run/validate",
+  "duration_s": 7929.9895049,
+  "n_conditions": 84,
+  "plot_png": "C:\\Users\\Administrator\\Documents\\delay\\results_v2\\saturation\\20260728_013923_26ffc1179cfc\\figures\\saturation_throughput_vs_Tp.png",
+  "plot_pdf": "C:\\Users\\Administrator\\Documents\\delay\\results_v2\\saturation\\20260728_013923_26ffc1179cfc\\figures\\saturation_throughput_vs_Tp.pdf",
+  "intersections_csv": "C:\\Users\\Administrator\\Documents\\delay\\results_v2\\saturation\\20260728_013923_26ffc1179cfc\\intersections.csv"
+}
