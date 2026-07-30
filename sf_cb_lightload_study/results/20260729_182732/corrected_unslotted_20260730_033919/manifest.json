@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "study_type": "sf_cb_lightload_mac_variants",
+  "status": "completed",
+  "verification_status": "VERIFIED",
+  "created_at": "2026-07-30 06:29:57",
+  "elapsed_s": 10231.8638377,
+  "n_conditions": 18,
+  "output_dir": "C:\\Users\\01\\Desktop\\delay2.0\\delay2.0\\sf_cb_lightload_study\\results\\20260729_182732\\corrected_unslotted_20260730_033919",
+  "figure_png": "C:\\Users\\01\\Desktop\\delay2.0\\delay2.0\\sf_cb_lightload_study\\results\\20260729_182732\\corrected_unslotted_20260730_033919\\figures\\sf_cb_lightload_delay_comparison.png",
+  "figure_pdf": "C:\\Users\\01\\Desktop\\delay2.0\\delay2.0\\sf_cb_lightload_study\\results\\20260729_182732\\corrected_unslotted_20260730_033919\\figures\\sf_cb_lightload_delay_comparison.pdf"
+}

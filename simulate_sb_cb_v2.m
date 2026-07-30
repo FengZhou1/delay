@@ -53,6 +53,10 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     if isfield(cfg,'collect_diagnostics')
         collect_diagnostics = logical(cfg.collect_diagnostics);
     end
+    force_first_rts = false;
+    if isfield(cfg,'sb_cb_force_first_rts')
+        force_first_rts = logical(cfg.sb_cb_force_first_rts);
+    end
     cca_mode = lower(char(cfg.cca_mode));
     need_raw_cca = collect_diagnostics || strcmp(cca_mode,'directional');
     need_counterfactual_cca = collect_diagnostics || strcmp(cca_mode,'oracle');
@@ -362,7 +366,15 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 
         ready = base_eligible & difs_count >= difs_ticks;
         attempt_draw = rand(stream, n_nodes, 1) < q;
-        new_rts = ready & attempt_draw;
+        forced_first = false(n_nodes,1);
+        if force_first_rts
+            ready_nodes = find(ready).';
+            for u = ready_nodes
+                pid = head_packet_id(queues,queue_head,u);
+                forced_first(u) = packet_log.attempts(pid) == 0;
+            end
+        end
+        new_rts = ready & (attempt_draw | forced_first);
         deferred_ready = find(ready & ~new_rts);
         for kk = 1:numel(deferred_ready)
             u = deferred_ready(kk);
@@ -754,6 +766,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         diagnostics.nav_set, diagnostics.nav_expected);
     diagnostics.seed = double(seed);
     diagnostics.cca_mode = char(cfg.cca_mode);
+    diagnostics.force_first_rts = force_first_rts;
     diagnostics.tp_us = tp_us;
     diagnostics.rts_reception_model = 'classic_collision';
     diagnostics.cts_reception_model = 'sector_scan_half_duplex_plus_sinr';

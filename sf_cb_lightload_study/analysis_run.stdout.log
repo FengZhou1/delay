@@ -1,0 +1,153 @@
+SF-CB light-load tests passed: 6/6
+
+=== Isolated SF-CB light-load study ===
+Output: C:\Users\01\Desktop\delay2.0\delay2.0\sf_cb_lightload_study\results\20260729_180749
+[1/72] baseline lambda=1 M=1
+  best q=1, mean total=0.491 ms, completion=0.9608
+[2/72] fast_first lambda=1 M=1
+  best q=0.175, mean total=0.511 ms, completion=1.0000
+[3/72] unslotted lambda=1 M=1
+  best q=0.0125, mean total=0.979 ms, completion=1.0000
+[4/72] batch_clear lambda=1 M=1
+  best q=0.95, mean total=0.514 ms, completion=1.0000
+[5/72] baseline lambda=1 M=2
+  best q=1, mean total=0.696 ms, completion=0.9608
+[6/72] fast_first lambda=1 M=2
+  best q=0.5, mean total=0.701 ms, completion=1.0000
+[7/72] unslotted lambda=1 M=2
+  best q=0.0125, mean total=1.126 ms, completion=1.0000
+[8/72] batch_clear lambda=1 M=2
+  best q=1, mean total=0.695 ms, completion=0.9608
+[9/72] baseline lambda=1 M=3
+  best q=0.975, mean total=0.988 ms, completion=1.0000
+[10/72] fast_first lambda=1 M=3
+  best q=0.25, mean total=0.910 ms, completion=1.0000
+[11/72] unslotted lambda=1 M=3
+  best q=0.0125, mean total=1.465 ms, completion=1.0000
+[12/72] batch_clear lambda=1 M=3
+  best q=0.975, mean total=0.923 ms, completion=1.0000
+[13/72] baseline lambda=1 M=4
+  best q=0.975, mean total=1.172 ms, completion=1.0000
+[14/72] fast_first lambda=1 M=4
+  best q=0.45, mean total=1.115 ms, completion=1.0000
+[15/72] unslotted lambda=1 M=4
+  best q=0.0125, mean total=2.128 ms, completion=1.0000
+[16/72] batch_clear lambda=1 M=4
+  best q=0.975, mean total=1.126 ms, completion=1.0000
+[17/72] baseline lambda=1 M=5
+  best q=0.975, mean total=1.348 ms, completion=1.0000
+[18/72] fast_first lambda=1 M=5
+  best q=0.4, mean total=1.326 ms, completion=1.0000
+[19/72] unslotted lambda=1 M=5
+  best q=0.0125, mean total=2.211 ms, completion=1.0000
+[20/72] batch_clear lambda=1 M=5
+  best q=1, mean total=1.314 ms, completion=0.9608
+[21/72] baseline lambda=1 M=6
+  best q=1, mean total=1.523 ms, completion=0.9608
+[22/72] fast_first lambda=1 M=6
+  best q=0.45, mean total=1.538 ms, completion=1.0000
+[23/72] unslotted lambda=1 M=6
+  best q=0.0125, mean total=2.512 ms, completion=1.0000
+[24/72] batch_clear lambda=1 M=6
+  best q=0.975, mean total=1.539 ms, completion=1.0000
+[25/72] baseline lambda=3 M=1
+  best q=0.825, mean total=0.609 ms, completion=1.0000
+[26/72] fast_first lambda=3 M=1
+  best q=0.9, mean total=0.560 ms, completion=1.0000
+[27/72] unslotted lambda=3 M=1
+  best q=1, mean total=0.471 ms, completion=1.0000
+[28/72] batch_clear lambda=3 M=1
+  best q=0.925, mean total=0.544 ms, completion=1.0000
+[29/72] baseline lambda=3 M=2
+  best q=0.925, mean total=0.757 ms, completion=0.7100
+[30/72] fast_first lambda=3 M=2
+  best q=0.4, mean total=0.725 ms, completion=1.0000
+[31/72] unslotted lambda=3 M=2
+  best q=0.4, mean total=0.670 ms, completion=1.0000
+[32/72] batch_clear lambda=3 M=2
+  best q=0.975, mean total=0.699 ms, completion=0.1643
+[33/72] baseline lambda=3 M=3
+  best q=0.975, mean total=1.005 ms, completion=0.3303
+[34/72] fast_first lambda=3 M=3
+  best q=0.4, mean total=0.945 ms, completion=1.0000
+[35/72] unslotted lambda=3 M=3
+  best q=0.25, mean total=0.907 ms, completion=1.0000
+[36/72] batch_clear lambda=3 M=3
+  best q=0.95, mean total=1.024 ms, completion=0.7100
+[37/72] baseline lambda=3 M=4
+  best q=0.975, mean total=1.195 ms, completion=0.1669
+[38/72] fast_first lambda=3 M=4
+  best q=0.925, mean total=1.159 ms, completion=0.7930
+[39/72] unslotted lambda=3 M=4
+  best q=0.6, mean total=1.146 ms, completion=1.0000
+[40/72] batch_clear lambda=3 M=4
+  best q=0.8, mean total=1.213 ms, completion=1.0000
+[41/72] baseline lambda=3 M=5
+  best q=0.85, mean total=1.438 ms, completion=1.0000
+[42/72] fast_first lambda=3 M=5
+  best q=0.8, mean total=1.405 ms, completion=1.0000
+[43/72] unslotted lambda=3 M=5
+  best q=1, mean total=1.353 ms, completion=0.6667
+[44/72] batch_clear lambda=3 M=5
+  best q=0.9, mean total=1.444 ms, completion=1.0000
+[45/72] baseline lambda=3 M=6
+  best q=0.825, mean total=1.663 ms, completion=0.7930
+[46/72] fast_first lambda=3 M=6
+  best q=0.6, mean total=1.640 ms, completion=1.0000
+[47/72] unslotted lambda=3 M=6
+  best q=0.85, mean total=1.841 ms, completion=1.0000
+[48/72] batch_clear lambda=3 M=6
+  best q=0.6, mean total=1.786 ms, completion=1.0000
+[49/72] baseline lambda=5 M=1
+  best q=0.825, mean total=0.581 ms, completion=0.6667
+[50/72] fast_first lambda=5 M=1
+  best q=0.2, mean total=0.555 ms, completion=1.0000
+[51/72] unslotted lambda=5 M=1
+  best q=0.4, mean total=0.538 ms, completion=1.0000
+[52/72] batch_clear lambda=5 M=1
+  best q=0.9, mean total=0.595 ms, completion=0.5546
+[53/72] baseline lambda=5 M=2
+  best q=0.925, mean total=0.759 ms, completion=0.1748
+[54/72] fast_first lambda=5 M=2
+  best q=0.6, mean total=0.761 ms, completion=1.0000
+[55/72] unslotted lambda=5 M=2
+  best q=0.35, mean total=0.782 ms, completion=1.0000
+[56/72] batch_clear lambda=5 M=2
+  best q=0.825, mean total=0.882 ms, completion=0.3443
+[57/72] baseline lambda=5 M=3
+  best q=0.85, mean total=1.156 ms, completion=0.2859
+[58/72] fast_first lambda=5 M=3
+  best q=0.8, mean total=1.046 ms, completion=0.8065
+[59/72] unslotted lambda=5 M=3
+  best q=0.2, mean total=1.018 ms, completion=1.0000
+[60/72] batch_clear lambda=5 M=3
+  best q=0.825, mean total=1.070 ms, completion=0.3998
+[61/72] baseline lambda=5 M=4
+  best q=0.9, mean total=1.264 ms, completion=0.4620
+[62/72] fast_first lambda=5 M=4
+  best q=0.45, mean total=1.272 ms, completion=1.0000
+[63/72] unslotted lambda=5 M=4
+  best q=0.45, mean total=1.277 ms, completion=1.0000
+[64/72] batch_clear lambda=5 M=4
+  best q=0.85, mean total=1.283 ms, completion=0.3461
+[65/72] baseline lambda=5 M=5
+  best q=0.75, mean total=1.786 ms, completion=0.6667
+[66/72] fast_first lambda=5 M=5
+  best q=0.6, mean total=1.549 ms, completion=1.0000
+[67/72] unslotted lambda=5 M=5
+  best q=0.4, mean total=1.691 ms, completion=0.6667
+[68/72] batch_clear lambda=5 M=5
+  best q=0.875, mean total=1.424 ms, completion=0.0665
+[69/72] baseline lambda=5 M=6
+  best q=0.75, mean total=1.769 ms, completion=0.0674
+[70/72] fast_first lambda=5 M=6
+  best q=0.35, mean total=1.864 ms, completion=1.0000
+[71/72] unslotted lambda=5 M=6
+  best q=0.4, mean total=2.029 ms, completion=1.0000
+[72/72] batch_clear lambda=5 M=6
+  best q=0.6, mean total=2.004 ms, completion=1.0000
+=== completed in 155.4 s ===
+
+SF-CB light-load study completed.
+Result directory: C:\Users\01\Desktop\delay2.0\delay2.0\sf_cb_lightload_study\results\20260729_180749
+Comparison figure: C:\Users\01\Desktop\delay2.0\delay2.0\sf_cb_lightload_study\results\20260729_180749\figures\sf_cb_lightload_delay_comparison.png
