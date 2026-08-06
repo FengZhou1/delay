@@ -1,7 +1,0 @@
-test,passed,detail
-isolated_baseline_matches_original,1,"completion, HOL and attempt vectors must match exactly"
-fast_first_ignores_normal_q_once,1,"empty-to-nonempty HOL must transmit at its first boundary"
-unslotted_has_no_boundary_wait,1,"fresh HOL starts at its exact arrival time"
-batch_clears_connection_snapshot,1,"three queued packets must use one reservation and sequential DATA"
-unslotted_overlap_collides,1,"overlapping reservation intervals must fail and later recover"
-all_variants_delay_identity,1,"total delay must equal queue plus access delay"

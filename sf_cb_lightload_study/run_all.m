@@ -1,13 +1,30 @@
-%RUN_ALL Execute the isolated SF-CB light-load MAC-variant study.
+function run_all(profile)
+%RUN_ALL Run the full four-protocol light-load study.
+%   run_all                % smoke profile (fast end-to-end check)
+%   run_all('analysis')    % full study (delay takes hours, throughput 10-20 min)
+%
+% Sequence: self-checks, non-saturated delay comparison, saturated
+% throughput comparison.  Results are written under
+% sf_cb_lightload_study/results/ (delay_data.mat, throughput_data.mat,
+% delay_comparison.png, throughput_comparison.png and q tables).
 
-study_dir = fileparts(mfilename('fullpath'));
-repo_root = fileparts(study_dir);
-addpath(repo_root);
-addpath(study_dir);
+    if nargin < 1 || isempty(profile)
+        profile = 'smoke';
+    end
+    profile = lower(char(profile));
+    if ~ismember(profile, {'smoke','analysis'})
+        error('run_all:BadProfile', ...
+            'Expected profile smoke or analysis.');
+    end
 
-lightload_cfg = default_lightload_sfcb_config('analysis');
-lightload_experiment = run_sfcb_lightload_study(lightload_cfg);
+    fprintf('=== run_all: profile=%s ===\n', profile);
+    run_lightload_study_tests();
 
-fprintf('\nSF-CB light-load study completed.\n');
-fprintf('Result directory: %s\n',lightload_experiment.output_dir);
-fprintf('Comparison figure: %s\n',lightload_experiment.figure.png_path);
+    cfg_delay = default_lightload_sfcb_config(profile,'delay');
+    run_delay_comparison(cfg_delay);
+
+    cfg_sat = default_lightload_sfcb_config(profile,'saturation');
+    run_throughput_comparison(cfg_sat);
+
+    fprintf('=== run_all: done ===\n');
+end
