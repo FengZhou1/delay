@@ -49,17 +49,9 @@ function cfg = default_lightload_sfcb_config(profile, mode)
     cfg.n_tune_runs = 1;
     cfg.n_eval_runs = 3;
     cfg.stats_sample_us = 500;
-    cfg.parallel = true;
+    cfg.parallel = false;
     cfg.run_preflight_tests = false;
-    cfg.resume = true;
-    % Safety caps for the continuous-time protocols (unslotted, sb_cb) at
-    % high load: the exponential/slot retry delay shrinks with q and the
-    % per-run cost can reach tens of seconds.  q_max_light = 1 keeps the
-    % full delay-optimal region (q ~ 0.5..1) intact and only guards against
-    % pathological configs; q_max_sat trims the saturation grids where the
-    % optimum is known to lie at q ~ 1e-3..0.03.
-    cfg.q_max_light = 1.0;
-    cfg.q_max_sat = 0.1;
+    cfg.resume = false;
     cfg.output_root = fullfile(fileparts(mfilename('fullpath')),'results');
     cfg.collect_packet_log = true;
     cfg.collect_diagnostics = true;

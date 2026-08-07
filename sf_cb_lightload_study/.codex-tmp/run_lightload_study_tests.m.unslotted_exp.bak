@@ -142,10 +142,9 @@
         isfield(r9s.diagnostics,'cts_miss_winner'), ...
         'sb_cb SINR diagnostics present');
 
-    % ---- T12: exponential retry delay distribution ----
-    % With a single packet at t=0 and q=0.5, lambda = -log(1-q)/9 =
-    % log(2)/9 per us, so the mean delay is 9/log(2) ~= 12.98 us and
-    % P(delay < 9 us) = 1 - exp(-lambda*9) = q = 0.5.
+    % ---- T12: uniform backoff distribution (window model) ----
+    % With a single packet at t=0 and q=0.5, W = 18*(1-0.5)/0.5 = 18 us,
+    % T ~ Uniform(0, 18), mean = 9 us, always <= W.
     c12 = test_window(cfg, 0, 2e5, 5e5);
     tr12 = manual_trace(c12, 0, 1);
     n12 = 400;
@@ -156,12 +155,12 @@
         w12(s) = r12.packet_log.first_attempt_us(1) - r12.packet_log.hol_us(1);
         p12(s) = r12.packet_log.probability_wait_us(1);
     end
+    results = check(results, all(w12 <= 18 + tol), ...
+        'uniform backoff wait <= W=18 us at q=0.5');
     results = check(results, all(abs(w12 - p12) < tol), ...
-        'exponential delay accounting matches observed wait');
-    results = check(results, abs(mean(w12) - 9/log(2)) < 2.5, ...
-        'exponential delay mean ~= 9/log(2) us at q=0.5');
-    results = check(results, abs(mean(w12 < 9) - 0.5) < 0.1, ...
-        'P(delay < 9 us) ~= q = 0.5');
+        'uniform backoff accounting matches observed wait');
+    results = check(results, abs(mean(w12) - 9) < 2.0, ...
+        'uniform backoff mean wait ~= 9 us at q=0.5');
 
     fprintf('tests: %d passed, %d failed\n', results.n_pass, results.n_fail);
     if results.n_fail > 0

@@ -1,13 +1,9 @@
 ﻿function raw = simulate_lightload_continuous(mode, trace, scenario, cfg, M, q, seed)
 %SIMULATE_LIGHTLOAD_CONTINUOUS Shared event-driven continuous-time engine.
-% mode = 'unslotted' -> non-slotted p-persistent ALOHA with an
-%   exponential retry delay: whenever the HOL queue is non-empty the node
-%   draws T ~ Exp(lambda) with lambda = -ln(1-q)/9 per us (the continuous
-%   equivalent of Bernoulli(q) at 9 us slot boundaries, so the survival
-%   probability at k*9 us equals (1-q)^k).  Transmissions use real
-%   durations (RTS=14.5 us, SIFS=16 us, CTS sweep=117.6 us,
-%   DATA=M*164.1 us) without any 9 us boundary alignment.  No carrier
-%   sensing.
+% mode = 'unslotted' -> non-slotted p-persistent ALOHA: a fresh HOL packet
+%   draws Bernoulli(q) immediately and transmissions use real durations
+%   (RTS=14.5 us, SIFS=16 us, CTS sweep=117.6 us, DATA=M*164.1 us) without
+%   any 9 us boundary alignment.  No carrier sensing.
 % mode = 'sb_cb'     -> sensing-based connection protocol (modified): the
 %   HOL station senses at 9 us tick boundaries and, after a continuous
 %   idle of DIFS=34 us, immediately draws Bernoulli(q) and transmits a real
@@ -27,7 +23,6 @@
     conn_slot_us = timing.CONN_SLOT_US;
     cts_timeout_us = timing.CTS_TIMEOUT_US;
     difs_ticks = timing.DIFS_TICKS;
-    exp_rate_us = -log(1 - q) / slot_us;   % per microsecond
     tp_us = conn_slot_us * double(M);
 
     mode = lower(char(mode));
@@ -90,13 +85,12 @@
 
     node_state = zeros(n_nodes,1);
     next_tick = inf(n_nodes,1);
-    backoff_end = inf(n_nodes,1);
-    backoff_remaining = zeros(n_nodes,1);
     rts_end = inf(n_nodes,1);
     wait_timeout = inf(n_nodes,1);
     nav_until = zeros(n_nodes,1);
     sense_count = zeros(n_nodes,1);
     sense_start = nan(n_nodes,1);
+    scheduled_success = false(n_nodes,1);
     rts_overlap = false(n_nodes,1);
     ap_idle_at_start = false(n_nodes,1);
     attempt_start = nan(n_nodes,1);
@@ -316,32 +310,30 @@
     function enter_hol(u, t_hol)
         if nav_until(u) > t_hol
             node_state(u) = ST_NAV;
+            scheduled_success(u) = false;
             sense_count(u) = 0;
             sense_start(u) = nav_until(u);
-            next_tick(u) = nav_until(u);
+            next_tick(u) = idle_resume_tick(nav_until(u));
             if next_tick(u) <= t_hol
                 next_tick(u) = t_hol + slot_us;
             end
         elseif strcmp(mode,'sb_cb')
-            % Sensing starts at the next 9 us boundary after the HOL
-            % instant; DIFS completes at align_up(sense_start + SIFS) +
-            % 2*slot, and the RTS is transmitted at a boundary.
+            % Start sensing immediately at the HOL instant (no 9 us
+            % alignment); the DIFS completion instant is derived from
+            % sense_start in process_tick, so the Bernoulli draw happens at
+            % exactly sense_start + DIFS (34 us).
             node_state(u) = ST_SENSE;
+            scheduled_success(u) = false;
             sense_count(u) = 0;
             sense_start(u) = t_hol;
-            next_tick(u) = ceil(t_hol / slot_us) * slot_us;
+            next_tick(u) = t_hol;
         else
-            % Unslotted: draw an exponential retry delay, wait, then send.
-            T = exprnd(1 / exp_rate_us);
+            % A fresh HOL packet decides immediately at the arrival instant:
+            % Bernoulli(q) right now, without waiting for the next 9 us tick.
             node_state(u) = ST_READY;
-            backoff_remaining(u) = T;
-            if ~is_saturation
-                pid = head_packet_id(u);
-                if pid > 0
-                    probability_wait_us(pid) = probability_wait_us(pid) + T;
-                end
-            end
-            next_tick(u) = t_hol + T;
+            scheduled_success(u) = false;
+            sense_count(u) = 0;
+            next_tick(u) = t_hol;
         end
     end
 
@@ -358,9 +350,10 @@
         end
         if nav_until(u) > t_now
             node_state(u) = ST_NAV;
+            scheduled_success(u) = false;
             sense_count(u) = 0;
             sense_start(u) = nav_until(u);
-            next_tick(u) = nav_until(u);
+            next_tick(u) = idle_resume_tick(nav_until(u));
             if next_tick(u) <= t_now
                 next_tick(u) = t_now + slot_us;
             end
@@ -370,23 +363,10 @@
             if strcmp(mode,'sb_cb')
                 node_state(u) = ST_SENSE;
                 sense_start(u) = t_now;
-                next_tick(u) = ceil(t_now / slot_us) * slot_us;
-                sense_count(u) = 0;
-                return;
             else
-                % Unslotted: NAV ended, draw a fresh exponential delay.
-                T = exprnd(1 / exp_rate_us);
                 node_state(u) = ST_READY;
-                backoff_remaining(u) = T;
-                if ~is_saturation
-                    pid = head_packet_id(u);
-                    if pid > 0
-                        probability_wait_us(pid) = probability_wait_us(pid) + T;
-                    end
-                end
-                next_tick(u) = t_now + T;
-                return;
             end
+            scheduled_success(u) = false;
             sense_count(u) = 0;
         end
         if node_state(u) == ST_SENSE
@@ -396,22 +376,24 @@
                 % instant the channel becomes idle again.
                 sense_count(u) = 0;
                 sense_start(u) = busy_end;
-                next_tick(u) = ceil(busy_end / slot_us) * slot_us;
+                next_tick(u) = busy_observe_tick(busy_end);
                 return;
             end
-            if t_now >= sense_start(u) + sifs_us
-                % DIFS complete: align to the next boundary after
-                % (sense_start + SIFS), then count 2 full idle slots.
-                difs_ok = ceil((sense_start(u) + sifs_us) / slot_us) * slot_us;
-                if t_now >= difs_ok + 2 * slot_us
-                    node_state(u) = ST_READY;
-                    sense_count(u) = 0;
-                else
-                    next_tick(u) = difs_ok + 2 * slot_us;
-                    return;
-                end
+            if t_now >= sense_start(u) + difs_us
+                % Continuous idle since sense_start: DIFS (34 us) is
+                % complete.  Fall through to the ST_READY processing below,
+                % which performs the Bernoulli(q) draw immediately at this
+                % continuous instant.
+                node_state(u) = ST_READY;
+                scheduled_success(u) = false;
+                sense_count(u) = 0;
             else
+                % Still inside DIFS: keep the 9 us periodic busy check and
+                % schedule the exact DIFS-completion event.
                 next_tick(u) = t_now + slot_us;
+                if sense_start(u) + difs_us < next_tick(u)
+                    next_tick(u) = sense_start(u) + difs_us;
+                end
                 return;
             end
         end
@@ -422,24 +404,33 @@
         if strcmp(mode,'sb_cb')
             [busy, busy_end] = sense_busy(u, t_now);
             if busy
-                % Channel became busy during this slot: go back to sensing
-                % from the busy end.
                 node_state(u) = ST_SENSE;
+                scheduled_success(u) = false;
                 sense_count(u) = 0;
                 sense_start(u) = busy_end;
-                next_tick(u) = ceil(busy_end / slot_us) * slot_us;
+                next_tick(u) = idle_resume_tick(busy_end);
+                if next_tick(u) <= t_now
+                    next_tick(u) = t_now + slot_us;
+                end
                 return;
             end
-            % Slot boundary decision: Bernoulli(q), transmit immediately
-            % if drawn, otherwise wait for the next boundary.
-            if rand(stream) < q
-                flag = true;
-            else
-                next_tick(u) = t_now + slot_us;
-            end
-        else
-            % Unslotted: backoff timer expired -> send RTS.
+        end
+        if scheduled_success(u)
+            scheduled_success(u) = false;
             flag = true;
+            return;
+        end
+        k = geometric_q(q, stream);
+        if ~is_saturation
+            pid = head_packet_id(u);
+            probability_wait_us(pid) = ...
+                probability_wait_us(pid) + (k - 1) * slot_us;
+        end
+        if k == 1
+            flag = true;
+        else
+            scheduled_success(u) = true;
+            next_tick(u) = t_now + (k - 1) * slot_us;
         end
     end
 
@@ -460,7 +451,8 @@
         rts_end(u) = t_now + rts_us;
         rts_overlap(u) = false;
         ap_idle_at_start(u) = ap_phase == AP_IDLE;
-                sense_count(u) = 0;
+        scheduled_success(u) = false;
+        sense_count(u) = 0;
 
         others = find(node_state == ST_RTS).';
         others = others(others ~= u);
@@ -486,11 +478,10 @@
                     continue;
                 end
                 node_state(v) = ST_SENSE;
-
+                scheduled_success(v) = false;
                 sense_count(v) = 0;
                 sense_start(v) = t_now + rts_us;
-                nb = ceil(t_now / slot_us) * slot_us;
-                if nb <= t_now; nb = t_now + slot_us; end
+                nb = busy_observe_tick(t_now);
                 if nb < next_tick(v)
                     next_tick(v) = nb;
                 end
@@ -555,24 +546,21 @@
                 diagnostics.rts_response_timeouts + 1;
         end
         if strcmp(mode,'sb_cb')
-            % Re-sense from the timeout instant; DIFS completes at
-            % align_up(sense_start + SIFS) + 2*slot, RTS at a boundary.
+            % Re-sense from the exact timeout instant; DIFS completes at
+            % t_now + 34 us if the channel stays idle, then the Bernoulli
+            % draw is made immediately at that instant.
             node_state(u) = ST_SENSE;
             sense_start(u) = t_now;
-            next_tick(u) = ceil(t_now / slot_us) * slot_us;
+            next_tick(u) = t_now;
         else
-            % Unslotted: draw a fresh exponential delay after timeout.
-            T = exprnd(1 / exp_rate_us);
+            % Unslotted: retry on the next 9 us tick, as in the plan.
             node_state(u) = ST_READY;
-            backoff_remaining(u) = T;
-            if ~is_saturation
-                pid = head_packet_id(u);
-                if pid > 0
-                    probability_wait_us(pid) = probability_wait_us(pid) + T;
-                end
+            next_tick(u) = idle_resume_tick(t_now);
+            if next_tick(u) <= t_now
+                next_tick(u) = t_now + slot_us;
             end
-            next_tick(u) = t_now + T;
         end
+        scheduled_success(u) = false;
         sense_count(u) = 0;
     end
 
@@ -616,8 +604,9 @@
                             node_state(u) == ST_READY || ...
                             node_state(u) == ST_NAV
                         node_state(u) = ST_NAV;
-                                                sense_count(u) = 0;
-                        next_tick(u) = winner_data_end;
+                        scheduled_success(u) = false;
+                        sense_count(u) = 0;
+                        next_tick(u) = idle_resume_tick(winner_data_end);
                         if next_tick(u) <= t_now
                             next_tick(u) = t_now + slot_us;
                         end
@@ -638,10 +627,9 @@
                     nav_until <= t_now);
                 for v = hearers.'
                     node_state(v) = ST_SENSE;
-    
+                    scheduled_success(v) = false;
                     sense_count(v) = 0;
-                    nb = ceil(t_now / slot_us) * slot_us;
-                    if nb <= t_now; nb = t_now + slot_us; end
+                    nb = busy_observe_tick(t_now);
                     if nb < next_tick(v)
                         next_tick(v) = nb;
                     end
@@ -667,11 +655,10 @@
                         ap_sector_tx(:, 1) > sens_w & nav_until <= t_now);
                     for v = hearers.'
                         node_state(v) = ST_SENSE;
-        
+                        scheduled_success(v) = false;
                         sense_count(v) = 0;
                         sense_start(v) = t_now + cts_us;
-                        nb = ceil(t_now / slot_us) * slot_us;
-                        if nb <= t_now; nb = t_now + slot_us; end
+                        nb = busy_observe_tick(t_now);
                         if nb < next_tick(v)
                             next_tick(v) = nb;
                         end
@@ -701,11 +688,10 @@
                             nav_until <= t_now);
                         for v = hearers.'
                             node_state(v) = ST_SENSE;
-            
+                            scheduled_success(v) = false;
                             sense_count(v) = 0;
                             sense_start(v) = winner_data_end;
-                            nb = ceil(t_now / slot_us) * slot_us;
-                            if nb <= t_now; nb = t_now + slot_us; end
+                            nb = busy_observe_tick(t_now);
                             if nb < next_tick(v)
                                 next_tick(v) = nb;
                             end
@@ -769,25 +755,14 @@
                         if strcmp(mode,'sb_cb')
                             node_state(winner_id) = ST_SENSE;
                             sense_start(winner_id) = t_now;
-                            sense_count(winner_id) = 0;
-                            next_tick(winner_id) = ceil(t_now / slot_us) * slot_us;
-                            if next_tick(winner_id) <= t_now
-                                next_tick(winner_id) = t_now + slot_us;
-                            end
                         else
-                            % Unslotted: the next queued packet immediately
-                            % draws a fresh exponential delay.
                             node_state(winner_id) = ST_READY;
-                            T = exprnd(1 / exp_rate_us);
-                            backoff_remaining(winner_id) = T;
-                            if ~is_saturation
-                                pid = head_packet_id(winner_id);
-                                if pid > 0
-                                    probability_wait_us(pid) = ...
-                                        probability_wait_us(pid) + T;
-                                end
-                            end
-                            next_tick(winner_id) = t_now + T;
+                        end
+                        scheduled_success(winner_id) = false;
+                        sense_count(winner_id) = 0;
+                        next_tick(winner_id) = idle_resume_tick(t_now);
+                        if next_tick(winner_id) <= t_now
+                            next_tick(winner_id) = t_now + slot_us;
                         end
                     else
                         % Queue is empty: the node returns to IDLE and is
@@ -885,4 +860,26 @@
             data_failed = true;
         end
     end
+
+    function nt = idle_resume_tick(t_resume)
+        nt = ceil(t_resume / slot_us) * slot_us;
+    end
+
+    function nt = busy_observe_tick(t_observe)
+        nt = ceil(t_observe / slot_us) * slot_us;
+        if nt <= t_observe
+            nt = t_observe + slot_us;
+        end
+    end
 end
+
+function k = geometric_q(q, stream)
+    if q >= 1
+        k = 1;
+        return;
+    end
+    U = 1 - rand(stream);
+    U = max(U, eps);
+    k = floor(log(U) / log(1 - q)) + 1;
+end
+

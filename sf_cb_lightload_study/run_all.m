@@ -20,6 +20,10 @@ function run_all(profile)
     fprintf('=== run_all: profile=%s ===\n', profile);
     run_lightload_study_tests();
 
+    if strcmp(profile,'analysis') && cfg_parallel_available()
+        start_parpool_if_needed();
+    end
+
     cfg_delay = default_lightload_sfcb_config(profile,'delay');
     run_delay_comparison(cfg_delay);
 
@@ -27,4 +31,21 @@ function run_all(profile)
     run_throughput_comparison(cfg_sat);
 
     fprintf('=== run_all: done ===\n');
+end
+
+function ok = cfg_parallel_available()
+    ok = license('test','Distrib_Computing_Toolbox') && ...
+        ~isempty(ver('parallel'));
+end
+
+function start_parpool_if_needed()
+    if isempty(gcp('nocreate'))
+        try
+            p = parpool('local');
+            fprintf('parpool started with %d workers\n', p.NumWorkers);
+        catch ME
+            fprintf('parpool failed to start (%s); running serial\n', ...
+                ME.message);
+        end
+    end
 end

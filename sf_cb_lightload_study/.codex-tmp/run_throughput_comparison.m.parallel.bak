@@ -6,13 +6,9 @@
 % All four protocols share one deterministic saturation supply: every node
 % receives one packet every M*164.1 us (the batch_clear queue model).  For
 % each protocol and M the access probability q is scanned (protocol-specific
-% coarse grid, one tuning run per point, local refinement, then
+% coarse grid, one tuning run per point, 7-point local refinement, then
 % n_eval_runs seeds on the fine grid) and the q maximizing the successful
 % payload airtime fraction inside the measurement window is chosen.
-%
-% Performance notes: coarse and fine q scans run in parallel (parfor);
-% results are saved incrementally after every (M, protocol) cell so a
-% crashed run can be resumed from delay_partial-style state.
 %
 % Outputs: throughput_data.mat (results + best-q table),
 % throughput_comparison.png (x = Tp = M*164.1 us, y = normalized
@@ -34,27 +30,8 @@
     n_eval = double(cfg.n_eval_runs);
     output_root = char(cfg.output_root);
 
-    if ~exist(output_root,'dir'), mkdir(output_root); end
-    prof_tag = 'smoke';
-    if isfield(cfg,'profile') && ~isempty(cfg.profile)
-        prof_tag = lower(char(cfg.profile));
-    end
-    partial_file = fullfile(output_root, sprintf('throughput_partial_%s.mat', prof_tag));
-    if exist(partial_file,'file')
-        partial = load(partial_file);
-        done_keys = partial.keys_save;
-        partial_rows = partial.rows_save;
-        partial_qrows = partial.qrows_save;
-        fprintf('[saturation] resuming: %d cells already complete\n', ...
-            numel(done_keys));
-    else
-        done_keys = {};
-        partial_rows = cell(0,1);
-        partial_qrows = cell(0,1);
-    end
-
-    rows = partial_rows;
-    qrows = partial_qrows;
+    rows = cell(0,1);
+    qrows = cell(0,1);
     for Mi = 1:numel(cfg.M_values)
         M = double(cfg.M_values(Mi));
         trace = build_lightload_sat_trace(cfg, M);
@@ -62,25 +39,12 @@
             protocol = protocols{pi};
             coarse_q = double(cfg.protocol_q_grids.(protocol)(:).');
             proto_seed_base = cfg.protocol_seed_base + 100*pi;
-            cell_key = sprintf('%s|M%d', protocol, M);
-            if ismember(cell_key, done_keys)
-                fprintf('[saturation] %s M=%d: cached\n', ...
-                    protocol, M);
-                continue;
-            end
-            if isfield(cfg,'q_max_sat') && ~isempty(cfg.q_max_sat) && ...
-                    (strcmp(protocol,'unslotted') || strcmp(protocol,'sb_cb'))
-                coarse_q = coarse_q(coarse_q <= cfg.q_max_sat);
-                if isempty(coarse_q)
-                    coarse_q = cfg.protocol_q_grids.(protocol)(1);
-                end
-            end
             fprintf('[saturation] %s M=%d: coarse scan (%d q)\n', ...
                 protocol, M, numel(coarse_q));
 
             % ---- coarse tuning pass (one run per q) ----
             airtime = nan(numel(coarse_q),1);
-            parfor i = 1:numel(coarse_q)
+            for i = 1:numel(coarse_q)
                 result = simulate_sfcb_lightload_variant(protocol, trace, ...
                     scenario, cfg, M, coarse_q(i), cfg.protocol_seed_base + pi);
                 airtime(i) = result.summary.payload_airtime_fraction;
@@ -95,20 +59,12 @@
                 protocol, M, numel(fine_q), n_eval);
             fine_airtime = nan(numel(fine_q), n_eval);
             for i = 1:numel(fine_q)
-                if n_eval <= 1
+                for s = 1:n_eval
                     result = simulate_sfcb_lightload_variant(protocol, ...
                         trace, scenario, cfg, M, fine_q(i), ...
-                        proto_seed_base + 1);
-                    fine_airtime(i,1) = ...
+                        proto_seed_base + s);
+                    fine_airtime(i,s) = ...
                         result.summary.payload_airtime_fraction;
-                else
-                    parfor s = 1:n_eval
-                        result = simulate_sfcb_lightload_variant(protocol, ...
-                            trace, scenario, cfg, M, fine_q(i), ...
-                            proto_seed_base + s);
-                        fine_airtime(i,s) = ...
-                            result.summary.payload_airtime_fraction;
-                    end
                 end
             end
             mean_airtime = nanmean(fine_airtime,2);
@@ -133,10 +89,6 @@
                 'q_fine_throughput', best_airtime, ...
                 'fine_q', fine_q, ...
                 'fine_throughput', mean_airtime);
-            done_keys{end+1,1} = cell_key; %#ok<AGROW>
-            rows_save = rows; qrows_save = qrows; keys_save = done_keys;
-            save(partial_file, 'rows_save', 'qrows_save', 'keys_save', ...
-                '-v7.3');
         end
     end
 

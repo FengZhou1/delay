@@ -1,13 +1,9 @@
 ﻿function raw = simulate_lightload_continuous(mode, trace, scenario, cfg, M, q, seed)
 %SIMULATE_LIGHTLOAD_CONTINUOUS Shared event-driven continuous-time engine.
-% mode = 'unslotted' -> non-slotted p-persistent ALOHA with an
-%   exponential retry delay: whenever the HOL queue is non-empty the node
-%   draws T ~ Exp(lambda) with lambda = -ln(1-q)/9 per us (the continuous
-%   equivalent of Bernoulli(q) at 9 us slot boundaries, so the survival
-%   probability at k*9 us equals (1-q)^k).  Transmissions use real
-%   durations (RTS=14.5 us, SIFS=16 us, CTS sweep=117.6 us,
-%   DATA=M*164.1 us) without any 9 us boundary alignment.  No carrier
-%   sensing.
+% mode = 'unslotted' -> non-slotted p-persistent ALOHA: a fresh HOL packet
+%   draws Bernoulli(q) immediately and transmissions use real durations
+%   (RTS=14.5 us, SIFS=16 us, CTS sweep=117.6 us, DATA=M*164.1 us) without
+%   any 9 us boundary alignment.  No carrier sensing.
 % mode = 'sb_cb'     -> sensing-based connection protocol (modified): the
 %   HOL station senses at 9 us tick boundaries and, after a continuous
 %   idle of DIFS=34 us, immediately draws Bernoulli(q) and transmits a real
@@ -27,7 +23,7 @@
     conn_slot_us = timing.CONN_SLOT_US;
     cts_timeout_us = timing.CTS_TIMEOUT_US;
     difs_ticks = timing.DIFS_TICKS;
-    exp_rate_us = -log(1 - q) / slot_us;   % per microsecond
+    W_us = 18 * (1 - q) / max(q, eps);
     tp_us = conn_slot_us * double(M);
 
     mode = lower(char(mode));
@@ -331,8 +327,8 @@
             sense_start(u) = t_hol;
             next_tick(u) = ceil(t_hol / slot_us) * slot_us;
         else
-            % Unslotted: draw an exponential retry delay, wait, then send.
-            T = exprnd(1 / exp_rate_us);
+            % Pure-ALOHA backoff: draw T ~ Uniform(0, W), wait, then send.
+            T = rand(stream) * W_us;
             node_state(u) = ST_READY;
             backoff_remaining(u) = T;
             if ~is_saturation
@@ -374,8 +370,8 @@
                 sense_count(u) = 0;
                 return;
             else
-                % Unslotted: NAV ended, draw a fresh exponential delay.
-                T = exprnd(1 / exp_rate_us);
+                % Unslotted: NAV ended, draw a fresh backoff and wait.
+                T = rand(stream) * W_us;
                 node_state(u) = ST_READY;
                 backoff_remaining(u) = T;
                 if ~is_saturation
@@ -561,8 +557,8 @@
             sense_start(u) = t_now;
             next_tick(u) = ceil(t_now / slot_us) * slot_us;
         else
-            % Unslotted: draw a fresh exponential delay after timeout.
-            T = exprnd(1 / exp_rate_us);
+            % Unslotted: draw a fresh backoff after timeout.
+            T = rand(stream) * W_us;
             node_state(u) = ST_READY;
             backoff_remaining(u) = T;
             if ~is_saturation
@@ -769,25 +765,14 @@
                         if strcmp(mode,'sb_cb')
                             node_state(winner_id) = ST_SENSE;
                             sense_start(winner_id) = t_now;
-                            sense_count(winner_id) = 0;
-                            next_tick(winner_id) = ceil(t_now / slot_us) * slot_us;
-                            if next_tick(winner_id) <= t_now
-                                next_tick(winner_id) = t_now + slot_us;
-                            end
                         else
-                            % Unslotted: the next queued packet immediately
-                            % draws a fresh exponential delay.
                             node_state(winner_id) = ST_READY;
-                            T = exprnd(1 / exp_rate_us);
-                            backoff_remaining(winner_id) = T;
-                            if ~is_saturation
-                                pid = head_packet_id(winner_id);
-                                if pid > 0
-                                    probability_wait_us(pid) = ...
-                                        probability_wait_us(pid) + T;
-                                end
-                            end
-                            next_tick(winner_id) = t_now + T;
+                        end
+
+                        sense_count(winner_id) = 0;
+                        next_tick(winner_id) = ceil(t_now / slot_us) * slot_us;
+                        if next_tick(winner_id) <= t_now
+                            next_tick(winner_id) = t_now + slot_us;
                         end
                     else
                         % Queue is empty: the node returns to IDLE and is
