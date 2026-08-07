@@ -3,7 +3,7 @@ function result = finalize_lightload_sim_result(raw, trace, cfg, protocol, M, q)
 % Mirrors the semantics of the parent finalize_sim_result (measurement
 % cohort = arrivals in [warmup, arrival_end), conditional mean delays over
 % completed cohort packets) but uses the study's own real-time conn-slot
-% (164.1 us) instead of the parent mmw_timing_config value.
+% (162.5 us) instead of the parent mmw_timing_config value.
 
     timing = protocol_timing(cfg);
     pkt = raw.packet_log;

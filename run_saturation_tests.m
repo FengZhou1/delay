@@ -14,7 +14,10 @@ function report = run_saturation_tests(output_dir)
     cfg1.n_sectors = 1;
     cfg1.warmup_us = 0;
     timing1 = mmw_timing_config(cfg1);
-    conn1_us = timing1.CONN_SLOT_US;
+    conn1_us = timing1.CONN_SLOT_US;             % legacy grid (n_sectors=1)
+    real_conn1_us = cfg1.mmw_real_conn_slot_us;  % 162.5 us (sf_cb/sb_cb)
+    % sf_cf keeps the legacy slot; sf_cb uses the exact 162.5-us slot, so
+    % the single-node windows below are sized per protocol.
     cfg1.measure_us = conn1_us*120;
     cfg1.arrival_end_us = cfg1.measure_us;
     cfg1.sim_hard_end_us = cfg1.measure_us;
@@ -31,7 +34,7 @@ function report = run_saturation_tests(output_dir)
         sf_cf.summary.payload_airtime_fraction,1,1e-12);
 
     cfg_cb = cfg1;
-    cfg_cb.measure_us = (conn1_us+2*conn1_us)*100;
+    cfg_cb.measure_us = (real_conn1_us+2*real_conn1_us)*100;
     cfg_cb.arrival_end_us = cfg_cb.measure_us;
     cfg_cb.sim_hard_end_us = cfg_cb.measure_us;
     trace_cb = make_saturation_trace(cfg_cb);
@@ -48,8 +51,8 @@ function report = run_saturation_tests(output_dir)
         fractional_default.payload_slots,2,0);
     rows(end+1) = check_close('fractional_M01_actual_Tp_8sectors', ... %#ok<AGROW>
         fractional_default.actual_payload_us,2*timing1.SLOT_US,0);
-    fractional = saturation_payload_timing(cfg1,0.1);
-    fractional_cycle_us = conn1_us + fractional.actual_payload_us;
+    fractional_M01_Tp = real_conn1_us * 0.1;   % 16.41 us exact
+    fractional_cycle_us = real_conn1_us + fractional_M01_Tp;
     cfg_fractional = cfg1;
     cfg_fractional.measure_us = fractional_cycle_us*100;
     cfg_fractional.arrival_end_us = cfg_fractional.measure_us;
@@ -57,16 +60,15 @@ function report = run_saturation_tests(output_dir)
     trace_fractional = make_saturation_trace(cfg_fractional);
     sf_cb_fractional = run_protocol_v2('sf_cb',trace_fractional,scenario1, ...
         cfg_fractional,0.1,1,103);
-    expected_fractional = fractional.actual_payload_us / fractional_cycle_us;
+    expected_fractional = fractional_M01_Tp / fractional_cycle_us;
     rows(end+1) = check_close('single_node_sf_cb_M01_effective_payload', ... %#ok<AGROW>
         sf_cb_fractional.summary.effective_payload_fraction, ...
         expected_fractional,1e-12);
     rows(end+1) = check_close('single_node_sf_cb_M01_not_full_conn_slot', ... %#ok<AGROW>
-        sf_cb_fractional.summary.Tp_us,fractional.actual_payload_us,0);
+        sf_cb_fractional.summary.Tp_us,fractional_M01_Tp,1e-9);
     rows(end+1) = check_close('single_node_sf_cb_M01_normalized_goodput', ... %#ok<AGROW>
         sf_cb_fractional.summary.normalized_goodput_units_s, ...
-        fractional.effective_M * ...
-        sf_cb_fractional.summary.completed_pkt_s,1e-12);
+        0.1 * sf_cb_fractional.summary.completed_pkt_s,1e-12);
 
     % Forty-node classic Aloha must match the analytical saturation law.
     cfg40 = default_saturation_config('smoke');
@@ -117,10 +119,10 @@ function report = run_saturation_tests(output_dir)
     end
 
     % With a single SB-CF node, repeated successes must still pay a fresh
-    % four-slot DIFS.  Its payload fraction must therefore stay below the
-    % no-DIFS value of one and near Tp/(Tp+DIFS).
+    % DIFS (aligned to 36 us).  Its payload fraction must therefore stay
+    % below the no-DIFS value of one and near Tp/(Tp+DIFS_aligned).
     sb_cf = run_protocol_v2('sb_cf',trace1,scenario1,cfg1,1,1,401);
-    expected_sb_cf = conn1_us/(conn1_us+scenario1.MMW.DIFS_US);
+    expected_sb_cf = real_conn1_us/(real_conn1_us+36);
     rows(end+1) = check_close('sb_cf_fresh_difs_after_success', ... %#ok<AGROW>
         sb_cf.summary.payload_airtime_fraction,expected_sb_cf,0.03);
 

@@ -5,8 +5,8 @@
 %   draws T ~ Exp(lambda) with lambda = -ln(1-q)/9 per us (the continuous
 %   equivalent of Bernoulli(q) at 9 us slot boundaries, so the survival
 %   probability at k*9 us equals (1-q)^k).  Transmissions use real
-%   durations (RTS=14.5 us, SIFS=16 us, CTS sweep=117.6 us,
-%   DATA=M*164.1 us) without any 9 us boundary alignment.  No carrier
+%   durations (RTS=14.5 us, SIFS=16 us, CTS sweep=116.0 us,
+%   DATA=M*162.5 us) without any 9 us boundary alignment.  No carrier
 %   sensing.
 % mode = 'sb_cb'     -> sensing-based connection protocol (modified): the
 %   HOL station senses at 9 us tick boundaries and, after a continuous

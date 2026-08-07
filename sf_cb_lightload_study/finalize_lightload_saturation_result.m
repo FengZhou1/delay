@@ -2,7 +2,7 @@ function result = finalize_lightload_saturation_result(raw, cfg, protocol, M, q)
 %FINALIZE_LIGHTLOAD_SATURATION_RESULT Summarize one saturated light-load run.
 % Normalized throughput = successful payload airtime fraction inside the
 % measurement window.  With the study's exact timing, one successful DATA
-% frame is exactly M * 164.1 us, so we also report M * completed_pkt_s.
+% frame is exactly M * 162.5 us, so we also report M * completed_pkt_s.
 
     timing = protocol_timing(cfg);
     per_node = double(raw.saturation_per_node_completions(:));

@@ -163,16 +163,18 @@ function[SYS, PHY_MMW, MMW, SUB7, SIM] = get_common_params(cfg)
     MMW.conn_overhead = timing.CONN_SLOT_SLOTS;
     
     SUB7.SLOT_TIME_US = 9;
-    SUB7.SIFS     = 2;  
-    SUB7.DIFS     = 4;  
-    SUB7.ICF      = 7;  
-    SUB7.ICR      = 7;  
-    SUB7.SLO_RTS_LEN = 7;
-    SUB7.SLO_CTS_LEN = 7;
+    % Real-time (non slot-aligned) Sub-7 timing, matching the mmWave
+    % SB-CB access procedure (RTS/DIFS boundary aligned, omni sensing
+    % without hidden nodes).
+    SUB7.SIFS_US = 16;
+    SUB7.DIFS_US = 34;
+    SUB7.RTS_US  = 26.7;
+    SUB7.CTS_US  = 24.7;
+    SUB7.CTS_TIMEOUT_US = SUB7.SIFS_US + SUB7.CTS_US;   % 40.7 us
     SUB7.SLO_TXOP_LEN = 500;
-    SUB7.SLO_DATA_LEN = SUB7.SLO_TXOP_LEN; 
-    SUB7.N_SLO_CLEAN = 0;   
-    SUB7.N_SLO_BUSY  = 10;  
+    SUB7.SLO_DATA_LEN = SUB7.SLO_TXOP_LEN;
+    SUB7.N_SLO_CLEAN = 0;
+    SUB7.N_SLO_BUSY  = 10;
 
     SIM.TIME_TOTAL_US = 2000000;
     SIM.STEPS_MMW  = round(SIM.TIME_TOTAL_US / MMW.SLOT_TIME_US);

@@ -1,9 +1,9 @@
 function result = simulate_sf_cb(trace, scenario, cfg, M, q, seed)
 %SIMULATE_SF_CB Slotted full-coordinated connection Aloha (baseline).
-% Time is divided into 164.1 us conn-slot frames.  At every frame boundary
+% Time is divided into 162.5 us conn-slot frames.  At every frame boundary
 % each backlogged node makes an independent Bernoulli(q) decision.  A
 % singleton reserves the channel (RTS + SIFS + CTS sweep + SIFS) and then
-% sends one DATA frame of M * 164.1 us.  Collisions and idle frames each
+% sends one DATA frame of M * 162.5 us.  Collisions and idle frames each
 % waste one conn-slot.  Because transmitters are restricted to slot
 % boundaries, a successful reservation always yields a successful CTS/DATA
 % transfer, so no SINR judgment is needed (simplified model).

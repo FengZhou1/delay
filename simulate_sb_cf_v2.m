@@ -1,577 +1,247 @@
 function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
-%SIMULATE_SB_CF_V2 Connection-free directional CSMA on the mmWave grid.
+%SIMULATE_SB_CF_V2 Connection-free directional CSMA (event-driven).
 %   result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
 %
-% Timing rules used here are intentionally explicit:
-%   * a new HOL packet starts with zero DIFS credit;
-%   * the next HOL after a success starts with zero DIFS credit;
-%   * a failed transmission retries only after a fresh full DIFS;
-%   * arrivals at a mmWave-slot boundary are enqueued before that boundary's
-%     access decision;
-%   * a successful data frame completes at the end of its last mmWave slot;
-%   * there is no ACK airtime.
+% Identical access procedure to the SB-CB protocol except that the station
+% transmits its DATA frame directly instead of reserving the channel with
+% an RTS/CTS handshake.  Real-time (non slot-aligned) timings match the
+% sf-cb / sb-cb light-load study: DIFS=34 us (aligned to a 36 us boundary),
+% DATA = M * 162.5 us.
 %
-% CCA modes:
-%   directional - local received energy is compared with the CCA threshold;
-%   oracle      - CCA exactly follows the harmful-transmission ground truth;
-%   disabled    - CCA always reports idle.
+% A HOL packet senses at 9 us tick boundaries and, after a continuous idle
+% of DIFS (align_up(sense_start+SIFS)+2 slots), draws Bernoulli(q) at the
+% 9 us boundary and starts a real DATA frame of 162.5*M us.  A busy channel
+% resets the DIFS counter.  Overlapping DATA frames collide (classic model).
+% The AP receives the DATA omnidirectionally and judges success with the
+% directional SINR threshold (DATA threshold 21 dB), so a late frame can
+% spoil the winner's DATA.
 %
-% The AP does not know the transmitting STA in advance and therefore
-% receives omnidirectionally. Reception follows the classic collision
-% model: any overlap between two or more data frames makes every
-% overlapping frame fail. No AP-side antenna gain, capture, or SINR is used.
+% CCA modes: directional (real sensing), disabled (no sensing / no NAV).
+%
+% The output raw structure is compatible with finalize_sim_result.m /
+% finalize_saturation_result.m, so the shared run_experiment pipeline is
+% unchanged.
 
-    validate_inputs(trace, scenario, cfg, M, q);
-
-    protocol = 'sb_cf';
+    TR = scenario.MMW_REAL;
+    slot_us = double(TR.SLOT_US);              % 9 us sensing granularity
+    sifs_us = double(TR.SIFS_US);              % 16 us
+    difs_us = double(TR.DIFS_US);              % 34 us
+    conn_slot_us = double(TR.CONN_OVERHEAD_US);% 162.5 us
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
-    dt_us = double(scenario.MMW.SLOT_TIME_US);
-    n_nodes = cfg.n_nodes;
     if is_saturation
-        payload_timing = saturation_payload_timing(cfg,M);
-        Tp_us = payload_timing.actual_payload_us;
+        tp_us = conn_slot_us * double(M);
     else
-        Tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * double(M);
+        tp_us = conn_slot_us * double(M);
     end
-    n_data_slots = round(Tp_us / dt_us);
-    if abs(n_data_slots * dt_us - Tp_us) > 1e-9
-        error('simulate_sb_cf_v2:NonIntegralPayload', ...
-              'Tp must be an integer number of mmWave slots.');
+    % Carrier-sensing mode: 'disabled' disables CCA (stations transmit
+    % after DIFS without sensing); otherwise the real channel is sensed.
+    cca_mode = 'directional';
+    if isfield(cfg,'cca_mode') && ~isempty(cfg.cca_mode)
+        cca_mode = lower(char(cfg.cca_mode));
+    end
+    sense_enabled = ~strcmp(cca_mode,'disabled');
+
+    n_nodes = double(cfg.n_nodes);
+    n_sectors = double(cfg.n_sectors);
+    n_packets = double(trace.n_packets);
+    arrival_us = double(trace.times_us(:));
+    node_id = double(trace.node_id(:));
+    arrival_end_us = double(trace.arrival_end_us);
+    hard_end_us = double(trace.hard_end_us);
+    left_measure_us = double(cfg.warmup_us);
+    right_measure_us = arrival_end_us;
+    stats_sample_us = 500;
+    if isfield(cfg,'stats_sample_us') && ~isempty(cfg.stats_sample_us)
+        stats_sample_us = double(cfg.stats_sample_us);
+    end
+    stream = RandStream('mt19937ar','Seed',double(seed));
+
+    node_sectors = double(scenario.sectors(:));
+    PHY = scenario.PHY;
+    int_matrix = PHY.Int_Matrix;
+    ap_rx = PHY.AP_Rx_Matrix;
+    ap_sector_tx = PHY.AP_Sector_Tx_Matrix;
+    noise_w = 10.^((PHY.NOISE_DBM - 30) / 10);
+    sens_w = 10.^((cfg.rx_sens_dbm - 30) / 10);
+    data_sinr_th = PHY.DATA_SINR_TH_DB;
+
+    % Node state machine constants.
+    ST_IDLE = 0; ST_SENSE = 1; ST_READY = 2; ST_TX = 3; ...
+        ST_NAV = 7;
+    % AP phase constants (sb_cf has no handshake: IDLE or DATA).
+    AP_IDLE = 0; AP_DATA = 4;
+
+    % Per-packet bookkeeping (delay mode only).
+    if is_saturation
+        hol_us = zeros(0,1); first_attempt_us = zeros(0,1);
+        completion_us = zeros(0,1); attempts = zeros(0,1);
+        probability_wait_us = zeros(0,1); collision_delay_us = zeros(0,1);
+        control_delay_us = zeros(0,1); data_delay_us = zeros(0,1);
+        difs_wait_us = zeros(0,1);
+    else
+        hol_us = nan(n_packets,1);
+        first_attempt_us = nan(n_packets,1);
+        completion_us = nan(n_packets,1);
+        attempts = zeros(n_packets,1);
+        probability_wait_us = zeros(n_packets,1);
+        collision_delay_us = zeros(n_packets,1);
+        control_delay_us = zeros(n_packets,1);
+        data_delay_us = zeros(n_packets,1);
+        difs_wait_us = zeros(n_packets,1);
     end
 
-    difs_us = double(scenario.MMW.DIFS_US);
-    if abs(difs_us / dt_us - round(difs_us / dt_us)) > 1e-9
-        error('simulate_sb_cf_v2:NonIntegralDIFS', ...
-              'DIFS must be an integer number of mmWave slots.');
-    end
+    node_state = zeros(n_nodes,1);
+    next_tick = inf(n_nodes,1);
+    tx_end = inf(n_nodes,1);
+    nav_until = zeros(n_nodes,1);
+    sense_count = zeros(n_nodes,1);
+    sense_start = nan(n_nodes,1);
+    tx_overlap = false(n_nodes,1);
+    ap_idle_at_start = false(n_nodes,1);
+    attempt_start = nan(n_nodes,1);
+    attempt_pid = zeros(n_nodes,1);
+    tx_in_sector = false(n_nodes,1);
 
-    phy = scenario.PHY;
-    int_matrix = phy.Int_Matrix;       % (transmitter, listener)
-    cca_threshold_w = 10.^((double(cfg.rx_sens_dbm) - 30) / 10);
-    cca_mode = lower(char(cfg.cca_mode));
+    queue_head = ones(n_nodes,1);
+    queue_tail = zeros(n_nodes,1);
+    queue_count = zeros(n_nodes,1);
+    next_arrival = 1;
 
-    stream = RandStream('mt19937ar', 'Seed', double(seed));
+    ap_phase = AP_IDLE;
+    ap_phase_end = inf;
+    winner_id = 0;
+    winner_data_start = 0;
+    winner_data_end = 0;
+    data_tx_active = false;
+    data_failed = false;
 
-    % Unified packet log.  Non-HOL and unfinished packets retain NaN for
-    % timestamps that have not occurred by the hard stop.
-    n_packets = trace.n_packets;
-    pkt = struct();
-    pkt.node_id = double(trace.node_id(:));
-    pkt.arrival_us = double(trace.times_us(:));
-    pkt.hol_us = nan(n_packets, 1);
-    pkt.first_attempt_us = nan(n_packets, 1);
-    pkt.completion_us = nan(n_packets, 1);
-    pkt.attempts = zeros(n_packets, 1);
-    pkt.probability_wait_us = zeros(n_packets, 1);
-
-    % Intrusive per-node FIFO.  Packet ids are already stable indices into
-    % the unified log, so linking them avoids the O(queue length) copy made
-    % by queues{u}(1)=[] after every successful transmission.
-    queue_head = zeros(n_nodes, 1);
-    queue_tail = zeros(n_nodes, 1);
-    queue_next = zeros(n_packets, 1);
-    has_packet = false(n_nodes, 1);
-    difs_elapsed_us = zeros(n_nodes, 1);
-
-    tx_active = false(n_nodes, 1);
-    tx_remaining_slots = zeros(n_nodes, 1);
-    tx_packet_id = zeros(n_nodes, 1);
-    tx_start_us = nan(n_nodes, 1);
-    tx_failed = false(n_nodes, 1);
-
-    ap_lock = 0;
-
-    % CCA and harmful-start truth depend only on the set/state of active
-    % transmitters. A frame occupies multiple mmWave slots, so
-    % cache these vectors until a start, finish, or lock failure changes
-    % that state.  Per-slot counters are still accumulated below.
-    cca_cache_valid = false;
-    cached_active_before = zeros(0,1);
-    cached_listeners = true(n_nodes,1);
-    cached_raw_directional_busy = false(n_nodes,1);
-    cached_harmful = false(n_nodes,1);
-    cached_sinr_harmful = false(n_nodes,1);
-    cached_self_undecodable = false(n_nodes,1);
-    cached_single_user_only = false(n_nodes,1);
-
-    diagnostics = initialise_diagnostics(cca_mode, seed, Tp_us, difs_us);
-    % These counters are touched on almost every mmWave boundary. Keep them
-    % as local scalars in the hot loop and publish them to diagnostics once.
-    d_raw_busy_opp = 0;
-    d_raw_misses = 0;
-    d_eligible_tp = 0;
-    d_eligible_fn = 0;
-    d_eligible_fp = 0;
-    d_eligible_tn = 0;
-    d_ready_tp = 0;
-    d_ready_fn = 0;
-    d_ready_fp = 0;
-    d_ready_tn = 0;
-    d_eligible_sinr_harmful = 0;
-    d_eligible_self_undecodable = 0;
-    d_eligible_single_user_only = 0;
-    d_ready_sinr_harmful = 0;
-    d_ready_self_undecodable = 0;
-    d_ready_single_user_only = 0;
-    d_overlap_time_us = 0;
-    d_excess_airtime_us = 0;
-
-    arrival_index = 1;
-    backlog_n = 0;
-    completed_n = 0;
     system_area_measure_us = 0;
     service_area_measure_us = 0;
     payload_success_overlap_us = 0;
     saturation_per_node_completions = zeros(n_nodes,1);
-    failed_capacity = max(1024, 4 * n_packets);
-    failed_interval_start_us = zeros(failed_capacity,1);
-    failed_interval_end_us = zeros(failed_capacity,1);
-    failed_interval_count = 0;
+    backlog_sample_us = zeros(0,1);
+    backlog_sample_n = zeros(0,1);
+    next_backlog_sample_us = 0;
 
-    sample_period_us = double(cfg.stats_sample_us);
-    if ~isfinite(sample_period_us) || sample_period_us <= 0
-        sample_period_us = dt_us;
-    end
-    next_sample_us = 0;
+    diagnostics = struct();
+    diagnostics.rts_attempts = 0;       % DATA attempt count (legacy name)
+    diagnostics.rts_success = 0;        % successful DATA count
+    diagnostics.rts_fail_total = 0;
+    diagnostics.rts_fail_collision = 0;
+    diagnostics.rts_fail_ap_busy = 0;
+    diagnostics.data_reservations = 0;
+    diagnostics.data_no_cts = 0;
+    diagnostics.data_success = 0;
+    diagnostics.data_fail_sinr = 0;
+    diagnostics.data_fail_cts = 0;
+    diagnostics.collision_waste_us = 0;
+    diagnostics.collision_waste_measure_us = 0;
+    diagnostics.rts_sinr_used = false;
+    diagnostics.data_sinr_th_db = data_sinr_th;
+    diagnostics.cts_sinr_th_db = PHY.CTS_SINR_TH_DB;
+    diagnostics.rts_reception_model = 'classic_collision';
+    diagnostics.cts_reception_model = 'none';
+    diagnostics.data_reception_model = 'directional_sinr';
+    diagnostics.sim_end_us = 0;
+    diagnostics.payload_success_overlap_us = 0;
+    diagnostics.cca_mode = cca_mode;
+    diagnostics.rts_start_times_us = zeros(0,1);
+    diagnostics.rts_start_nodes = zeros(0,1);
 
-    measurement_left_us = double(cfg.warmup_us);
-    measurement_right_us = double(cfg.arrival_end_us);
-    hard_end_us = double(cfg.sim_hard_end_us);
-    if isfield(trace, 'hard_end_us')
-        hard_end_us = min(hard_end_us, double(trace.hard_end_us));
-    end
-    % Experimental horizons may be specified in decimal microseconds. The
-    % state machine extends by less than one slot so the last grid-aligned
-    % arrival before the requested horizon is still processed.
-    hard_end_us = ceil(hard_end_us / dt_us) * dt_us;
-    sample_capacity = max(1, ceil(hard_end_us / sample_period_us) + 2);
-    backlog_sample_us = zeros(sample_capacity,1);
-    backlog_sample_n = zeros(sample_capacity,1);
-    backlog_sample_count = 0;
-
-    t_us = 0;
-    while t_us < hard_end_us
-        % Arrivals at this boundary are visible to this boundary's decision.
-        while arrival_index <= n_packets && ...
-                pkt.arrival_us(arrival_index) <= t_us + 1e-9
-            if pkt.arrival_us(arrival_index) < t_us - 1e-9
-                error('simulate_sb_cf_v2:ArrivalOffGrid', ...
-                      'An arrival was skipped by the mmWave state machine.');
-            end
-            u = pkt.node_id(arrival_index);
-            if u < 1 || u > n_nodes || u ~= round(u)
-                error('simulate_sb_cf_v2:BadNodeId', ...
-                      'Arrival trace contains an invalid node id.');
-            end
-            was_empty = ~has_packet(u);
-            if was_empty
-                queue_head(u) = arrival_index;
-            else
-                queue_next(queue_tail(u)) = arrival_index;
-            end
-            queue_tail(u) = arrival_index;
-            has_packet(u) = true;
-            backlog_n = backlog_n + 1;
-            if was_empty
-                pkt.hol_us(arrival_index) = t_us;
-                difs_elapsed_us(u) = 0;
-            end
-            arrival_index = arrival_index + 1;
+    t = 0;
+    enqueue_until(t);
+    while true
+        enqueue_until(t);
+        backlog_now = sum(queue_count);
+        all_arrivals_seen = next_arrival > n_packets;
+        radio_idle = ap_phase == AP_IDLE && ~any(node_state == ST_TX);
+        if all_arrivals_seen && backlog_now == 0 && radio_idle
+            break;
         end
-
-        while next_sample_us <= t_us + 1e-9
-            backlog_sample_count = backlog_sample_count + 1;
-            backlog_sample_us(backlog_sample_count) = t_us;
-            backlog_sample_n(backlog_sample_count) = backlog_n;
-            next_sample_us = next_sample_us + sample_period_us;
-        end
-
-        if t_us >= measurement_right_us && backlog_n == 0 && ...
-                arrival_index > n_packets
+        if t >= hard_end_us
+            t = hard_end_us;
             break;
         end
 
-        % No protocol state can change before the next arrival when the
-        % system is empty.  Jump across that interval, but advance the
-        % private stream by exactly the same 40 random variates per skipped
-        % slot as the ordinary loop.  This preserves every later attempt.
-        if backlog_n == 0 && arrival_index <= n_packets
-            next_arrival_us = pkt.arrival_us(arrival_index);
-            skip_slots = round((next_arrival_us - t_us) / dt_us);
-            if skip_slots > 0
-                remaining_skip = skip_slots;
-                while remaining_skip > 0
-                    draw_slots = min(remaining_skip, 10000);
-                    rand(stream, n_nodes, draw_slots);
-                    remaining_skip = remaining_skip - draw_slots;
-                end
-                while next_sample_us < next_arrival_us - 1e-9
-                    recorded_sample_us = ...
-                        ceil((next_sample_us - 1e-9) / dt_us) * dt_us;
-                    if recorded_sample_us >= next_arrival_us - 1e-9
-                        break;
-                    end
-                    backlog_sample_count = backlog_sample_count + 1;
-                    backlog_sample_us(backlog_sample_count) = recorded_sample_us;
-                    backlog_sample_n(backlog_sample_count) = 0;
-                    next_sample_us = next_sample_us + sample_period_us;
-                end
-                t_us = next_arrival_us;
-                continue;
-            end
+        cand = inf;
+        if next_arrival <= n_packets
+            cand = min(cand, arrival_us(next_arrival));
         end
-
-        % CCA is evaluated from transmissions already in progress at the
-        % boundary. Newly starting simultaneous frames are handled by the
-        % classic AP collision rule below.
-        if cca_cache_valid
-            active_before = cached_active_before;
-            listeners = cached_listeners;
-            raw_directional_busy = cached_raw_directional_busy;
-            harmful = cached_harmful;
-            sinr_harmful = cached_sinr_harmful;
-            self_undecodable = cached_self_undecodable;
-            single_user_only = cached_single_user_only;
-        else
-            active_before = find(tx_active);
-            listeners = ~tx_active;
-            if isempty(active_before)
-                raw_directional_busy = false(n_nodes, 1);
-            else
-                listener_power = sum(int_matrix(active_before, :), 1).';
-                raw_directional_busy = listener_power > cca_threshold_w;
-            end
-            [harmful, sinr_harmful, self_undecodable, single_user_only] = ...
-                harmful_if_started(n_nodes, active_before);
-            cached_active_before = active_before;
-            cached_listeners = listeners;
-            cached_raw_directional_busy = raw_directional_busy;
-            cached_harmful = harmful;
-            cached_sinr_harmful = sinr_harmful;
-            cached_self_undecodable = self_undecodable;
-            cached_single_user_only = single_user_only;
-            cca_cache_valid = true;
+        cand = min(cand, min(next_tick));
+        cand = min(cand, min(tx_end));
+        if ap_phase ~= AP_IDLE
+            cand = min(cand, ap_phase_end);
         end
-        if ~isempty(active_before)
-            d_raw_busy_opp = d_raw_busy_opp + sum(listeners);
-            d_raw_misses = d_raw_misses + ...
-                sum(listeners & ~raw_directional_busy);
+        if ~isfinite(cand)
+            error('simulate_sb_cf_v2:NoEvent', ...
+                'No event is scheduled; simulation cannot advance.');
         end
-
-        switch cca_mode
-            case 'directional'
-                cca_busy = raw_directional_busy;
-            case 'oracle'
-                cca_busy = harmful;
-            case 'disabled'
-                cca_busy = false(n_nodes, 1);
-            otherwise
-                error('simulate_sb_cf_v2:BadCcaMode', ...
-                      'Unknown CCA mode: %s', cca_mode);
+        if cand < t
+            error('simulate_sb_cf_v2:PastEvent', ...
+                'Event time went backwards from %.6f to %.6f.', t, cand);
         end
-        cca_busy(tx_active) = true;
-
-        % "Eligible CCA" means a non-transmitting node with a HOL packet.
-        % A second ready-only confusion matrix is retained so analyses can
-        % distinguish DIFS accumulation from an actual transmission choice.
-        eligible_cca = listeners & has_packet;
-        d_eligible_sinr_harmful = d_eligible_sinr_harmful + ...
-            sum(eligible_cca & sinr_harmful);
-        d_eligible_self_undecodable = d_eligible_self_undecodable + ...
-            sum(eligible_cca & self_undecodable);
-        d_eligible_single_user_only = d_eligible_single_user_only + ...
-            sum(eligible_cca & single_user_only);
-        d_eligible_tp = d_eligible_tp + sum(eligible_cca & harmful & cca_busy);
-        d_eligible_fn = d_eligible_fn + sum(eligible_cca & harmful & ~cca_busy);
-        d_eligible_fp = d_eligible_fp + sum(eligible_cca & ~harmful & cca_busy);
-        d_eligible_tn = d_eligible_tn + sum(eligible_cca & ~harmful & ~cca_busy);
-        ready_cca = eligible_cca & (difs_elapsed_us >= difs_us);
-        d_ready_sinr_harmful = d_ready_sinr_harmful + ...
-            sum(ready_cca & sinr_harmful);
-        d_ready_self_undecodable = d_ready_self_undecodable + ...
-            sum(ready_cca & self_undecodable);
-        d_ready_single_user_only = d_ready_single_user_only + ...
-            sum(ready_cca & single_user_only);
-        d_ready_tp = d_ready_tp + sum(ready_cca & harmful & cca_busy);
-        d_ready_fn = d_ready_fn + sum(ready_cca & harmful & ~cca_busy);
-        d_ready_fp = d_ready_fp + sum(ready_cca & ~harmful & cca_busy);
-        d_ready_tn = d_ready_tn + sum(ready_cca & ~harmful & ~cca_busy);
-
-        ready = ready_cca & ~cca_busy;
-        starts = ready & (rand(stream, n_nodes, 1) < q);
-        deferred_ready = ready & ~starts;
-        if any(deferred_ready)
-            deferred_pids = queue_head(deferred_ready);
-            pkt.probability_wait_us(deferred_pids) = ...
-                pkt.probability_wait_us(deferred_pids) + dt_us;
-        end
-        start_ids = find(starts);
-        n_starts = numel(start_ids);
-        active_was_present = ~isempty(active_before);
-        lock_was_present = ap_lock > 0;
-
-        if n_starts > 0
-            cca_cache_valid = false;
-            diagnostics.attempts = diagnostics.attempts + n_starts;
-            if n_starts > 1
-                diagnostics.simultaneous_start_events = ...
-                    diagnostics.simultaneous_start_events + 1;
-                diagnostics.simultaneous_start_attempts = ...
-                    diagnostics.simultaneous_start_attempts + n_starts;
-            end
-            if active_was_present || lock_was_present
-                diagnostics.late_start_events = diagnostics.late_start_events + 1;
-                diagnostics.late_start_attempts = ...
-                    diagnostics.late_start_attempts + n_starts;
-            end
-            diagnostics.sinr_harmful_start_attempts = ...
-                diagnostics.sinr_harmful_start_attempts + ...
-                sum(starts & sinr_harmful);
-            diagnostics.self_undecodable_start_attempts = ...
-                diagnostics.self_undecodable_start_attempts + ...
-                sum(starts & self_undecodable);
-            diagnostics.single_user_only_harmful_start_attempts = ...
-                diagnostics.single_user_only_harmful_start_attempts + ...
-                sum(starts & single_user_only);
-
-            for k = 1:n_starts
-                u = start_ids(k);
-                pid = queue_head(u);
-                tx_active(u) = true;
-                tx_remaining_slots(u) = n_data_slots;
-                tx_packet_id(u) = pid;
-                tx_start_us(u) = t_us;
-                tx_failed(u) = false;
-                difs_elapsed_us(u) = 0;
-                pkt.attempts(pid) = pkt.attempts(pid) + 1;
-                if ~isfinite(pkt.first_attempt_us(pid))
-                    pkt.first_attempt_us(pid) = t_us;
+        next_t = cand;
+        if next_t > t
+            overlap = interval_overlap_us(t, next_t, ...
+                left_measure_us, right_measure_us);
+            if overlap > 0
+                system_area_measure_us = system_area_measure_us + ...
+                    backlog_now * overlap;
+                if data_tx_active
+                    service_area_measure_us = ...
+                        service_area_measure_us + overlap;
                 end
             end
-
-            if ~active_was_present && n_starts == 1
-                % A single non-overlapping frame is the only decodable case.
-                ap_lock = start_ids(1);
-            else
-                % Every frame participating in any overlap fails. This also
-                % invalidates a previously clean frame when a late sender
-                % starts before that frame ends.
-                all_active = find(tx_active);
-                if ap_lock > 0 && ~tx_failed(ap_lock)
-                    diagnostics.partial_collisions = ...
-                        diagnostics.partial_collisions + 1;
-                end
-                tx_failed(all_active) = true;
-                ap_lock = 0;
-                diagnostics.classic_collision_events = ...
-                    diagnostics.classic_collision_events + 1;
-                diagnostics.classic_collision_attempts = ...
-                    diagnostics.classic_collision_attempts + numel(all_active);
-                diagnostics.simultaneous_loser_attempts = ...
-                    diagnostics.simultaneous_loser_attempts + n_starts;
-                diagnostics.late_start_rejections = ...
-                    diagnostics.late_start_rejections + ...
-                    double(active_was_present || lock_was_present)*n_starts;
+            while next_backlog_sample_us <= next_t
+                backlog_sample_us(end+1,1) = next_backlog_sample_us; %#ok<AGROW>
+                backlog_sample_n(end+1,1) = backlog_now; %#ok<AGROW>
+                next_backlog_sample_us = ...
+                    next_backlog_sample_us + stats_sample_us;
             end
         end
+        t = next_t;
 
-        t_next_us = min(t_us + dt_us, hard_end_us);
-        interval_us = t_next_us - t_us;
-        overlap_measure_us = interval_overlap_us(t_us, t_next_us, ...
-            measurement_left_us, measurement_right_us);
-        system_area_measure_us = system_area_measure_us + ...
-            backlog_n * overlap_measure_us;
-        active_now = find(tx_active);
-        n_active = numel(active_now);
-        service_area_measure_us = service_area_measure_us + ...
-            n_active * overlap_measure_us;
-        if n_active > 1
-            d_overlap_time_us = d_overlap_time_us + interval_us;
-            d_excess_airtime_us = d_excess_airtime_us + ...
-                (n_active - 1) * interval_us;
+        enqueue_until(t);
+        fin = find(tx_end == t).';
+        for u = fin
+            process_tx_end(u, t);
         end
-
-        % DIFS accrues only for a current HOL while the selected CCA mode
-        % reports idle.  Empty queues never accumulate credit.
-        idle_hol = has_packet & ~tx_active;
-        difs_elapsed_us(~has_packet) = 0;
-        difs_elapsed_us(idle_hol & cca_busy) = 0;
-        count_difs = idle_hol & ~cca_busy;
-        difs_elapsed_us(count_difs) = min(difs_us, ...
-            difs_elapsed_us(count_difs) + interval_us);
-
-        % Advance transmissions and resolve outcomes at the end boundary.
-        tx_remaining_slots(active_now) = tx_remaining_slots(active_now) - 1;
-        finished_ids = active_now(tx_remaining_slots(active_now) <= 0);
-        if ~isempty(finished_ids)
-            cca_cache_valid = false;
+        if ap_phase ~= AP_IDLE && t == ap_phase_end
+            process_ap_phase_end(t);
         end
-        for k = 1:numel(finished_ids)
-            u = finished_ids(k);
-            pid = tx_packet_id(u);
-            was_ap_lock = (ap_lock == u);
-            succeeded = was_ap_lock && ~tx_failed(u);
-
-            if succeeded
-                completed_n = completed_n + 1;
-                diagnostics.successful_attempts = ...
-                    diagnostics.successful_attempts + 1;
-                payload_success_overlap_us = payload_success_overlap_us + ...
-                    interval_overlap_us(tx_start_us(u), t_next_us, ...
-                        measurement_left_us, measurement_right_us);
-                if queue_head(u) ~= pid
-                    error('simulate_sb_cf_v2:QueueCorruption', ...
-                          'Successful packet is not the node HOL packet.');
-                end
-                if is_saturation
-                    if t_next_us >= measurement_left_us && ...
-                            t_next_us < measurement_right_us
-                        saturation_per_node_completions(u) = ...
-                            saturation_per_node_completions(u) + 1;
-                    end
-                    pkt.hol_us(pid) = t_next_us;
-                    pkt.first_attempt_us(pid) = NaN;
-                    pkt.completion_us(pid) = NaN;
-                    pkt.attempts(pid) = 0;
-                    pkt.probability_wait_us(pid) = 0;
-                else
-                    pkt.completion_us(pid) = t_next_us;
-                    backlog_n = backlog_n - 1;
-                    next_pid = queue_next(pid);
-                    queue_head(u) = next_pid;
-                    if next_pid == 0
-                        queue_tail(u) = 0;
-                        has_packet(u) = false;
-                    else
-                        pkt.hol_us(next_pid) = t_next_us;
-                    end
-                end
-            else
-                diagnostics.failed_attempts = diagnostics.failed_attempts + 1;
-                diagnostics.collision_waste_us = ...
-                    diagnostics.collision_waste_us + ...
-                    (t_next_us - tx_start_us(u));
-                failed_interval_count = failed_interval_count + 1;
-                if failed_interval_count > failed_capacity
-                    failed_interval_start_us(end+failed_capacity,1) = 0;
-                    failed_interval_end_us(end+failed_capacity,1) = 0;
-                    failed_capacity = 2 * failed_capacity;
-                end
-                failed_interval_start_us(failed_interval_count) = tx_start_us(u);
-                failed_interval_end_us(failed_interval_count) = t_next_us;
-            end
-
-            % Both a new HOL and a failed retry must earn a fresh DIFS.
-            difs_elapsed_us(u) = 0;
-            tx_active(u) = false;
-            tx_remaining_slots(u) = 0;
-            tx_packet_id(u) = 0;
-            tx_start_us(u) = NaN;
-            tx_failed(u) = false;
-            if was_ap_lock
-                ap_lock = 0;
+        tick_nodes = find(next_tick == t).';
+        drawers = false(n_nodes,1);
+        for u = tick_nodes
+            if process_tick(u, t)
+                drawers(u) = true;
             end
         end
-
-        t_us = t_next_us;
+        for u = find(drawers).'
+            start_tx(u, t, drawers);
+        end
     end
 
-    sim_end_us = t_us;
-    % Include already-spent airtime of known failed frames cut by hard stop.
-    unfinished_failed = find(tx_active & tx_failed);
-    for k = 1:numel(unfinished_failed)
-        u = unfinished_failed(k);
-        diagnostics.collision_waste_us = diagnostics.collision_waste_us + ...
-            max(0, sim_end_us - tx_start_us(u));
-        failed_interval_count = failed_interval_count + 1;
-        if failed_interval_count > failed_capacity
-            failed_interval_start_us(end+failed_capacity,1) = 0;
-            failed_interval_end_us(end+failed_capacity,1) = 0;
-            failed_capacity = 2 * failed_capacity;
-        end
-        failed_interval_start_us(failed_interval_count) = tx_start_us(u);
-        failed_interval_end_us(failed_interval_count) = sim_end_us;
+    sim_end_us = t;
+    enqueue_until(sim_end_us);
+    if ~is_saturation && next_arrival <= n_packets
+        error('simulate_sb_cf_v2:UnseenArrivals', ...
+            'Simulation ended before all arrivals were enqueued.');
+    end
+    final_backlog = sum(queue_count);
+    if isempty(backlog_sample_us) || backlog_sample_us(end) ~= sim_end_us
+        backlog_sample_us(end+1,1) = sim_end_us; %#ok<AGROW>
+        backlog_sample_n(end+1,1) = final_backlog; %#ok<AGROW>
     end
 
-    failed_interval_start_us = ...
-        failed_interval_start_us(1:failed_interval_count);
-    failed_interval_end_us = ...
-        failed_interval_end_us(1:failed_interval_count);
-    backlog_sample_us = backlog_sample_us(1:backlog_sample_count);
-    backlog_sample_n = backlog_sample_n(1:backlog_sample_count);
-
-    diagnostics.collision_tx_airtime_us = ...
-        sum(max(0,failed_interval_end_us-failed_interval_start_us));
-    diagnostics.collision_channel_time_us = interval_union_length( ...
-        failed_interval_start_us,failed_interval_end_us,-Inf,Inf);
-    diagnostics.collision_tx_airtime_measure_us = sum(max(0, ...
-        min(failed_interval_end_us,measurement_right_us) - ...
-        max(failed_interval_start_us,measurement_left_us)));
-    diagnostics.collision_channel_time_measure_us = interval_union_length( ...
-        failed_interval_start_us,failed_interval_end_us, ...
-        measurement_left_us,measurement_right_us);
-
-    diagnostics.completed_packets = completed_n;
-    diagnostics.raw_listening_busy_opportunities = d_raw_busy_opp;
-    diagnostics.raw_listening_misses = d_raw_misses;
-    diagnostics.eligible_cca_tp = d_eligible_tp;
-    diagnostics.eligible_cca_fn = d_eligible_fn;
-    diagnostics.eligible_cca_fp = d_eligible_fp;
-    diagnostics.eligible_cca_tn = d_eligible_tn;
-    diagnostics.ready_cca_tp = d_ready_tp;
-    diagnostics.ready_cca_fn = d_ready_fn;
-    diagnostics.ready_cca_fp = d_ready_fp;
-    diagnostics.ready_cca_tn = d_ready_tn;
-    diagnostics.eligible_sinr_harmful_opportunities = ...
-        d_eligible_sinr_harmful;
-    diagnostics.eligible_self_undecodable_opportunities = ...
-        d_eligible_self_undecodable;
-    diagnostics.eligible_single_user_only_harmful_opportunities = ...
-        d_eligible_single_user_only;
-    diagnostics.ready_sinr_harmful_opportunities = d_ready_sinr_harmful;
-    diagnostics.ready_self_undecodable_opportunities = ...
-        d_ready_self_undecodable;
-    diagnostics.ready_single_user_only_harmful_opportunities = ...
-        d_ready_single_user_only;
-    diagnostics.overlapping_transmission_time_us = d_overlap_time_us;
-    diagnostics.excess_transmitter_airtime_us = d_excess_airtime_us;
-    diagnostics.raw_listening_miss_rate = safe_ratio( ...
-        diagnostics.raw_listening_misses, ...
-        diagnostics.raw_listening_busy_opportunities);
-    diagnostics.eligible_cca_fn_rate = safe_ratio( ...
-        diagnostics.eligible_cca_fn, ...
-        diagnostics.eligible_cca_tp + diagnostics.eligible_cca_fn);
-    diagnostics.eligible_cca_fp_rate = safe_ratio( ...
-        diagnostics.eligible_cca_fp, ...
-        diagnostics.eligible_cca_fp + diagnostics.eligible_cca_tn);
-    diagnostics.ready_cca_fn_rate = safe_ratio( ...
-        diagnostics.ready_cca_fn, ...
-        diagnostics.ready_cca_tp + diagnostics.ready_cca_fn);
-    diagnostics.ready_cca_fp_rate = safe_ratio( ...
-        diagnostics.ready_cca_fp, ...
-        diagnostics.ready_cca_fp + diagnostics.ready_cca_tn);
-
-    completed_mask = isfinite(pkt.completion_us);
-    pkt.boundary_wait_us = zeros(n_packets,1);
-    pkt.difs_wait_us = pkt.attempts * difs_us;
-    pkt.collision_delay_us = zeros(n_packets,1);
-    pkt.collision_delay_us(completed_mask) = ...
-        max(0,pkt.attempts(completed_mask)-1) * Tp_us;
-    pkt.control_delay_us = zeros(n_packets,1);
-    pkt.data_delay_us = zeros(n_packets,1);
-    pkt.data_delay_us(completed_mask) = Tp_us;
-    component_sum = pkt.difs_wait_us + pkt.probability_wait_us + ...
-        pkt.collision_delay_us + pkt.data_delay_us;
-    pkt.busy_nav_wait_us = zeros(n_packets,1);
-    pkt.busy_nav_wait_us(completed_mask) = max(0, ...
-        pkt.completion_us(completed_mask) - pkt.hol_us(completed_mask) - ...
-        component_sum(completed_mask));
-    pkt.other_access_delay_us = zeros(n_packets,1);
+    if ~is_saturation
+        difs_wait_us = attempts * difs_us;
+        diagnostics.payload_success_overlap_us = payload_success_overlap_us;
+    end
+    diagnostics.sim_end_us = sim_end_us;
 
     raw = struct();
-    raw.packet_log = pkt;
-    raw.final_backlog = backlog_n;
+    raw.final_backlog = final_backlog;
     raw.sim_end_us = sim_end_us;
     raw.system_area_measure_us = system_area_measure_us;
     raw.service_area_measure_us = service_area_measure_us;
@@ -579,163 +249,359 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
     raw.backlog_sample_us = backlog_sample_us;
     raw.backlog_sample_n = backlog_sample_n;
     raw.diagnostics = diagnostics;
+    if is_saturation
+        raw.packet_log = struct();
+        raw.saturation_per_node_completions = saturation_per_node_completions;
+    else
+        packet_log = struct();
+        packet_log.node_id = node_id;
+        packet_log.arrival_us = arrival_us;
+        packet_log.hol_us = hol_us;
+        packet_log.first_attempt_us = first_attempt_us;
+        packet_log.completion_us = completion_us;
+        packet_log.attempts = attempts;
+        packet_log.probability_wait_us = probability_wait_us;
+        packet_log.boundary_wait_us = zeros(n_packets,1);
+        packet_log.difs_wait_us = difs_wait_us;
+        packet_log.collision_delay_us = collision_delay_us;
+        packet_log.control_delay_us = control_delay_us;
+        packet_log.data_delay_us = data_delay_us;
+        packet_log.other_access_delay_us = zeros(n_packets,1);
+        comp_others = packet_log.difs_wait_us + ...
+            packet_log.probability_wait_us + packet_log.collision_delay_us + ...
+            packet_log.control_delay_us + packet_log.data_delay_us + ...
+            packet_log.boundary_wait_us + packet_log.other_access_delay_us;
+        completed_mask = isfinite(packet_log.completion_us);
+        packet_log.busy_nav_wait_us = zeros(n_packets,1);
+        packet_log.busy_nav_wait_us(completed_mask) = max(0, ...
+            packet_log.completion_us(completed_mask) - ...
+            packet_log.hol_us(completed_mask) - ...
+            comp_others(completed_mask));
+        raw.packet_log = packet_log;
+    end
 
     if is_saturation
         raw.saturation_per_node_completions = ...
             saturation_per_node_completions;
-        result = finalize_saturation_result(raw,cfg,protocol,M,q);
+        result = finalize_saturation_result(raw, cfg, 'sb_cf', M, q);
     else
-        result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+        result = finalize_sim_result(raw, trace, cfg, 'sb_cf', M, q);
     end
-end
 
-function validate_inputs(trace, scenario, cfg, M, q)
-    needed_trace = {'times_us','node_id','n_packets','lambda_per_node'};
-    needed_cfg = {'n_nodes','arrival_tick_us','warmup_us','measure_us', ...
-                  'arrival_end_us','sim_hard_end_us','stats_sample_us', ...
-                  'rx_sens_dbm','cca_mode'};
-    for k = 1:numel(needed_trace)
-        if ~isfield(trace, needed_trace{k})
-            error('simulate_sb_cf_v2:MissingTraceField', ...
-                  'Missing trace field: %s', needed_trace{k});
+% ---------------- nested helpers ----------------
+    function pid = head_packet_id(u)
+        pid = trace.packet_ids_by_node{u}(queue_head(u));
+    end
+
+    function enqueue_until(limit_us)
+        while next_arrival <= n_packets && ...
+                arrival_us(next_arrival) <= limit_us
+            pid = next_arrival;
+            u = node_id(pid);
+            queue_tail(u) = queue_tail(u) + 1;
+            queue_count(u) = queue_count(u) + 1;
+            if queue_count(u) == 1
+                if ~is_saturation
+                    hol_us(pid) = arrival_us(pid);
+                end
+                enter_hol(u, arrival_us(pid));
+            end
+            next_arrival = next_arrival + 1;
         end
     end
-    for k = 1:numel(needed_cfg)
-        if ~isfield(cfg, needed_cfg{k})
-            error('simulate_sb_cf_v2:MissingConfigField', ...
-                  'Missing cfg field: %s', needed_cfg{k});
-        end
-    end
-    if ~isfield(scenario, 'MMW') || ~isfield(scenario, 'PHY')
-        error('simulate_sb_cf_v2:BadScenario', ...
-              'scenario must contain MMW and PHY structures.');
-    end
-    if cfg.arrival_tick_us ~= scenario.MMW.SLOT_TIME_US
-        error('simulate_sb_cf_v2:BadArrivalGrid', ...
-              'SB-CF v2 requires the common mmWave-slot arrival grid.');
-    end
-    is_saturation = isfield(cfg,'traffic_mode') && ...
-        strcmpi(char(cfg.traffic_mode),'saturation');
-    if ~isscalar(M) || ~isfinite(M) || M <= 0 || ...
-            (~is_saturation && (M < 1 || M ~= round(M)))
-        error('simulate_sb_cf_v2:BadM', ...
-            'M must be an integer >=1 for delay or positive for saturation.');
-    end
-    if q <= 0 || q > 1
-        error('simulate_sb_cf_v2:BadQ', 'q must lie in (0,1].');
-    end
-    if trace.n_packets ~= numel(trace.times_us) || ...
-            trace.n_packets ~= numel(trace.node_id)
-        error('simulate_sb_cf_v2:BadTraceLength', ...
-              'Trace packet count does not match its event vectors.');
-    end
-    if size(scenario.PHY.Int_Matrix,1) ~= cfg.n_nodes || ...
-            size(scenario.PHY.Int_Matrix,2) ~= cfg.n_nodes
-        error('simulate_sb_cf_v2:BadPowerMatrix', ...
-              'The STA-side CCA power matrix does not match cfg.n_nodes.');
-    end
-end
 
-function [harmful, sinr_harmful, self_undecodable, single_user_only] = ...
-        harmful_if_started(n_nodes, active_ids)
-% Under classic collision reception, starting while any data frame is
-% active is harmful regardless of received power or relative direction.
-    harmful = repmat(~isempty(active_ids),n_nodes,1);
-    sinr_harmful = false(n_nodes, 1);
-    self_undecodable = false(n_nodes, 1);
-    single_user_only = harmful;
-end
-
-function diagnostics = initialise_diagnostics(cca_mode, seed, Tp_us, difs_us)
-    diagnostics = struct();
-    diagnostics.cca_mode = cca_mode;
-    diagnostics.seed = double(seed);
-    diagnostics.Tp_us = Tp_us;
-    diagnostics.difs_us = difs_us;
-    diagnostics.ap_receive_mode = 'omnidirectional';
-    diagnostics.data_reception_model = 'classic_collision';
-    diagnostics.data_sinr_used = false;
-    diagnostics.raw_listening_misses = 0;
-    diagnostics.raw_listening_busy_opportunities = 0;
-    diagnostics.eligible_cca_tp = 0;
-    diagnostics.eligible_cca_fn = 0;
-    diagnostics.eligible_cca_fp = 0;
-    diagnostics.eligible_cca_tn = 0;
-    diagnostics.ready_cca_tp = 0;
-    diagnostics.ready_cca_fn = 0;
-    diagnostics.ready_cca_fp = 0;
-    diagnostics.ready_cca_tn = 0;
-    diagnostics.eligible_sinr_harmful_opportunities = 0;
-    diagnostics.eligible_self_undecodable_opportunities = 0;
-    diagnostics.eligible_single_user_only_harmful_opportunities = 0;
-    diagnostics.ready_sinr_harmful_opportunities = 0;
-    diagnostics.ready_self_undecodable_opportunities = 0;
-    diagnostics.ready_single_user_only_harmful_opportunities = 0;
-    diagnostics.sinr_harmful_start_attempts = 0;
-    diagnostics.self_undecodable_start_attempts = 0;
-    diagnostics.single_user_only_harmful_start_attempts = 0;
-    diagnostics.late_start_events = 0;
-    diagnostics.late_start_attempts = 0;
-    diagnostics.late_start_rejections = 0;
-    diagnostics.simultaneous_start_events = 0;
-    diagnostics.simultaneous_start_attempts = 0;
-    diagnostics.simultaneous_loser_attempts = 0;
-    diagnostics.capture_opportunities = 0;
-    diagnostics.capture_candidates = 0;
-    diagnostics.capture_initial_failures = 0;
-    diagnostics.capture_partial_failures = 0;
-    diagnostics.capture_successes = 0;
-    diagnostics.capture_failures = 0;
-    diagnostics.initial_sinr_rejections = 0;
-    diagnostics.partial_collisions = 0;
-    diagnostics.classic_collision_events = 0;
-    diagnostics.classic_collision_attempts = 0;
-    diagnostics.attempts = 0;
-    diagnostics.successful_attempts = 0;
-    diagnostics.failed_attempts = 0;
-    diagnostics.collision_waste_us = 0;
-    diagnostics.overlapping_transmission_time_us = 0;
-    diagnostics.excess_transmitter_airtime_us = 0;
-end
-
-function value = safe_ratio(numerator, denominator)
-    if denominator > 0
-        value = numerator / denominator;
-    else
-        value = NaN;
-    end
-end
-
-function total=interval_union_length(starts,ends,left,right)
-    starts=starts(:);
-    ends=ends(:);
-    if isempty(starts) || isempty(ends)
-        total=0;
-        return;
-    end
-    if numel(starts)~=numel(ends)
-        error('simulate_sb_cf_v2:IntervalLengthMismatch', ...
-            'Failed-interval start/end vectors must have equal length.');
-    end
-    starts=max(starts,left);
-    ends=min(ends,right);
-    keep=ends>starts;
-    if ~any(keep)
-        total=0;
-        return;
-    end
-    intervals=sortrows([starts(keep),ends(keep)],1);
-    total=0;
-    current_start=intervals(1,1);
-    current_end=intervals(1,2);
-    for i=2:size(intervals,1)
-        if intervals(i,1)<=current_end
-            current_end=max(current_end,intervals(i,2));
+    function enter_hol(u, t_hol)
+        if nav_until(u) > t_hol
+            node_state(u) = ST_NAV;
+            sense_count(u) = 0;
+            sense_start(u) = nav_until(u);
+            next_tick(u) = nav_until(u);
+            if next_tick(u) <= t_hol
+                next_tick(u) = t_hol + slot_us;
+            end
         else
-            total=total+current_end-current_start;
-            current_start=intervals(i,1);
-            current_end=intervals(i,2);
+            % Sensing starts at the next 9 us boundary after the HOL
+            % instant; DIFS completes at align_up(sense_start + SIFS) +
+            % 2*slot, and the DATA is transmitted at a boundary.
+            node_state(u) = ST_SENSE;
+            sense_count(u) = 0;
+            sense_start(u) = t_hol;
+            next_tick(u) = ceil(t_hol / slot_us) * slot_us;
         end
     end
-    total=total+current_end-current_start;
+
+    function flag = process_tick(u, t_now)
+        flag = false;
+        if node_state(u) == ST_IDLE
+            next_tick(u) = inf;
+            return;
+        end
+        if queue_count(u) == 0
+            node_state(u) = ST_IDLE;
+            next_tick(u) = inf;
+            return;
+        end
+        if nav_until(u) > t_now
+            node_state(u) = ST_NAV;
+            sense_count(u) = 0;
+            sense_start(u) = nav_until(u);
+            next_tick(u) = nav_until(u);
+            if next_tick(u) <= t_now
+                next_tick(u) = t_now + slot_us;
+            end
+            return;
+        end
+        if node_state(u) == ST_NAV
+            node_state(u) = ST_SENSE;
+            sense_start(u) = t_now;
+            next_tick(u) = ceil(t_now / slot_us) * slot_us;
+            sense_count(u) = 0;
+            return;
+        end
+        if node_state(u) == ST_SENSE
+            [busy, busy_end] = sense_busy(u, t_now);
+            if busy
+                sense_count(u) = 0;
+                sense_start(u) = busy_end;
+                next_tick(u) = ceil(busy_end / slot_us) * slot_us;
+                return;
+            end
+            if t_now >= sense_start(u) + sifs_us
+                difs_ok = ceil((sense_start(u) + sifs_us) / slot_us) * slot_us;
+                if t_now >= difs_ok + 2 * slot_us
+                    node_state(u) = ST_READY;
+                    sense_count(u) = 0;
+                else
+                    next_tick(u) = difs_ok + 2 * slot_us;
+                    return;
+                end
+            else
+                next_tick(u) = t_now + slot_us;
+                return;
+            end
+        end
+        if node_state(u) ~= ST_READY
+            next_tick(u) = inf;
+            return;
+        end
+        [busy, busy_end] = sense_busy(u, t_now);
+        if busy
+            node_state(u) = ST_SENSE;
+            sense_count(u) = 0;
+            sense_start(u) = busy_end;
+            next_tick(u) = ceil(busy_end / slot_us) * slot_us;
+            return;
+        end
+        % Slot boundary decision: Bernoulli(q), transmit immediately
+        % if drawn, otherwise wait for the next boundary.
+        if rand(stream) < q
+            flag = true;
+        else
+            next_tick(u) = t_now + slot_us;
+        end
+    end
+
+    function start_tx(u, t_now, drawers)
+        diagnostics.rts_attempts = diagnostics.rts_attempts + 1;
+        diagnostics.rts_start_times_us = [diagnostics.rts_start_times_us; t_now];
+        diagnostics.rts_start_nodes = [diagnostics.rts_start_nodes; u];
+        if ~is_saturation
+            pid = head_packet_id(u);
+            attempts(pid) = attempts(pid) + 1;
+            if isnan(first_attempt_us(pid))
+                first_attempt_us(pid) = t_now;
+            end
+            attempt_pid(u) = pid;
+        else
+            attempt_pid(u) = 0;
+        end
+        attempt_start(u) = t_now;
+        node_state(u) = ST_TX;
+        tx_end(u) = t_now + tp_us;
+        tx_overlap(u) = false;
+        ap_idle_at_start(u) = ap_phase == AP_IDLE;
+        sense_count(u) = 0;
+
+        others = find(node_state == ST_TX).';
+        others = others(others ~= u);
+        if ~isempty(others)
+            tx_overlap(u) = true;
+            tx_overlap(others) = true;
+        end
+        if ap_phase == AP_DATA && data_tx_active
+            eval_data_sinr();
+        end
+    end
+
+    function process_tx_end(u, t_now)
+        tx_end(u) = inf;
+        % A DATA frame succeeds when it never overlapped another frame and
+        % the AP was idle when it started.
+        succeeded = ~tx_overlap(u) && ap_idle_at_start(u);
+        if succeeded
+            winner_id = u;
+            winner_data_start = t_now - tp_us;
+            winner_data_end = t_now;
+            data_tx_active = true;
+            data_failed = false;
+            ap_phase = AP_DATA;
+            ap_phase_end = t_now;
+            % AP judges this frame now (no late interference yet).
+            eval_data_sinr();
+            diagnostics.data_reservations = diagnostics.data_reservations + 1;
+            if data_failed
+                diagnostics.data_fail_sinr = diagnostics.data_fail_sinr + 1;
+                diagnostics.rts_fail_total = diagnostics.rts_fail_total + 1;
+            end
+        else
+            node_state(u) = ST_SENSE;
+            sense_start(u) = t_now;
+            next_tick(u) = ceil(t_now / slot_us) * slot_us;
+            sense_count(u) = 0;
+            diagnostics.rts_fail_total = diagnostics.rts_fail_total + 1;
+            if tx_overlap(u)
+                diagnostics.rts_fail_collision = ...
+                    diagnostics.rts_fail_collision + 1;
+                diagnostics.collision_waste_us = ...
+                    diagnostics.collision_waste_us + tp_us;
+                % The wasted interval is clipped to the hard horizon so a
+                % transmission truncated by the end of the simulation does
+                % not report airtime beyond it.
+                waste_end = min(t_now, hard_end_us);
+                diagnostics.collision_waste_measure_us = ...
+                    diagnostics.collision_waste_measure_us + ...
+                    interval_overlap_us(t_now - tp_us, waste_end, ...
+                        left_measure_us, right_measure_us);
+                if ~is_saturation && attempt_pid(u) > 0
+                    pid = attempt_pid(u);
+                    collision_delay_us(pid) = ...
+                        collision_delay_us(pid) + tp_us;
+                    attempt_pid(u) = 0;
+                    attempt_start(u) = nan;
+                end
+            elseif ~ap_idle_at_start(u)
+                diagnostics.rts_fail_ap_busy = ...
+                    diagnostics.rts_fail_ap_busy + 1;
+            end
+        end
+    end
+
+    function process_ap_phase_end(t_now)
+        switch ap_phase
+            case AP_DATA
+                transaction_success = ~data_failed && winner_id > 0;
+                if transaction_success
+                    if is_saturation
+                        if t_now >= left_measure_us && ...
+                                t_now < right_measure_us
+                            saturation_per_node_completions(winner_id) = ...
+                                saturation_per_node_completions(winner_id) + 1;
+                        end
+                    elseif attempt_pid(winner_id) > 0
+                        pid = attempt_pid(winner_id);
+                        completion_us(pid) = t_now;
+                        data_delay_us(pid) = tp_us;
+                    end
+                    payload_success_overlap_us = ...
+                        payload_success_overlap_us + ...
+                        interval_overlap_us(winner_data_start, t_now, ...
+                            left_measure_us, right_measure_us);
+                    diagnostics.data_success = ...
+                        diagnostics.data_success + 1;
+                    diagnostics.rts_success = diagnostics.rts_success + 1;
+                else
+                    if winner_id > 0 && data_failed
+                        diagnostics.data_fail_sinr = ...
+                            diagnostics.data_fail_sinr + 1;
+                        if ~is_saturation && attempt_pid(winner_id) > 0
+                            pid = attempt_pid(winner_id);
+                            collision_delay_us(pid) = ...
+                                collision_delay_us(pid) + ...
+                                (t_now - attempt_start(winner_id));
+                            attempt_pid(winner_id) = 0;
+                            attempt_start(winner_id) = nan;
+                        end
+                    end
+                end
+                if winner_id > 0
+                    if ~is_saturation
+                        if attempt_pid(winner_id) > 0
+                            if transaction_success && ~isempty( ...
+                                    trace.packet_ids_by_node{winner_id}) && ...
+                                    queue_count(winner_id) > 0
+                                pop_head(winner_id, t_now);
+                            end
+                            attempt_pid(winner_id) = 0;
+                            attempt_start(winner_id) = nan;
+                        end
+                    end
+                    if queue_count(winner_id) > 0
+                        node_state(winner_id) = ST_SENSE;
+                        sense_start(winner_id) = t_now;
+                        sense_count(winner_id) = 0;
+                        next_tick(winner_id) = ceil(t_now / slot_us) * slot_us;
+                        if next_tick(winner_id) <= t_now
+                            next_tick(winner_id) = t_now + slot_us;
+                        end
+                    else
+                        node_state(winner_id) = ST_IDLE;
+                        next_tick(winner_id) = inf;
+                    end
+                    winner_id = 0;
+                end
+                data_tx_active = false;
+                data_failed = false;
+                ap_phase = AP_IDLE;
+                ap_phase_end = inf;
+        end
+    end
+
+    function pop_head(u, t_now)
+        queue_head(u) = queue_head(u) + 1;
+        queue_count(u) = queue_count(u) - 1;
+        if queue_head(u) > queue_tail(u)
+            queue_count(u) = 0;
+        elseif queue_head(u) <= queue_tail(u)
+            next_pid = trace.packet_ids_by_node{u}(queue_head(u));
+            hol_us(next_pid) = t_now;
+        end
+    end
+
+    function [busy, busy_end] = sense_busy(u, t_now)
+        busy = false;
+        busy_end = inf;
+        if ~sense_enabled
+            return;
+        end
+        if data_tx_active && winner_id > 0 && winner_id ~= u
+            if int_matrix(winner_id, u) > sens_w
+                busy = true;
+                busy_end = min(busy_end, winner_data_end);
+            end
+        end
+        tx_nodes = find(node_state == ST_TX).';
+        for v = tx_nodes
+            if v ~= u && int_matrix(v, u) > sens_w
+                busy = true;
+                busy_end = min(busy_end, tx_end(v));
+            end
+        end
+    end
+
+    function eval_data_sinr()
+        if ~(data_tx_active && winner_id > 0)
+            return;
+        end
+        interferers = find(node_state == ST_TX).';
+        interferers = interferers(interferers ~= winner_id);
+        interf = 0;
+        if ~isempty(interferers)
+            interf = sum(ap_rx(winner_id, interferers));
+        end
+        desired = ap_rx(winner_id, winner_id);
+        sinr_db = 10*log10(desired / (noise_w + interf + eps));
+        if sinr_db < data_sinr_th
+            data_failed = true;
+        end
+    end
 end

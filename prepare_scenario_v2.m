@@ -32,14 +32,33 @@ function scenario = prepare_scenario_v2(cfg, topology_seed)
     MMW.CTS_US = MMW.N_CTS * MMW.SLOT_TIME_US;
     MMW.CONN_OVERHEAD_US = MMW.conn_overhead * MMW.SLOT_TIME_US;
 
-    SUB7.DIFS_US = SUB7.DIFS * SUB7.SLOT_TIME_US;
-    SUB7.SIFS_US = SUB7.SIFS * SUB7.SLOT_TIME_US;
-    SUB7.ICF_US = SUB7.ICF * SUB7.SLOT_TIME_US;
-    SUB7.ICR_US = SUB7.ICR * SUB7.SLOT_TIME_US;
-    SUB7.SLO_RTS_US = SUB7.SLO_RTS_LEN * SUB7.SLOT_TIME_US;
-    SUB7.SLO_CTS_US = SUB7.SLO_CTS_LEN * SUB7.SLOT_TIME_US;
+    % Real-time (non slot-aligned) timing for sf_cb / sb_cb (and later
+    % sb_cf / s7), matching sf_cb_lightload_study/protocol_timing.m.
+    % These are NOT integer multiples of the 9 us mmWave slot.
+    MMW_REAL.SLOT_US = 9;                    % sensing/arrival granularity
+    MMW_REAL.RTS_US = cfg.mmw_real_rts_us;   % 14.5
+    MMW_REAL.SIFS_US = cfg.mmw_real_sifs_us; % 16
+    MMW_REAL.DIFS_US = cfg.mmw_real_difs_us; % 34
+    MMW_REAL.CTS_US = cfg.mmw_real_cts_us;   % 14.5
+    MMW_REAL.N_SECTORS = cfg.n_sectors;
+    MMW_REAL.CTS_SWEEP_US = cfg.mmw_real_cts_sweep_us;      % 116.0
+    MMW_REAL.CONN_OVERHEAD_US = cfg.mmw_real_conn_slot_us;  % 162.5
+    MMW_REAL.CTS_TIMEOUT_US = cfg.mmw_real_cts_timeout_us;  % 132.0
+    MMW_REAL.DIFS_TICKS = ceil(MMW_REAL.DIFS_US / MMW_REAL.SLOT_US);
 
-    scenario = struct('SYS',SYS, 'PHY',PHY, 'MMW',MMW, 'SUB7',SUB7, ...
-        'node_pos',node_pos, 'angles',angles, 'sectors',sectors, ...
-        'topology_seed',topology_seed);
+    % Real-time Sub-7 timings (already in us in sim_utils); keep the
+    % legacy slot-derived names for backwards compatibility.
+    SUB7.DIFS_US = SUB7.DIFS_US;
+    SUB7.SIFS_US = SUB7.SIFS_US;
+    SUB7.RTS_US  = SUB7.RTS_US;
+    SUB7.CTS_US  = SUB7.CTS_US;
+    SUB7.ICF_US  = SUB7.RTS_US;   % request frame = RTS
+    SUB7.ICR_US  = SUB7.CTS_US;   % response frame = CTS
+    SUB7.SLO_RTS_US = SUB7.RTS_US;
+    SUB7.SLO_CTS_US = SUB7.CTS_US;
+    SUB7.CTS_TIMEOUT_US = SUB7.SIFS_US + SUB7.CTS_US;
+
+    scenario = struct('SYS',SYS, 'PHY',PHY, 'MMW',MMW, 'MMW_REAL',MMW_REAL, ...
+        'SUB7',SUB7, 'node_pos',node_pos, 'angles',angles, ...
+        'sectors',sectors, 'topology_seed',topology_seed);
 end

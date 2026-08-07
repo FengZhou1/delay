@@ -1,10 +1,10 @@
 function result = simulate_batch_clear(trace, scenario, cfg, M, q, seed)
 %SIMULATE_BATCH_CLEAR Slotted connection Aloha with batch clearing.
-% Reservation rules are identical to SF-CB (164.1 us conn-slot frames,
+% Reservation rules are identical to SF-CB (162.5 us conn-slot frames,
 % Bernoulli(q) at every boundary).  After a successful reservation the node
 % transmits, back-to-back, every packet that was in its queue when the DATA
 % phase began (a snapshot; packets arriving during DATA are not appended).
-% Each packet occupies one DATA frame of M * 164.1 us.  Collisions and idle
+% Each packet occupies one DATA frame of M * 162.5 us.  Collisions and idle
 % frames waste one conn-slot, exactly as in SF-CB.
 
     if ~isscalar(M) || ~isfinite(M) || M < 1 || M ~= round(M)

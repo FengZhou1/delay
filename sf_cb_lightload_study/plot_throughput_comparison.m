@@ -37,7 +37,7 @@
         plot(x, y, 'o-', 'LineWidth', 1.8, 'MarkerSize', 7);
     end
 
-    xlabel(ax,'T_p = M \times 164.1 \mus');
+    xlabel(ax,'T_p = M \times 162.5 \mus');
     ylabel(ax,'Normalized throughput (payload airtime fraction)');
     legend(ax, cellfun(@(p) display_names.(p), protocols, ...
         'UniformOutput', false), 'Location','best');

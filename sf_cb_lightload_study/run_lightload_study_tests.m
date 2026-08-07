@@ -3,7 +3,7 @@
 % Verifies the exact timing constants, the slotted engine semantics
 % (SF-CB one packet per reservation, batch_clear whole-queue snapshot,
 % idle/collision wasting one conn-slot), the continuous engine success
-% cycles (unslotted = 164.1 + M*164.1, sb_cb = 34 + 164.1 + M*164.1),
+% cycles (unslotted = 162.5 + M*162.5, sb_cb = 34 + 162.5 + M*162.5),
 % packet conservation / delay identity and a physical-layer smoke test.
 
     fprintf('=== run_lightload_study_tests ===\n');
@@ -26,14 +26,14 @@
         'SIFS = 16 us');
     results = check(results, abs(timing.DIFS_US - 34) < tol, ...
         'DIFS = 34 us');
-    results = check(results, abs(timing.CTS_US - 14.7) < tol, ...
-        'CTS = 14.7 us');
-    results = check(results, abs(timing.CTS_SWEEP_US - 117.6) < tol, ...
-        'CTS sweep = 117.6 us');
-    results = check(results, abs(timing.CONN_SLOT_US - 164.1) < tol, ...
-        'conn-slot = 164.1 us');
-    results = check(results, abs(timing.CTS_TIMEOUT_US - 133.6) < tol, ...
-        'CTS timeout = 133.6 us');
+    results = check(results, abs(timing.CTS_US - 14.5) < tol, ...
+        'CTS = 14.5 us');
+    results = check(results, abs(timing.CTS_SWEEP_US - 116.0) < tol, ...
+        'CTS sweep = 116.0 us');
+    results = check(results, abs(timing.CONN_SLOT_US - 162.5) < tol, ...
+        'conn-slot = 162.5 us');
+    results = check(results, abs(timing.CTS_TIMEOUT_US - 132.0) < tol, ...
+        'CTS timeout = 132.0 us');
     results = check(results, timing.DIFS_TICKS == 4, 'DIFS ticks = 4');
 
     % ---- T2: SF-CB single node, no contention ----
@@ -55,8 +55,8 @@
     r3 = simulate_sf_cb(tr3, scenario, c3, 1, 1, 7);
     results = check(results, r3.diagnostics.collision_slots == 3, ...
         'SF-CB collision wastes 3 conn-slots before hard end');
-    results = check(results, abs(r3.diagnostics.collision_waste_us - 3*164.1) < tol, ...
-        'SF-CB collision waste = 3 x 164.1 us');
+    results = check(results, abs(r3.diagnostics.collision_waste_us - 3*162.5) < tol, ...
+        'SF-CB collision waste = 3 x 162.5 us');
     results = check(results, r3.summary.completion_ratio == 0, ...
         'SF-CB all-collision completion ratio = 0');
 
@@ -96,14 +96,14 @@
     tr7 = manual_trace(c7, 0, 1);
     r7 = simulate_unslotted_sf_cb(tr7, scenario, c7, 1, 1, 7);
     results = check(results, abs(r7.summary.mean_delay_us - 328.2) < tol, ...
-        'unslotted no-contention delay = 164.1 + 164.1 us');
+        'unslotted no-contention delay = 162.5 + 162.5 us');
     results = check(results, abs(r7.packet_log.first_attempt_us(1) - 0) < tol, ...
         'unslotted: immediate first RTS at t=0');
 
     % ---- T8: sb_cb no-contention cycle (DIFS 34 + conn-slot + DATA) ----
     r8 = simulate_sb_cb(tr7, scenario, c7, 1, 1, 7);
     results = check(results, abs(r8.summary.mean_delay_us - 364.2) < tol, ...
-        'sb_cb no-contention delay = 36 + 164.1 + 164.1 us');
+        'sb_cb no-contention delay = 36 + 162.5 + 162.5 us');
     results = check(results, abs(r8.packet_log.first_attempt_us(1) - 36) < tol, ...
         'sb_cb: first RTS at DIFS instant t=36 us');
 

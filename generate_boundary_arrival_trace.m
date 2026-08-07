@@ -3,12 +3,11 @@ function trace=generate_boundary_arrival_trace(lambda_per_node,cfg,seed,boundary
 % This removes the sub-boundary phase wait and must not be used as the
 % fairness trace for cross-protocol comparisons.
     if nargin<4 || isempty(boundary_us)
-        timing = mmw_timing_config(cfg);
-        boundary_us = timing.CONN_SLOT_US;
-    end
-    if mod(boundary_us,cfg.arrival_tick_us)~=0
-        error('generate_boundary_arrival_trace:BadBoundary', ...
-              'boundary_us must align with the common physical grid.');
+        if isfield(cfg,'mmw_real_conn_slot_us') && ~isempty(cfg.mmw_real_conn_slot_us)
+            boundary_us = double(cfg.mmw_real_conn_slot_us);   % 162.5
+        else
+            boundary_us = mmw_timing_config(cfg).CONN_SLOT_US;
+        end
     end
     p=lambda_per_node*boundary_us*1e-6;
     if p>1

@@ -70,17 +70,31 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
               'Trace times must be sorted and node IDs must be valid integers.');
     end
 
+    % Both sf_cf and sf_cb use the real-time connection slot (162.5 us),
+    % matching sf_cb_lightload_study/protocol_timing.m.  sf_cf keeps its
+    % packet-length slot semantics but with the same 162.5 us unit so that
+    % all protocols share the identical packet length.
     if isempty(scenario) || ~isstruct(scenario) || ...
-            ~isfield(scenario, 'MMW') || ...
-            ~isfield(scenario.MMW, 'CONN_OVERHEAD_US')
+            ~isfield(scenario, 'MMW_REAL') || ...
+            ~isfield(scenario.MMW_REAL, 'CONN_OVERHEAD_US')
         error('simulate_aloha_v2:MissingTiming', ...
-            'scenario.MMW.CONN_OVERHEAD_US is required.');
+            'scenario.MMW_REAL.CONN_OVERHEAD_US is required.');
     end
-    reservation_us = double(scenario.MMW.CONN_OVERHEAD_US);
+    reservation_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
     if is_saturation
         payload_timing = saturation_payload_timing(cfg,M);
-        Tp_us = payload_timing.actual_payload_us;
+        if strcmp(protocol,'sf_cb')
+            % sf_cb uses the exact 162.5-us connection slot.
+            Tp_us = reservation_us * double(M);
+            payload_timing.actual_payload_us = Tp_us;
+            payload_timing.nominal_payload_us = Tp_us;
+            payload_timing.effective_M = double(M);
+        else
+            % sf_cf keeps the legacy integer-slot payload quantization.
+            Tp_us = payload_timing.actual_payload_us;
+        end
     else
+        payload_timing = [];
         Tp_us = reservation_us * double(M);
     end
     if strcmp(protocol, 'sf_cf')

@@ -10,6 +10,10 @@ function payload = saturation_payload_timing(cfg, M)
             'Saturation M must be a finite positive scalar.');
     end
 
+    % sf_cf / sb_cf / s7 still run on the legacy 9-us integer-slot grid, so
+    % the saturation payload stays quantized to the legacy CONN_SLOT_US.
+    % sf_cb / sb_cb compute their exact 162.5-us payloads inside their own
+    % event-driven engines and do not call this helper for Tp.
     timing = mmw_timing_config(cfg);
     nominal_us = double(M) * timing.CONN_SLOT_US;
     payload_slots = max(1, round(nominal_us / timing.SLOT_US));

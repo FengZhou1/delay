@@ -6,7 +6,7 @@ function result = simulate_sfcb_lightload_variant(protocol, trace, scenario, cfg
 %   'unslotted'   -> non-slotted p-persistent ALOHA
 %   'sb_cb'       -> continuous-time sensing-based connection protocol
 % All timings come from protocol_timing() (RTS=14.5, SIFS=16, DIFS=34,
-% CTS=14.7, conn-slot=164.1, CTS timeout=133.6 us).
+% CTS=14.5, conn-slot=162.5, CTS timeout=132.0 us).
 
     protocol = lower(char(protocol));
     switch protocol

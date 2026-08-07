@@ -25,8 +25,19 @@ function result = finalize_saturation_result(raw, cfg, protocol, M, q)
             'Successful payload airtime %.12g is outside [0,1].',payload_airtime);
     end
     payload_airtime = min(1,max(0,payload_airtime));
-    payload_timing = saturation_payload_timing(cfg,M);
-    normalized_goodput = payload_timing.effective_M * pkt_s;
+    if ismember(char(protocol),{'sf_cb','sb_cb'})
+        % Real-timing protocols use the exact 162.5-us connection slot.
+        real_conn = cfg_real_conn_slot_us(cfg);
+        effective_M = real_conn * double(M) / real_conn;
+        payload_timing = saturation_payload_timing(cfg,M);
+        payload_timing.effective_M = double(M);
+        payload_timing.actual_payload_us = real_conn * double(M);
+        payload_timing.nominal_payload_us = real_conn * double(M);
+        normalized_goodput = double(M) * pkt_s;
+    else
+        payload_timing = saturation_payload_timing(cfg,M);
+        normalized_goodput = payload_timing.effective_M * pkt_s;
+    end
     effective_payload = payload_airtime;
 
     if isfield(cfg,'payload_bits_M1') && isfinite(cfg.payload_bits_M1)
@@ -76,4 +87,12 @@ function result = finalize_saturation_result(raw, cfg, protocol, M, q)
 
     result = struct('summary',summary, 'packet_log',struct(), ...
         'diagnostics',diagnostics);
+end
+
+function value = cfg_real_conn_slot_us(cfg)
+    if isfield(cfg,'mmw_real_conn_slot_us') && ~isempty(cfg.mmw_real_conn_slot_us)
+        value = double(cfg.mmw_real_conn_slot_us);
+    else
+        value = 14.5 + 16 + 8*14.5 + 16;   % 162.5 us fallback
+    end
 end

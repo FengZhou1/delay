@@ -6,7 +6,7 @@ function result = simulate_sb_cb(trace, scenario, cfg, M, q, seed)
 % that boundary.  After RTS success the CTS and DATA frames follow at exact
 % SIFS spacing without slot alignment.  A busy channel resets the DIFS
 % counter.  RTS collisions use the classic overlap model; after a collision
-% the station waits the CTS timeout (SIFS + CTS sweep = 133.6 us) and
+% the station waits the CTS timeout (SIFS + CTS sweep = 132.0 us) and
 % restarts DIFS sensing.  CTS and DATA use the full directional SINR model
 % (CTS 6 dB, DATA 21 dB), with NAV from decoded CTS, half-duplex CTS loss
 % and late-RTS interference during DATA.

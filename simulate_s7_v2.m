@@ -22,16 +22,19 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     n_mlo = cfg.n_nodes;
     n_total = n_mlo + n_slo;
     if is_saturation
-        payload_timing = saturation_payload_timing(cfg,M);
-        tp_us = payload_timing.actual_payload_us;
+        tp_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US) * M;
     else
-        tp_us = double(scenario.MMW.CONN_OVERHEAD_US) * M;
+        tp_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US) * M;
     end
-    slot_us = scenario.SUB7.SLOT_TIME_US;
-    difs_us = scenario.SUB7.DIFS_US;
-    req_us = scenario.SUB7.ICF_US;
-    resp_wait_us = scenario.SUB7.SIFS_US + scenario.SUB7.ICR_US + ...
-                   scenario.SUB7.SIFS_US;
+    slot_us = double(scenario.SUB7.SLOT_TIME_US);
+    sifs_us = double(scenario.SUB7.SIFS_US);
+    difs_us = double(scenario.SUB7.DIFS_US);
+    req_us = double(scenario.SUB7.RTS_US);
+    cts_us = double(scenario.SUB7.CTS_US);
+    % Successful handshake: RTS + SIFS + CTS + SIFS.
+    resp_wait_us = sifs_us + cts_us + sifs_us;
+    % Collision retry: wait the CTS timeout (SIFS + CTS), matching SB-CB.
+    cts_timeout_us = sifs_us + cts_us;
 
     IDLE = uint8(0); TX_REQ = uint8(1); WAIT_RESP = uint8(2);
     WAIT_TIMEOUT = uint8(3); TX_DATA_MMW = uint8(4); TX_DATA_SLO = uint8(5);
@@ -39,6 +42,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     deadline = inf(n_total, 1);
     nav_until = zeros(n_total, 1);
     difs_elapsed = zeros(n_total, 1);
+    sense_start = nan(n_total, 1);
     can_count_prev = false(n_total, 1);
     request_is_mlo = false(n_total, 1);
 
@@ -136,6 +140,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
             if was_empty
                 pkt.hol_us(pid) = t;
                 difs_elapsed(u) = 0;
+                sense_start(u) = t;
                 can_count_prev(u) = false;
             end
             backlog = backlog + 1;
@@ -190,7 +195,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     for k = 1:numel(req_done)
                         u = req_done(k);
                         state(u) = WAIT_TIMEOUT;
-                        deadline(u) = t + resp_wait_us;
+                        deadline(u) = t + cts_timeout_us;
                         if request_is_mlo(u)
                             diag.mlo_collision_timeouts = diag.mlo_collision_timeouts + 1;
                         else
@@ -217,6 +222,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                 state(timeout_done) = IDLE;
                 deadline(timeout_done) = inf;
                 difs_elapsed(timeout_done) = 0;
+                sense_start(timeout_done) = t;
                 can_count_prev(timeout_done) = false;
             end
 
@@ -246,6 +252,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                 state(u) = IDLE;
                 deadline(u) = inf;
                 difs_elapsed(u) = 0;
+                sense_start(u) = t;
                 can_count_prev(u) = false;
                 if ~is_saturation && head_pos(u) <= arrived_tail(u)
                     next_pid = node_packets{u}(head_pos(u));
@@ -267,6 +274,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                 state(slo_done) = IDLE;
                 deadline(slo_done) = inf;
                 difs_elapsed(slo_done) = 0;
+                sense_start(slo_done) = t;
                 can_count_prev(slo_done) = false;
             end
         end
@@ -289,14 +297,27 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
             % Credit only complete idle Sub-7 minislots after a HOL exists.
             difs_elapsed(can_count_prev) = difs_elapsed(can_count_prev) + slot_us;
             difs_elapsed(~can_count_prev) = 0;
+            % Nodes that could not count (busy / NAV) restart DIFS from now.
+            if any(~can_count_prev)
+                sense_start(~can_count_prev) = t;
+            end
 
             has_mlo = false(n_mlo,1);
             for u = 1:n_mlo
                 has_mlo(u) = head_pos(u) <= arrived_tail(u);
             end
             has_packet = [has_mlo; true(n_slo,1)];
-            ready = state == IDLE & has_packet & nav_until <= t & ...
-                    difs_elapsed >= difs_us & reserved_until <= t;
+            % DIFS is boundary-aligned (matching mmWave SB-CB):
+            % align_up(sense_start + SIFS) + 2 slots.
+            difs_ok = nan(n_total,1);
+            idle_ready = state == IDLE & has_packet & nav_until <= t & ...
+                         reserved_until <= t & isfinite(sense_start);
+            if any(idle_ready)
+                difs_ok(idle_ready) = ...
+                    ceil((sense_start(idle_ready) + sifs_us) / slot_us) * slot_us ...
+                    + 2 * slot_us;
+            end
+            ready = idle_ready & t >= difs_ok;
             if any(ready)
                 p = q * ones(n_total,1);
                 if n_slo > 0

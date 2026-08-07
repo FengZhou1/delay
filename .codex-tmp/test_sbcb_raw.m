@@ -1,0 +1,21 @@
+cfg = default_experiment_config('smoke');
+cfg.n_nodes = 8;
+cfg.cca_mode = 'oracle';
+cfg.warmup_us = 0;
+cfg.measure_us = 2000;
+cfg.drain_max_us = 2000;
+cfg.arrival_end_us = cfg.warmup_us + cfg.measure_us;
+cfg.sim_hard_end_us = cfg.arrival_end_us + cfg.drain_max_us;
+scenario = prepare_scenario_v2(cfg, 3);
+trace = make_manual_arrival_trace(0, 1, cfg);
+raw = sim_sbcb_raw(trace, scenario, cfg, 1, 1, 16);
+p = raw.packet_log;
+fprintf('completion=%.4f hol=%.4f arrival=%.4f attempts=%d\n', p.completion_us(1), p.hol_us(1), p.arrival_us(1), p.attempts(1));
+fprintf('difs=%.4f prob=%.4f coll=%.4f control=%.4f data=%.4f busynav=%.4f boundary=%.4f other=%.4f\n', ...
+    p.difs_wait_us(1), p.probability_wait_us(1), p.collision_delay_us(1), ...
+    p.control_delay_us(1), p.data_delay_us(1), p.busy_nav_wait_us(1), ...
+    p.boundary_wait_us(1), p.other_access_delay_us(1));
+sumc = p.boundary_wait_us(1)+p.difs_wait_us(1)+p.probability_wait_us(1)+p.busy_nav_wait_us(1)+...
+    p.collision_delay_us(1)+p.control_delay_us(1)+p.data_delay_us(1)+p.other_access_delay_us(1);
+fprintf('comp_sum=%.6f access=%.6f diff=%.9f\n', sumc, p.completion_us(1)-p.hol_us(1), sumc-(p.completion_us(1)-p.hol_us(1)));
+fprintf('sim_end=%.1f final_backlog=%d\n', raw.sim_end_us, raw.final_backlog);

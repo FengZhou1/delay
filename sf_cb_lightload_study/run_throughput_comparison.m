@@ -4,7 +4,7 @@
 %   out = run_throughput_comparison(cfg)       % custom / smoke config
 %
 % All four protocols share one deterministic saturation supply: every node
-% receives one packet every M*164.1 us (the batch_clear queue model).  For
+% receives one packet every M*162.5 us (the batch_clear queue model).  For
 % each protocol and M the access probability q is scanned (protocol-specific
 % coarse grid, one tuning run per point, local refinement, then
 % n_eval_runs seeds on the fine grid) and the q maximizing the successful
@@ -15,7 +15,7 @@
 % crashed run can be resumed from delay_partial-style state.
 %
 % Outputs: throughput_data.mat (results + best-q table),
-% throughput_comparison.png (x = Tp = M*164.1 us, y = normalized
+% throughput_comparison.png (x = Tp = M*162.5 us, y = normalized
 % throughput), throughput_q_table.csv.
 
     if nargin < 1 || isempty(cfg)
@@ -167,7 +167,7 @@ end
 
 % ---------------- saturation trace ----------------
 function trace = build_lightload_sat_trace(cfg, M)
-% One deterministic packet per node every M*164.1 us (batch_clear queue
+% One deterministic packet per node every M*162.5 us (batch_clear queue
 % model).  Identical for all four protocols.
     timing = protocol_timing(cfg);
     Tp = timing.CONN_SLOT_US * double(M);

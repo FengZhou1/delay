@@ -142,8 +142,11 @@ function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
     summary = struct();
     summary.protocol = protocol;
     summary.M = M;
-    timing = mmw_timing_config(cfg);
-    summary.Tp_us = timing.CONN_SLOT_US * M;
+    if ismember(char(protocol),{'sf_cb','sb_cb'})
+        summary.Tp_us = real_conn_slot_us(cfg) * M;
+    else
+        summary.Tp_us = mmw_timing_config(cfg).CONN_SLOT_US * M;
+    end
     summary.q = q;
     summary.lambda_per_node = trace.lambda_per_node;
     summary.n_arrived_total = trace.n_packets;
@@ -236,6 +239,14 @@ function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
 
     result = struct('summary',summary, 'packet_log',pkt, ...
                     'diagnostics',raw.diagnostics);
+end
+
+function value = real_conn_slot_us(cfg)
+    if isfield(cfg,'mmw_real_conn_slot_us') && ~isempty(cfg.mmw_real_conn_slot_us)
+        value = double(cfg.mmw_real_conn_slot_us);
+    else
+        value = 14.5 + 16 + 8*14.5 + 16;   % 162.5 us fallback
+    end
 end
 
 function value = diagnostic_value(diagnostics, names, fallback)

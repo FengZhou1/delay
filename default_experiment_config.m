@@ -36,6 +36,21 @@ function cfg = default_experiment_config(profile)
     mmw_timing = mmw_timing_config(cfg);
     cfg.mmw_conn_slot_slots = mmw_timing.CONN_SLOT_SLOTS;
     cfg.mmw_conn_slot_us = mmw_timing.CONN_SLOT_US;
+    % Real-time (non slot-aligned) timing for sf_cb and sb_cb, matching
+    % sf_cb_lightload_study/protocol_timing.m (plan section 2).  These are
+    % NOT integer multiples of the 9 us mmWave slot, so the sf_cb/sb_cb
+    % simulators use their own event-driven engines while sf_cf, sb_cf and
+    % s7 keep the legacy integer-slot timing above.
+    cfg.mmw_real_rts_us = 14.5;
+    cfg.mmw_real_sifs_us = 16;
+    cfg.mmw_real_difs_us = 34;
+    cfg.mmw_real_cts_us = 14.5;
+    cfg.mmw_real_n_sectors = cfg.n_sectors;
+    cfg.mmw_real_cts_sweep_us = cfg.mmw_real_cts_us * cfg.n_sectors;
+    cfg.mmw_real_conn_slot_us = cfg.mmw_real_rts_us + cfg.mmw_real_sifs_us + ...
+        cfg.mmw_real_cts_sweep_us + cfg.mmw_real_sifs_us;
+    cfg.mmw_real_cts_timeout_us = cfg.mmw_real_sifs_us + ...
+        cfg.mmw_real_cts_sweep_us;
     cfg.topology_seed = 20260325;
     cfg.traffic_seed_base = 20260722;
     cfg.protocol_seed_base = 731927;

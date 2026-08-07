@@ -6,9 +6,9 @@ function result = simulate_unslotted_sf_cb(trace, scenario, cfg, M, q, seed)
 % continuous equivalent of Bernoulli(q) at 9 us slot boundaries.  A single
 % packet therefore attempts immediately iff the drawn delay is ~0.
 % Transmissions use real durations: RTS=14.5 us, SIFS=16 us,
-% CTS sweep=117.6 us, SIFS=16 us, DATA=M*164.1 us.  Overlapping RTSs
+% CTS sweep=116.0 us, SIFS=16 us, DATA=M*162.5 us.  Overlapping RTSs
 % collide; a colliding station waits the CTS timeout (SIFS + CTS sweep =
-% 133.6 us) and then draws a fresh exponential delay.  CTS and DATA
+% 132.0 us) and then draws a fresh exponential delay.  CTS and DATA
 % reception use the full directional SINR model, including NAV from
 % decoded CTS, half-duplex CTS loss and late-RTS interference during the
 % DATA phase.

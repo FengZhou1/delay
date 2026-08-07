@@ -5,7 +5,7 @@ function raw = simulate_slotted_lightload(batch_mode, trace, scenario, cfg, M, q
 % batch_mode = true  -> batch_clear: one successful reservation transmits
 %   the whole queue snapshot taken when DATA begins (new arrivals during
 %   the DATA phase are not appended).
-% The frame boundary every conn-slot (164.1 us) drives Bernoulli(q)
+% The frame boundary every conn-slot (162.5 us) drives Bernoulli(q)
 % decisions; a singleton reserves and sends DATA; collisions and idle
 % frames each waste one conn-slot, matching the plan's SF-CB timing model.
 
