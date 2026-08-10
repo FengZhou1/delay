@@ -1,4 +1,4 @@
-function report = run_v2_tests(output_dir)
+﻿function report = run_v2_tests(output_dir)
 %RUN_V2_TESTS Deterministic timing and accounting tests for the v2 simulator.
 %   report = RUN_V2_TESTS() executes the complete deterministic suite.
 %   A machine-readable MAT/JSON report is written when output_dir is given.
@@ -917,3 +917,6 @@ end
 function remove_test_output(path)
     if isfolder(path), rmdir(path,'s'); end
 end
+
+
+

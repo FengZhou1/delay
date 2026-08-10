@@ -187,7 +187,7 @@ function cfg = validate_experiment_config(cfg)
               'q_refine_scale must be auto, linear, or log.');
     end
 
-    allowed_protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
+    allowed_protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
     if any(~ismember(cfg.protocols, allowed_protocols))
         error('validate_experiment_config:BadProtocol', ...
               'Unsupported protocol in cfg.protocols.');

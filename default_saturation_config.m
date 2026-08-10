@@ -19,7 +19,7 @@ function cfg = default_saturation_config(profile)
     cfg.profile = profile;
     cfg.study_type = 'saturation_throughput';
     cfg.traffic_mode = 'saturation';
-    cfg.protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
+    cfg.protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
 
     % Fractional points reproduce the short-payload portion of the legacy
     % saturated-throughput sweep.  DATA airtime is quantized to an integer
@@ -50,6 +50,7 @@ function cfg = default_saturation_config(profile)
         [0.001 0.003 0.005 0.009 0.015 0.025 0.05 0.1 0.2 0.4 0.6 0.8 1];
     cfg.protocol_q_grids.s7_busy = ...
         [1e-4 3e-4 5e-4 1e-3 3e-3 5e-3 1e-2 2e-2 5e-2 0.1 0.2];
+    cfg.protocol_q_grids.unslotted = unique([logspace(-5,log10(3e-2),15), 1e-3, 3e-3, 1e-2]);
 
     cfg.parallel = true;
     cfg.n_workers = 4;
@@ -70,7 +71,7 @@ function cfg = default_saturation_config(profile)
             cfg.n_tune_runs = 1;
             cfg.n_eval_runs = 1;
             cfg.q_fine_points = 3;
-            cfg.protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
+            cfg.protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
             cfg.protocol_q_grids.sb_cf = [1e-3 1e-2 3e-2];
             cfg.protocol_q_grids.sb_cb = [1e-3 5e-3 1e-2];
             cfg.protocol_q_grids.s7_clean = [0.005 0.025 0.1];

@@ -1,4 +1,4 @@
-% filepath: d:\Dian\802.11bq\channel access simulation5\sim_utils.m
+﻿% filepath: d:\Dian\802.11bq\channel access simulation5\sim_utils.m
 function utils = sim_utils()
     utils.generate_topology = @generate_topology;
     utils.precalc_interference_mmw = @precalc_interference_mmw;
@@ -9,7 +9,7 @@ function utils = sim_utils()
 end
 
 function [pos, angles, sectors] = generate_topology(n, ap_pos, n_sectors)
-    % 约束：每个扇区 STA 数量相同
+    % 绾︽潫锛氭瘡涓墖鍖?STA 鏁伴噺鐩稿悓
     if mod(n, n_sectors) ~= 0
         error('generate_topology: n must be divisible by n_sectors for equal-per-sector deployment.');
     end
@@ -27,11 +27,11 @@ function [pos, angles, sectors] = generate_topology(n, ap_pos, n_sectors)
 
         for k = 1:per_sector
             dist = 1 + 9 * rand();                   % [1,10] m
-            deg  = low_deg + sector_width * rand();  % 当前扇区内 AP->STA 的角度
+            deg  = low_deg + sector_width * rand();  % 褰撳墠鎵囧尯鍐?AP->STA 鐨勮搴?
             ang  = deg2rad(deg);
 
             pos(idx, :) = ap_pos + dist * [cos(ang), sin(ang)];
-            angles(idx) = deg; % AP -> STA 角度
+            angles(idx) = deg; % AP -> STA 瑙掑害
             sectors(idx) = s;
             idx = idx + 1;
         end
@@ -39,22 +39,22 @@ function [pos, angles, sectors] = generate_topology(n, ap_pos, n_sectors)
 end
 
 function mat = precalc_interference_mmw(pos, ang, phy)
-    % 用于计算 STA 间干扰/侦听能量矩阵
-    % 场景：
-    %   Tx (干扰源):正在向 AP 发送数据，波束对准 AP (有定向发射增益)
-    %   Rx (被干扰者/侦听者): 正在全向侦听信道 (接收增益 = 0 dBi)
+    % 鐢ㄤ簬璁＄畻 STA 闂村共鎵?渚﹀惉鑳介噺鐭╅樀
+    % 鍦烘櫙锛?
+    %   Tx (骞叉壈婧?:姝ｅ湪鍚?AP 鍙戦€佹暟鎹紝娉㈡潫瀵瑰噯 AP (鏈夊畾鍚戝彂灏勫鐩?
+    %   Rx (琚共鎵拌€?渚﹀惉鑰?: 姝ｅ湪鍏ㄥ悜渚﹀惉淇￠亾 (鎺ユ敹澧炵泭 = 0 dBi)
     %
-    % mat(tx, rx): Tx 发送时，Rx 处收到的能量 (Watts)
+    % mat(tx, rx): Tx 鍙戦€佹椂锛孯x 澶勬敹鍒扮殑鑳介噺 (Watts)
 
     n = size(pos,1); 
     mat = zeros(n,n);
 
-    % 1. 计算所有 STA 指向 AP 的发射角度
-    % 输入的 ang 是 AP->STA 的角度，所以 STA->AP 需要 +180 度
+    % 1. 璁＄畻鎵€鏈?STA 鎸囧悜 AP 鐨勫彂灏勮搴?
+    % 杈撳叆鐨?ang 鏄?AP->STA 鐨勮搴︼紝鎵€浠?STA->AP 闇€瑕?+180 搴?
     ang_sta_to_ap = mod(ang + 180, 360);
 
     for tx = 1:n
-        % Tx 理想的波束方向 (对准 AP)
+        % Tx 鐞嗘兂鐨勬尝鏉熸柟鍚?(瀵瑰噯 AP)
         tx_aiming_dir = ang_sta_to_ap(tx);
 
         for rx = 1:n
@@ -62,39 +62,39 @@ function mat = precalc_interference_mmw(pos, ang, phy)
             
             d = norm(pos(rx,:) - pos(tx,:));
             
-            % 2. 从 Tx 指向 Rx 的物理角度 (干扰泄露方向)
+            % 2. 浠?Tx 鎸囧悜 Rx 鐨勭墿鐞嗚搴?(骞叉壈娉勯湶鏂瑰悜)
             dir_tx_to_rx = atan2d(pos(rx,2)-pos(tx,2), pos(rx,1)-pos(tx,1));
             
-            % 3. 发送增益 (Tx Gain)
-            % Tx 主瓣对准 AP，Rx 在 dir_tx_to_rx 方向，计算因为偏离主瓣导致的衰减/旁瓣增益
+            % 3. 鍙戦€佸鐩?(Tx Gain)
+            % Tx 涓荤摚瀵瑰噯 AP锛孯x 鍦?dir_tx_to_rx 鏂瑰悜锛岃绠楀洜涓哄亸绂讳富鐡ｅ鑷寸殑琛板噺/鏃佺摚澧炵泭
             g_tx = calculate_ula_mrt_gain(dir_tx_to_rx, tx_aiming_dir, phy.Nt, phy.FREQ);
             
-            % 4. 接收增益 (Rx Gain) - 全向监听
+            % 4. 鎺ユ敹澧炵泭 (Rx Gain) - 鍏ㄥ悜鐩戝惉
             g_rx = 0; % Omni-directional
             
-            % 5. 路径损耗
+            % 5. 璺緞鎹熻€?
             pl = 20*log10(d) + 20*log10(phy.FREQ/1e9) + 32.44;
             
-            % 计算接收信号强度 (RSSI)
+            % 璁＄畻鎺ユ敹淇″彿寮哄害 (RSSI)
             p_rx_dbm = phy.TX_POWER_DBM + g_tx + g_rx - pl;
-            mat(tx,rx) = 10^((p_rx_dbm - 30)/10); % 转换为线性功率 (Watts)
+            mat(tx,rx) = 10^((p_rx_dbm - 30)/10); % 杞崲涓虹嚎鎬у姛鐜?(Watts)
         end
     end
 end
 
 function mat = precalc_ap_rx_power_mmw(pos, phy)
-    % 用于计算 AP 接收信号质量 (用于 SINR/碰撞判断)
-    % 场景:
-    %   AP: 接收方，波束对准期望的 STA (desired_sta)
-    %   Tx: 发送方，波束对准 AP
+    % 鐢ㄤ簬璁＄畻 AP 鎺ユ敹淇″彿璐ㄩ噺 (鐢ㄤ簬 SINR/纰版挒鍒ゆ柇)
+    % 鍦烘櫙:
+    %   AP: 鎺ユ敹鏂癸紝娉㈡潫瀵瑰噯鏈熸湜鐨?STA (desired_sta)
+    %   Tx: 鍙戦€佹柟锛屾尝鏉熷鍑?AP
     
     n = size(pos, 1);
     mat = zeros(n, n);
     
-    % AP 位置固定，计算 AP->STA 距离和角度
+    % AP 浣嶇疆鍥哄畾锛岃绠?AP->STA 璺濈鍜岃搴?
     d_ap = zeros(n, 1);
-    ang_ap_to_sta = zeros(n, 1); % AP 看向 STA 的方向
-    ang_sta_to_ap = zeros(n, 1); % STA 看向 AP 的方向 (发射方向)
+    ang_ap_to_sta = zeros(n, 1); % AP 鐪嬪悜 STA 鐨勬柟鍚?
+    ang_sta_to_ap = zeros(n, 1); % STA 鐪嬪悜 AP 鐨勬柟鍚?(鍙戝皠鏂瑰悜)
     
     for i = 1:n
         d_ap(i) = norm(pos(i, :) - phy.AP_POS);
@@ -104,21 +104,21 @@ function mat = precalc_ap_rx_power_mmw(pos, phy)
     end
     
     for desired_sta = 1:n
-        % AP 此时将接收波束对准 desired_sta
+        % AP 姝ゆ椂灏嗘帴鏀舵尝鏉熷鍑?desired_sta
         ap_look_dir = ang_ap_to_sta(desired_sta);
 
         for tx_sta = 1:n
-            % 信号实际来源方向 (Tx STA 所在的方位)
+            % 淇″彿瀹為檯鏉ユ簮鏂瑰悜 (Tx STA 鎵€鍦ㄧ殑鏂逛綅)
             arrival_dir = ang_ap_to_sta(tx_sta);
             
-            % AP 接收增益: AP 指向 desired_sta, 但信号来自 tx_sta
+            % AP 鎺ユ敹澧炵泭: AP 鎸囧悜 desired_sta, 浣嗕俊鍙锋潵鑷?tx_sta
             g_ap_rx = calculate_ula_mrt_gain(arrival_dir, ap_look_dir, phy.Nt, phy.FREQ);
             
-            % STA 发送增益: STA 总是对准 AP 发送 (最大增益)
-            % 因为 Tx STA 指向 AP，AP 就在其主瓣轴线上
+            % STA 鍙戦€佸鐩? STA 鎬绘槸瀵瑰噯 AP 鍙戦€?(鏈€澶у鐩?
+            % 鍥犱负 Tx STA 鎸囧悜 AP锛孉P 灏卞湪鍏朵富鐡ｈ酱绾夸笂
             g_sta_tx = 10*log10(phy.Nt); 
             
-            % 路径损耗
+            % 璺緞鎹熻€?
             pl = 20*log10(d_ap(tx_sta)) + 20*log10(phy.FREQ/1e9) + 32.44;
             
             pwr_dbm = phy.TX_POWER_DBM + g_sta_tx - pl + g_ap_rx; 
@@ -186,14 +186,14 @@ function[SYS, PHY_MMW, MMW, SUB7, SIM] = get_common_params(cfg)
 end
 
 function mat = precalc_ap_sector_tx_power_mmw(pos, phy, n_sectors)
-    % AP 扇区扫描下行发射功率矩阵
-    % mat(sta, sector): AP 波束指向 sector 时，sta 接收的功率 (Watts)
+    % AP 鎵囧尯鎵弿涓嬭鍙戝皠鍔熺巼鐭╅樀
+    % mat(sta, sector): AP 娉㈡潫鎸囧悜 sector 鏃讹紝sta 鎺ユ敹鐨勫姛鐜?(Watts)
 
     n = size(pos, 1);
     mat = zeros(n, n_sectors);
 
     if ~isfield(phy, 'AP_POS')
-        error('precalc_ap_sector_tx_power_mmw:MissingField', 'phy.AP_POS 缺失');
+        error('precalc_ap_sector_tx_power_mmw:MissingField', 'phy.AP_POS 缂哄け');
     end
 
     sector_width = 360 / n_sectors;
@@ -210,7 +210,7 @@ function mat = precalc_ap_sector_tx_power_mmw(pos, phy, n_sectors)
         ap_aim_dir = sector_centers(s);
         for sta = 1:n
             g_ap_tx = calculate_ula_mrt_gain(ang_ap_to_sta(sta), ap_aim_dir, phy.Nt, phy.FREQ);
-            g_sta_rx = 0; % STA 监听/接收按全向处理
+            g_sta_rx = 0; % STA 鐩戝惉/鎺ユ敹鎸夊叏鍚戝鐞?
             pl = 20*log10(max(d_ap(sta), 1e-3)) + 20*log10(phy.FREQ/1e9) + 32.44;
             pwr_dbm = phy.TX_POWER_DBM + g_ap_tx + g_sta_rx - pl;
             mat(sta, s) = 10^((pwr_dbm - 30)/10);

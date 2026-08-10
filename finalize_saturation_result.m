@@ -25,7 +25,7 @@ function result = finalize_saturation_result(raw, cfg, protocol, M, q)
             'Successful payload airtime %.12g is outside [0,1].',payload_airtime);
     end
     payload_airtime = min(1,max(0,payload_airtime));
-    if ismember(char(protocol),{'sf_cb','sb_cb'})
+    if ismember(char(protocol),{'sf_cb','sb_cb','unslotted'})
         % Real-timing protocols use the exact 162.5-us connection slot.
         real_conn = cfg_real_conn_slot_us(cfg);
         effective_M = real_conn * double(M) / real_conn;

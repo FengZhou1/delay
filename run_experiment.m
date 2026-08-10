@@ -1,4 +1,4 @@
-function experiment = run_experiment(cfg)
+﻿function experiment = run_experiment(cfg)
 %RUN_EXPERIMENT Tune and evaluate all requested v2 protocol conditions.
 % Results are written to a versioned results_v2 directory and never replace
 % legacy files in results/.

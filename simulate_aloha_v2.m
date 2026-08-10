@@ -1,4 +1,4 @@
-function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
+﻿function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 %SIMULATE_ALOHA_V2 Event-driven sensing-free Aloha simulators.
 %   result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 %   supports:

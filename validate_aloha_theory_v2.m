@@ -24,7 +24,7 @@ function validation=validate_aloha_theory_v2(output_dir)
     node_id=repelem((1:K)',packets_per_node);
     trace=make_manual_arrival_trace(zeros(size(node_id)),node_id,cfg);
     scenario=prepare_scenario_v2(cfg,cfg.topology_seed);
-    reservation_us=scenario.MMW.CONN_OVERHEAD_US;
+    reservation_us=scenario.MMW_REAL.CONN_OVERHEAD_US;
     result=simulate_aloha_v2('sf_cb',trace,scenario,cfg,M,q,91357);
 
     d=result.diagnostics;
@@ -64,11 +64,11 @@ function validation=validate_aloha_theory_v2(output_dir)
     cleanup=onCleanup(@() fclose(fid));
     fprintf(fid,'# SF-CB 受控理论验证\n\n');
     fprintf(fid,'固定 K=%d、q=1/K=%.6f、M=%d。\n\n',K,q,M);
-    fprintf(fid,'- 理论 Ps：%.8f\n- 经验 Ps：%.8f（%d/%d）\n', ...
+    fprintf(fid,'- 理论 Ps�?.8f\n- 经验 Ps�?.8f�?d/%d）\n', ...
         theoretical_ps,empirical_ps,successes,trials);
     fprintf(fid,'- Wilson 95%% CI：[%.8f, %.8f]，理论值在区间内：%d。\n', ...
         ci_low,ci_high,probability_pass);
-    fprintf(fid,'- 理论服务周期 `Tp+%.0f/Ps`：%.3f us；经验相邻完成间隔：%.3f us；相对误差：%.3f%%。\n\n', ...
+    fprintf(fid,'- 理论服务周期 `Tp+%.0f/Ps`�?.3f us；经验相邻完成间隔：%.3f us；相对误差：%.3f%%。\n\n', ...
         reservation_us,theoretical_service_cycle_us,empirical_service_cycle_us, ...
         100*service_relative_error);
     fprintf(fid,'## Material Passport\n\n- Origin Skill: experiment-agent\n');

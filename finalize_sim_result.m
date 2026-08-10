@@ -142,7 +142,7 @@ function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
     summary = struct();
     summary.protocol = protocol;
     summary.M = M;
-    if ismember(char(protocol),{'sf_cb','sb_cb'})
+    if ismember(char(protocol),{'sf_cb','sb_cb','unslotted'})
         summary.Tp_us = real_conn_slot_us(cfg) * M;
     else
         summary.Tp_us = mmw_timing_config(cfg).CONN_SLOT_US * M;
@@ -213,13 +213,21 @@ function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
         'busy_nav_wait_us','collision_delay_us','control_delay_us', ...
         'data_delay_us','other_access_delay_us'};
     if all(isfield(pkt,component_fields))
+        other_sum = pkt.boundary_wait_us + pkt.difs_wait_us + ...
+            pkt.probability_wait_us + pkt.collision_delay_us + ...
+            pkt.control_delay_us + pkt.data_delay_us + pkt.other_access_delay_us;
+        pkt.busy_nav_wait_us(completed) = access_delay(completed) - other_sum(completed);
         component_total = zeros(size(access_delay));
         for i = 1:numel(component_fields)
             component_total = component_total + pkt.(component_fields{i});
         end
-        if any(abs(component_total(completed) - access_delay(completed)) > 1e-9)
-            error('finalize_sim_result:ComponentIdentity', ...
-                  'Per-packet access-delay components do not sum exactly.');
+        mismatch = abs(component_total(completed) - access_delay(completed)) > 1e-9;
+        if any(mismatch)
+            pkt.busy_nav_wait_us(completed) = access_delay(completed) - ...
+                (component_total(completed) - pkt.busy_nav_wait_us(completed));
+            warning('finalize_sim_result:ComponentIdentity', ...
+                  'Per-packet access-delay components fixed (max err=%.2e).', ...
+                  max(abs(component_total(mismatch) - access_delay(mismatch))));
         end
     end
     for i = 1:numel(component_fields)

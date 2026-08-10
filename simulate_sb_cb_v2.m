@@ -1,4 +1,4 @@
-function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
+﻿function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 %SIMULATE_SB_CB_V2 Sensing-based connection protocol (event-driven).
 %   result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 %
@@ -144,6 +144,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     diagnostics.rts_simultaneous_attempts = 0;
     diagnostics.rts_capture_success = 0;
     diagnostics.rts_capture_with_overlap = 0;
+    diagnostics.rts_capture_lost = 0;
     diagnostics.rts_sinr_used = false;
     diagnostics.late_start_handshake = 0;
     diagnostics.late_start_data = 0;
@@ -335,10 +336,10 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             packet_log.boundary_wait_us + packet_log.other_access_delay_us;
         completed_mask = isfinite(packet_log.completion_us);
         packet_log.busy_nav_wait_us = zeros(n_packets,1);
-        packet_log.busy_nav_wait_us(completed_mask) = max(0, ...
+        packet_log.busy_nav_wait_us(completed_mask) = ...
             packet_log.completion_us(completed_mask) - ...
             packet_log.hol_us(completed_mask) - ...
-            comp_others(completed_mask));
+            comp_others(completed_mask);
         raw.packet_log = packet_log;
     end
 

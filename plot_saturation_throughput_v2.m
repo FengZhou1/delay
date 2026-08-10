@@ -2,7 +2,7 @@ function output = plot_saturation_throughput_v2(output_dir)
 %PLOT_SATURATION_THROUGHPUT_V2 Legacy-style maximum throughput versus Tp.
 %
 % The main plot intentionally reproduces the visual grammar of
-% 老吞吐参考代码/plot_improved.py.  PCHIP is used only for display and for
+% 老吞吐参考代�?plot_improved.py.  PCHIP is used only for display and for
 % roots bracketed by measured samples; it is never extrapolated to invent an
 % intersection outside the sampled domain.
 
@@ -27,9 +27,9 @@ function output = plot_saturation_throughput_v2(output_dir)
             'No effective-payload throughput column was found.');
     end
 
-    protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
+    protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
     display_names = {'SF-CF','SF-CB','SB-CF','SB-CB', ...
-        'S7-AS ($n_{S}=0$)','S7-AS ($n_{S}=10$)'};
+        'S7-AS ($n_{S}=0$)','S7-AS ($n_{S}=10$)','Unslotted-SF-CB'};
     styles = protocol_styles();
 
     figure_dir = fullfile(output_dir,'figures');
@@ -51,7 +51,7 @@ function output = plot_saturation_throughput_v2(output_dir)
     ax.YMinorTick = 'on';
     ax.XAxisLocation = 'bottom';
     ax.YAxisLocation = 'left';
-    ax.Layer = 'top';      % 坐标轴层次置于最上，不被粗曲线遮挡
+    ax.Layer = 'top';      % 坐标轴层次置于最上，不被粗曲线遮�?
     box(ax,'on');
 
     plotted_handles = gobjects(0);
@@ -79,17 +79,17 @@ function output = plot_saturation_throughput_v2(output_dir)
         end
         n_markers = min(14,numel(x_smooth));
         marker_index = unique(round(linspace(1,numel(x_smooth),n_markers)));
-        % 绘制粗线条（线宽 4.5）
+        % 绘制粗线条（线宽 4.5�?
         plot(ax,x_smooth,y_smooth, ...
             'Color',style.color,'LineStyle',style.line_style, ...
             'LineWidth',4.5,'HandleVisibility','off');
-        % 绘制曲线上的标记（边缘细，0.8）
+        % 绘制曲线上的标记（边缘细�?.8�?
         plot(ax,x_smooth(marker_index),y_smooth(marker_index), ...
             'Color',style.color,'LineStyle','none','Marker',style.marker, ...
             'MarkerSize',10,'MarkerFaceColor','white', ...
             'MarkerEdgeColor',style.color,'LineWidth',2.0, ...
             'HandleVisibility','off');
-        % 创建图例句柄（同一对象同时包含线和标记，线宽与标记边缘同为 4.5）
+        % 创建图例句柄（同一对象同时包含线和标记，线宽与标记边缘同为 4.5�?
         handle = plot(ax,NaN,NaN, ...
             'Color',style.color,'LineStyle',style.line_style, ...
             'LineWidth',2.5,'Marker',style.marker, ...
@@ -152,6 +152,8 @@ function styles = protocol_styles()
     styles.sb_cb = style(orange,'s',':');
     styles.s7_clean = style(green,'^','-');
     styles.s7_busy = style(green,'^',':');
+    red = [217 83 79]/255;
+    styles.unslotted = style(red,'d','-');
 end
 
 function value = style(color,marker,line_style)

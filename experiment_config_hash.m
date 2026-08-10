@@ -4,7 +4,7 @@ function [hash,code_fingerprint] = experiment_config_hash(cfg)
 % can be resumed by supplying its output_dir without changing the identity.
     canonical=cfg;
     runtime_fields={'output_dir','results_root','resume','parallel','n_workers', ...
-        'condition_timeout_s','run_preflight_tests'};
+        'condition_timeout_s','run_preflight_tests','condition_filter'};
     removable=intersect(fieldnames(canonical),runtime_fields);
     if ~isempty(removable), canonical=rmfield(canonical,removable); end
 

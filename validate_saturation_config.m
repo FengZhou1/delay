@@ -22,7 +22,7 @@ function cfg = validate_saturation_config(cfg)
             'cfg.traffic_mode must be saturation.');
     end
 
-    allowed = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
+    allowed = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
     cfg.protocols = cellstr(string(cfg.protocols(:).'));
     if isempty(cfg.protocols) || any(~ismember(cfg.protocols,allowed))
         error('validate_saturation_config:Protocols', ...

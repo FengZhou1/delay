@@ -1,4 +1,4 @@
-function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
+﻿function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
 %SIMULATE_SB_CF_V2 Connection-free directional CSMA (event-driven).
 %   result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
 %
@@ -273,10 +273,10 @@ function result = simulate_sb_cf_v2(trace, scenario, cfg, M, q, seed)
             packet_log.boundary_wait_us + packet_log.other_access_delay_us;
         completed_mask = isfinite(packet_log.completion_us);
         packet_log.busy_nav_wait_us = zeros(n_packets,1);
-        packet_log.busy_nav_wait_us(completed_mask) = max(0, ...
+        packet_log.busy_nav_wait_us(completed_mask) = ...
             packet_log.completion_us(completed_mask) - ...
             packet_log.hol_us(completed_mask) - ...
-            comp_others(completed_mask));
+            comp_others(completed_mask);
         raw.packet_log = packet_log;
     end
 

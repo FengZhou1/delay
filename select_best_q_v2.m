@@ -1,4 +1,4 @@
-function [best_q,best_idx,meta] = select_best_q_v2(grid, ...
+﻿function [best_q,best_idx,meta] = select_best_q_v2(grid, ...
         require_stable_neighbors,fallback_self_stable,preferred_neighbor_radius)
 %SELECT_BEST_Q_V2 Select a delay-optimal q inside a stable local basin.
 %   A grid point is self-stable only when every tuning run was stable and
@@ -177,3 +177,6 @@ function meta = empty_meta()
         'neighbor_radius_used',0, ...
         'ranked_candidate_q',zeros(1,0));
 end
+
+
+
