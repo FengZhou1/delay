@@ -1,4 +1,4 @@
-﻿function cfg = default_experiment_config(profile)
+function cfg = default_experiment_config(profile)
 %DEFAULT_EXPERIMENT_CONFIG Reproducible configuration for the v2 simulator.
 %   cfg = default_experiment_config('smoke'|'scaled'|'analysis'|'pilot'|'full')
 %
@@ -76,16 +76,16 @@
     cfg.q_grid_heavy = [];
     cfg.q_grid_light_max_aggregate_pkt_s = NaN;
     cfg.q_grid_medium_max_aggregate_pkt_s = NaN;
-    cfg.protocol_q_grids_enabled = false;
+    cfg.protocol_q_grids_enabled = true;
     cfg.protocol_q_grids = struct( ...
         'sf_cf',[], 'sf_cb',[], 'sb_cf',[], 'sb_cb',[], ...
         's7_clean',[], 's7_busy',[], 'unslotted',[]);
     cfg.tune_min_expected_arrivals = 0;
     cfg.tune_measure_max_us = NaN;
-    cfg.tuning_rate_screen = true;
+    cfg.tuning_rate_screen = false;
     cfg.common_arrivals_by_effective_rate = true;
     cfg.parallel = true;
-    cfg.n_workers = 4;
+    cfg.n_workers = 6;
     cfg.condition_timeout_s = 1800;
     cfg.tune_warmup_us = 0;
     cfg.tune_measure_us = 2e6;
@@ -138,7 +138,10 @@
             cfg.drain_max_us = 2e4;
             cfg.n_tune_runs = 1;
             cfg.n_eval_runs = 1;
-            cfg.q_coarse = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0];
+            cfg.q_coarse = [0.0001, 0.0003, 0.0005, 0.0007, 0.0009, ...
+            0.001, 0.002, 0.003, 0.005, 0.007, 0.009, ...
+            0.01, 0.015, 0.02, 0.03, 0.05, 0.07, 0.09, ...
+            0.1:0.05:1.0];
             cfg.q_refine_points = 0;
             cfg.parallel = false;
             cfg.stability_rate_tolerance = 0.25;
@@ -169,7 +172,10 @@
             % Keep the engineering matrix bounded.  The full profile still
             % uses the complete logarithmic/high-probability coarse grid and
             % nine-point refinement required for publication runs.
-            cfg.q_coarse = [0.001 0.003 0.01 0.025 0.05 0.1 0.3 0.5 0.8 1];
+            cfg.q_coarse = [0.0001, 0.0003, 0.0005, 0.0007, 0.0009, ...
+            0.001, 0.002, 0.003, 0.005, 0.007, 0.009, ...
+            0.01, 0.015, 0.02, 0.03, 0.05, 0.07, 0.09, ...
+            0.1:0.05:1.0];
             cfg.q_refine_points = 0;
             cfg.stats_sample_us = 500;
             cfg.stability_rate_tolerance = 0.50;
@@ -189,41 +195,38 @@
             % using a one-second evaluation window. CCA and topology studies
             % are intentionally not repeated here; use the scaled/full
             % profiles or enable them explicitly when needed.
-            cfg.lambda_values = [1 5 10];
+            cfg.lambda_values = [5 10];
             cfg.warmup_us = 2e5;
             cfg.measure_us = 1e6;
             cfg.drain_max_us = 1e6;
-            cfg.n_tune_runs = 3;
-            cfg.n_eval_runs = 3;
+            cfg.n_tune_runs = 1;
+            cfg.n_eval_runs = 1;
             cfg.tune_warmup_us = 2e5;
             cfg.tune_measure_us = 1e6;
             cfg.tune_drain_max_us = 1e6;
-            cfg.q_coarse = [0.001 0.003 0.01 0.025 0.05 0.1 0.3 0.5 0.8 1];
+            cfg.q_coarse = [0.0001:0.00002:0.0009, 0.001:0.0002:0.009, 0.01:0.002:0.09, 0.1:0.02:0.98];
             cfg.q_refine_points = 0;
-            cfg.q_two_stage_tuning = true;
-            cfg.q_coarse_tune_runs = 3;
+            cfg.q_two_stage_tuning = false;
+            cfg.q_coarse_tune_runs = 1;
             cfg.q_fine_tune_runs = 3;
             cfg.q_fine_points = 15;
             cfg.q_max_refinement_passes = 3;
             cfg.q_refine_neighbor_span = 2;
             cfg.q_preferred_neighbor_radius = 2;
-            cfg.q_validation_runs = 2;
+            cfg.q_validation_runs = 0;
             cfg.q_validation_max_candidates = 3;
             cfg.q_refine_scale = 'auto';
             cfg.q_refine_floor = 1e-7;
             cfg.q_require_stable_neighbors = true;
             cfg.q_fallback_self_stable = true;
             cfg.adaptive_q_grid = false;
-            cfg.protocol_q_grids_enabled = true;
+            cfg.protocol_q_grids_enabled = false;
             cfg.protocol_q_grids.sf_cf = ...
-                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
-                 5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
+                linspace(0.30, 1.00, 25);
             cfg.protocol_q_grids.sf_cb = ...
-                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
-                 5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
+                linspace(0.60, 0.98, 20);
             cfg.protocol_q_grids.sb_cf = ...
-                [1e-5 2e-5 5e-5 1e-4 2e-4 5e-4 1e-3 2e-3 ...
-                 5e-3 1e-2 2e-2 5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
+                logspace(log10(0.0005), log10(0.10), 50);
             cfg.protocol_q_grids.sb_cb = ...
                 [1e-4 2e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
                  5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
@@ -234,8 +237,7 @@
                 [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
                  5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
             cfg.protocol_q_grids.unslotted = ...
-                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
-                 5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
+                linspace(0.35, 0.95, 40);
             cfg.q_grid_light = [0.001 0.003 0.01 0.025 0.05 0.1 0.2 0.5 1];
             cfg.q_grid_medium = [0.005 0.01 0.025 0.05 0.1 0.2 0.3 0.5 0.7];
             cfg.q_grid_heavy = [0.01 0.025 0.05 0.1 0.15 0.2 0.3 0.5 0.7];
@@ -244,10 +246,10 @@
             cfg.tune_min_expected_arrivals = 20;
             cfg.tune_measure_max_us = 1e6;
             cfg.stats_sample_us = 500;
-            cfg.stability_rate_tolerance = 0.05;
-            cfg.stability_censor_tolerance = 0.01;
+            cfg.stability_rate_tolerance = 0.50;
+            cfg.stability_censor_tolerance = 0.50;
             cfg.stability_slope_fraction = 0.05;
-            cfg.stability_require_slope = true;
+            cfg.stability_require_slope = false;
             cfg.run_cca_ablation = false;
             cfg.run_topology_robustness = false;
         case 'full'

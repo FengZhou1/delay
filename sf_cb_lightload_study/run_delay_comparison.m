@@ -38,6 +38,7 @@
     tune_min_completion = double(cfg.min_tune_completion_ratio);
     eval_min_completion = double(cfg.min_eval_completion_ratio);
     output_root = char(cfg.output_root);
+    output_root = fullfile(output_root, datestr(now, 'yyyymmdd_HHMMSS'));
 
     if ~exist(output_root,'dir'), mkdir(output_root); end
     prof_tag = 'smoke';

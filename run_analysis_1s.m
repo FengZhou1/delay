@@ -14,6 +14,8 @@
 % results directory and earlier results_v2 runs are not overwritten.
 
 cfg = default_experiment_config('analysis');
+cfg.protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
+cfg.run_preflight_tests = false;
 experiment = run_experiment(cfg);
 analysis_result = analyze_experiment_v2(experiment.output_dir);
 

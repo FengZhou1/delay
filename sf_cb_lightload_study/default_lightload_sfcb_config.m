@@ -58,7 +58,7 @@ function cfg = default_lightload_sfcb_config(profile, mode)
     % full delay-optimal region (q ~ 0.5..1) intact and only guards against
     % pathological configs; q_max_sat trims the saturation grids where the
     % optimum is known to lie at q ~ 1e-3..0.03.
-    cfg.q_max_light = 1.0;
+    cfg.q_max_light = 0.99;
     cfg.q_max_sat = 0.1;
     cfg.output_root = fullfile(fileparts(mfilename('fullpath')),'results');
     cfg.collect_packet_log = true;

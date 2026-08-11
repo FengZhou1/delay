@@ -6,6 +6,7 @@
 %   fractional payloads are rounded to the nearest 9-us mmWave slot
 %   0.2 s warm-up + 1 s measurement, no drain
 %   protocol-specific coarse q scan + local logarithmic fine scan
+%   3 independent evaluation seeds at the selected qcd C:\Users\Administrator\Documents\delay\sf_cb_lightload_study
 %   3 independent evaluation seeds at the selected q
 %
 % Results and the legacy-style crossing plot are written below

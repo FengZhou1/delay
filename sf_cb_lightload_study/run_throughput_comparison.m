@@ -33,6 +33,7 @@
     n_fine = double(cfg.q_fine_points);
     n_eval = double(cfg.n_eval_runs);
     output_root = char(cfg.output_root);
+    output_root = fullfile(output_root, datestr(now, 'yyyymmdd_HHMMSS'));
 
     if ~exist(output_root,'dir'), mkdir(output_root); end
     prof_tag = 'smoke';
