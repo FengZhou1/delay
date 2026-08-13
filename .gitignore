@@ -1,0 +1,28 @@
+﻿# MATLAB temporary and output files
+*.log
+*.asv
+*.bak_*
+
+# Results directories (too large) (too large for git) - keep only R9_merged
+results_v2/2026*/
+results_v2/verification*/
+results_v2/legacy*/
+results_v2/aloha*/
+results_v2/sb_classic*/
+results_v2/saturation/
+
+# Checkpoint files
+checkpoints/
+
+# MATLAB figure files
+*.fig
+
+# Temporary scripts
+tmp_*.m
+rerun_*.m
+
+# OS files
+Desktop.ini
+Thumbs.db
+
+sf_cb_lightload_study/results/

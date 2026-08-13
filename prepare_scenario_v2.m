@@ -1,4 +1,4 @@
-function scenario = prepare_scenario_v2(cfg, topology_seed)
+﻿function scenario = prepare_scenario_v2(cfg, topology_seed)
 %PREPARE_SCENARIO_V2 Build one reusable topology and physical-layer cache.
 
     if nargin < 2 || isempty(topology_seed)

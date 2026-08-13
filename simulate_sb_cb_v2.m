@@ -27,15 +27,11 @@
     cts_us = double(TR.CTS_US);             % 14.5
     cts_sweep_us = double(TR.CTS_SWEEP_US); % 116.0
     conn_slot_us = double(TR.CONN_OVERHEAD_US); % 162.5
+    txop_n_packets = 1;  % default, overwritten on RTS success
     cts_timeout_us = double(TR.CTS_TIMEOUT_US); % 132.0
     difs_ticks = double(TR.DIFS_TICKS);
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
-    if is_saturation
-        tp_us = conn_slot_us * double(M);
-    else
-        tp_us = conn_slot_us * double(M);
-    end
     % Carrier-sensing mode: 'disabled' disables CCA (stations transmit
     % after DIFS without sensing); 'directional'/'oracle' sense the real
     % channel.  The default matches the study engine (always sensing).
@@ -104,6 +100,7 @@
     nav_until = zeros(n_nodes,1);
     sense_count = zeros(n_nodes,1);
     sense_start = nan(n_nodes,1);
+    difs_enter_us = nan(n_nodes,1);
     rts_overlap = false(n_nodes,1);
     ap_idle_at_start = false(n_nodes,1);
     attempt_start = nan(n_nodes,1);
@@ -288,7 +285,6 @@
     end
 
     if ~is_saturation
-        difs_wait_us = attempts * difs_us;
         diagnostics.payload_success_overlap_us = payload_success_overlap_us;
     end
     diagnostics.sim_end_us = sim_end_us;
@@ -389,6 +385,7 @@
             node_state(u) = ST_SENSE;
             sense_count(u) = 0;
             sense_start(u) = t_hol;
+            difs_enter_us(u) = t_hol;
             next_tick(u) = ceil(t_hol / slot_us) * slot_us;
         end
     end
@@ -417,6 +414,7 @@
         if node_state(u) == ST_NAV
             node_state(u) = ST_SENSE;
             sense_start(u) = t_now;
+            difs_enter_us(u) = t_now;
             next_tick(u) = ceil(t_now / slot_us) * slot_us;
             sense_count(u) = 0;
             return;
@@ -426,7 +424,14 @@
             if busy
                 % The channel is (or stays) busy: DIFS restarts from the
                 % instant the channel becomes idle again.
+                if ~is_saturation && ~isnan(difs_enter_us(u))
+                    pid = head_packet_id(u);
+                    if pid > 0
+                        difs_wait_us(pid) = difs_wait_us(pid) + (t_now - difs_enter_us(u));
+                    end
+                end
                 sense_count(u) = 0;
+                difs_enter_us(u) = busy_end;
                 sense_start(u) = busy_end;
                 next_tick(u) = ceil(busy_end / slot_us) * slot_us;
                 return;
@@ -436,6 +441,13 @@
                 % (sense_start + SIFS), then count 2 full idle slots.
                 difs_ok = ceil((sense_start(u) + sifs_us) / slot_us) * slot_us;
                 if t_now >= difs_ok + 2 * slot_us
+                    if ~is_saturation && ~isnan(difs_enter_us(u))
+                        pid = head_packet_id(u);
+                        if pid > 0
+                            difs_wait_us(pid) = difs_wait_us(pid) + (t_now - difs_enter_us(u));
+                        end
+                    end
+                    difs_enter_us(u) = nan;
                     node_state(u) = ST_READY;
                     sense_count(u) = 0;
                 else
@@ -549,7 +561,12 @@
             ap_phase_start = t_now;
             ap_phase_end = t_now + sifs_us;
             winner_data_start = t_now + sifs_us + cts_sweep_us + sifs_us;
-            winner_data_end = winner_data_start + tp_us;
+            if is_saturation
+                txop_n_packets = M;
+            else
+                txop_n_packets = max(1, min(queue_count(u), M));
+            end
+            winner_data_end = winner_data_start + txop_n_packets * conn_slot_us;
             diagnostics.rts_success = diagnostics.rts_success + 1;
         else
             node_state(u) = ST_WAIT;
@@ -733,7 +750,7 @@
             case AP_SIFS_POST
                 ap_phase = AP_DATA;
                 ap_phase_start = t_now;
-                ap_phase_end = t_now + tp_us;
+                ap_phase_end = t_now + txop_n_packets * conn_slot_us;
                 data_failed = false;
                 if winner_cts_ok && winner_id > 0
                     data_tx_active = true;
@@ -765,16 +782,13 @@
                 transaction_success = winner_cts_ok && ~data_failed;
                 if transaction_success
                     if is_saturation
-                        if t_now >= left_measure_us && ...
-                                t_now < right_measure_us
-                            saturation_per_node_completions(winner_id) = ...
-                                saturation_per_node_completions(winner_id) + 1;
+                        for pp_sat = 1:txop_n_packets
+                            if t_now >= left_measure_us && ...
+                                    t_now < right_measure_us
+                                saturation_per_node_completions(winner_id) = ...
+                                    saturation_per_node_completions(winner_id) + 1;
+                            end
                         end
-                    elseif attempt_pid(winner_id) > 0
-                        pid = attempt_pid(winner_id);
-                        completion_us(pid) = t_now;
-                        control_delay_us(pid) = conn_slot_us;
-                        data_delay_us(pid) = tp_us;
                     end
                     payload_success_overlap_us = ...
                         payload_success_overlap_us + ...
@@ -808,7 +822,20 @@
                             if transaction_success && ~isempty( ...
                                     trace.packet_ids_by_node{winner_id}) && ...
                                     queue_count(winner_id) > 0
-                                pop_head(winner_id, t_now);
+                                n_ok = max(1, min(txop_n_packets, queue_count(winner_id)));
+                                for pp = 1:n_ok
+                                    if queue_count(winner_id) > 0
+                                        cpid = head_packet_id(winner_id);
+                                        completion_us(cpid) = winner_data_start + pp * conn_slot_us;
+                                        data_delay_us(cpid) = conn_slot_us;
+                                        if pp == 1
+                                            control_delay_us(cpid) = conn_slot_us;
+                                        else
+                                            hol_us(cpid) = winner_data_start;
+                                        end
+                                        pop_head(winner_id, t_now);
+                                    end
+                                end
                             end
                             attempt_pid(winner_id) = 0;
                             attempt_start(winner_id) = nan;

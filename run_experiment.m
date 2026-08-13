@@ -116,6 +116,37 @@
                             eval_results = evaluate_jobs(protocol, tune.best_q, ...
                                 cfg.n_eval_runs, 30000, scenario, cfg, M, ...
                                 lambda_eff, lambda_base, li, bi, pi);
+                            %% FALLBACK: if completion<0.95, try left-stable q
+                            if ~isempty(eval_results) && isfield(tune,'grid') && ~isempty(tune.grid)
+                                eval_structs = [eval_results{:}];
+                                summaries = [eval_structs.summary];
+                                comp_ratio = mean([summaries.completion_ratio],'omitnan');
+                                if ~isfinite(comp_ratio) || comp_ratio < 0.95
+                                    grid_q = double([tune.grid.q]);
+                                    grid_stable = double([tune.grid.stable_fraction]) >= 1-1e-12 & ...
+                                                  isfinite(double([tune.grid.mean_delay_us]));
+                                    stable_q = grid_q(grid_stable);
+                                    left_q = stable_q(stable_q < tune.best_q);
+                                    left_q = sort(left_q,'descend');
+                                    for fi = 1:numel(left_q)
+                                        fq = left_q(fi);
+                                        fprintf('  eval fallback: comp=%.3f, trying q=%.4g\n', comp_ratio, fq);
+                                        eval_results = evaluate_jobs(protocol, fq, ...
+                                            cfg.n_eval_runs, 30000, scenario, cfg, M, ...
+                                            lambda_eff, lambda_base, li, bi, pi);
+                                        if ~isempty(eval_results)
+                                            eval_structs = [eval_results{:}];
+                                            summaries = [eval_structs.summary];
+                                            comp_ratio = mean([summaries.completion_ratio],'omitnan');
+                                            if isfinite(comp_ratio) && comp_ratio >= 0.95
+                                                tune.best_q = fq;
+                                                fprintf('  fallback succeeded: q=%.4g comp=%.3f\n', fq, comp_ratio);
+                                                break;
+                                            end
+                                        end
+                                    end
+                                end
+                            end
                         else
                             eval_results = {};
                         end
@@ -955,10 +986,9 @@ function condition = summarize_condition(protocol, load_mode, lambda_base, ...
 end
 
 function row = empty_row(protocol, load_mode, lambda_base, lambda_eff, M, best_q, cfg)
-    timing = mmw_timing_config(cfg);
     row = struct('protocol',string(protocol), 'load_mode',string(load_mode), ...
         'lambda_base',lambda_base, 'lambda_effective',lambda_eff, ...
-        'M',M, 'Tp_us',timing.CONN_SLOT_US*M, 'best_q',best_q, ...
+        'M',M, 'Tp_us',real_conn_slot_us(cfg)*M, 'best_q',best_q, ...
         'q_tuning_best_q',NaN, 'q_selection_mode',"none", ...
         'q_stable_basin_left',NaN, ...
         'q_stable_basin_right',NaN, 'q_search_boundary_hit',false, ...
@@ -1066,4 +1096,11 @@ function write_json(path, value)
     if fid < 0, error('run_experiment:ManifestWrite', 'Cannot write %s', path); end
     cleanup = onCleanup(@() fclose(fid));
     fwrite(fid, jsonencode(value, 'PrettyPrint', true), 'char');
+end
+function value = real_conn_slot_us(cfg)
+    if isfield(cfg,'mmw_real_conn_slot_us') && ~isempty(cfg.mmw_real_conn_slot_us)
+        value = double(cfg.mmw_real_conn_slot_us);
+    else
+        value = 14.5 + 16 + 8*14.5 + 16;   % 162.5 us fallback
+    end
 end

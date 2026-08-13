@@ -1,4 +1,4 @@
-function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
+﻿function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
 %FINALIZE_SIM_RESULT Convert a raw protocol run into one consistent schema.
 
     pkt = raw.packet_log;
@@ -44,7 +44,7 @@ function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
     arrival_rate_system = n_arrived / measure_s;
     departure_rate_system = departures / measure_s;
     goodput_pkt_s = departure_rate_system;
-    normalized_goodput = M * goodput_pkt_s;
+    normalized_goodput = goodput_pkt_s;  % each packet = 1 conn_slot
     if isfinite(cfg.payload_bits_M1)
         goodput_bit_s = normalized_goodput * cfg.payload_bits_M1;
     else
@@ -142,11 +142,7 @@ function result = finalize_sim_result(raw, trace, cfg, protocol, M, q)
     summary = struct();
     summary.protocol = protocol;
     summary.M = M;
-    if ismember(char(protocol),{'sf_cb','sb_cb','unslotted'})
-        summary.Tp_us = real_conn_slot_us(cfg) * M;
-    else
-        summary.Tp_us = mmw_timing_config(cfg).CONN_SLOT_US * M;
-    end
+    summary.Tp_us = real_conn_slot_us(cfg) * M;
     summary.q = q;
     summary.lambda_per_node = trace.lambda_per_node;
     summary.n_arrived_total = trace.n_packets;

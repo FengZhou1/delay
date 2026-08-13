@@ -1,0 +1,8 @@
+﻿"protocol","best_q","mean_attempts","theory_core_access_us","extra_nav_us","theory_access_us","measured_queue_us","measured_access_us","measured_e2e_us","theory_e2e_us","dev_pct","note"
+"sf_cf","0.5","1.4435","550.39","0","550.39","4.73","570.14","574.87","555.12","-3.46","slotted ALOHA, no NAV"
+"sf_cb","0.35","1.5042","942.14","0","942.14","8.26","1002.05","1010.31","950.39","-5.98","slotted CB, no NAV"
+"sb_cf","0.009","2.0894","2446.1","38.47","2484.56","193.33","2519.6","2712.93","2677.89","-1.39","core covers geometric waits; residual NAV"
+"sb_cb","0.15","1.2159","454.98","71.84","526.81","2.92","527.91","530.83","529.74","-0.21","core covers geometric waits; residual NAV"
+"s7_clean","0.65","1.0438","290.62","32.26","322.88","2.19","322.2","324.4","325.07","0.21","sub7 handshake 83.4us"
+"s7_busy","0.4","2.1551","407.33","803.19","1210.52","22.9","1210.47","1233.37","1233.42","0","SLO NAV + extra DIFS re-arms"
+"unslotted","0.09","1.2631","480.68","55.3","535.98","4.24","534.33","538.57","540.22","0.31","exp backoff mean=9/-ln(1-q)"

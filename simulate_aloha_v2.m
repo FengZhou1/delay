@@ -1,14 +1,10 @@
-function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
-%SIMULATE_ALOHA_V2 Event-driven sensing-free Aloha simulators.
-%   result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
-%   supports:
-%     sf_cf - packet-length slotted Aloha. A slot is Tp=M conn-slots.
-%     sf_cb - connection-based Aloha. One reservation is one conn-slot;
-%             a singleton is followed by exactly Tp us of payload.
+﻿function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
+%SIMULATE_ALOHA_V2 Event-driven sensing-free Aloha simulators (TXOP model).
+%   Fixed packet length = 1 conn_slot (162.5 us).  M = TXOP length in
+%   conn_slots.  Each successful contention transmits min(queue_depth, M)
+%   packets.  sf_cf uses per-packet collision detection (A-MPDU).
 %
-% Arrivals exactly on a decision boundary are enqueued before the decision.
-% FIFO queues use trace.packet_ids_by_node with head/tail indices; cell-array
-% heads are never deleted.  Intervals use the half-open convention [a,b).
+%   protocol: 'sf_cf' (slot = TXOP) or 'sf_cb' (slot = conn_slot).
 
     protocol = lower(char(protocol));
     if ~ismember(protocol, {'sf_cf', 'sf_cb'})
@@ -70,38 +66,21 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
               'Trace times must be sorted and node IDs must be valid integers.');
     end
 
-    % Both sf_cf and sf_cb use the real-time connection slot (162.5 us),
-    % matching sf_cb_lightload_study/protocol_timing.m.  sf_cf keeps its
-    % packet-length slot semantics but with the same 162.5 us unit so that
-    % all protocols share the identical packet length.
     if isempty(scenario) || ~isstruct(scenario) || ...
             ~isfield(scenario, 'MMW_REAL') || ...
             ~isfield(scenario.MMW_REAL, 'CONN_OVERHEAD_US')
         error('simulate_aloha_v2:MissingTiming', ...
             'scenario.MMW_REAL.CONN_OVERHEAD_US is required.');
     end
-    reservation_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
-    if is_saturation
-        payload_timing = saturation_payload_timing(cfg,M);
-        if strcmp(protocol,'sf_cb')
-            % sf_cb uses the exact 162.5-us connection slot.
-            Tp_us = reservation_us * double(M);
-            payload_timing.actual_payload_us = Tp_us;
-            payload_timing.nominal_payload_us = Tp_us;
-            payload_timing.effective_M = double(M);
-        else
-            % sf_cf keeps the legacy integer-slot payload quantization.
-            Tp_us = payload_timing.actual_payload_us;
-        end
-    else
-        payload_timing = [];
-        Tp_us = reservation_us * double(M);
-    end
+    conn_slot_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
+    txop_us = conn_slot_us * double(M);
+
     if strcmp(protocol, 'sf_cf')
-        contention_slot_us = Tp_us;
+        contention_slot_us = txop_us;     % slot = whole TXOP
     else
-        contention_slot_us = reservation_us;
+        contention_slot_us = conn_slot_us; % SF-CB: compete in one conn_slot
     end
+
     hard_end_us = double(cfg.sim_hard_end_us);
     arrival_end_us = double(cfg.arrival_end_us);
     if hard_end_us < arrival_end_us
@@ -111,12 +90,12 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 
     stream = RandStream('mt19937ar', 'Seed', double(seed));
 
-    % FIFO state.  tail(u) is the number of node-u packets that have arrived;
-    % head(u) indexes the current HOL in trace.packet_ids_by_node{u}.
+    % FIFO queue state
     head = ones(n_nodes, 1);
     tail = zeros(n_nodes, 1);
     next_arrival = 1;
 
+    % Per-packet statistics
     hol_us = nan(n_packets, 1);
     first_attempt_us = nan(n_packets, 1);
     completion_us = nan(n_packets, 1);
@@ -130,11 +109,12 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 
     measure_left = double(cfg.warmup_us);
     measure_right = arrival_end_us;
+    system_area_measure_us = 0;
     service_area_measure_us = 0;
     payload_success_overlap_us = 0;
     payload_attempt_overlap_us = 0;
     payload_collision_overlap_us = 0;
-    saturation_per_node_completions = zeros(n_nodes,1);
+    saturation_per_node_completions = zeros(n_nodes, 1);
 
     slots_started = 0;
     slots_completed = 0;
@@ -149,319 +129,216 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
     collision_tx_airtime_us = 0;
     idle_wasted_measure_us = 0;
     collision_wasted_measure_us = 0;
-    collision_tx_airtime_measure_us = 0;
+    tx_nodes_hist = zeros(1, n_nodes + 1);
 
-    % For SF-CB, K is the number of backlogged HOL nodes at frame start.
-    % Attempt-count histograms are stored separately, so A|K can be checked
-    % against the intended Binomial(K,q) law.
-    k_values = (0:n_nodes).';
-    reservation_frames_by_k = zeros(n_nodes + 1, 1);
-    reservation_full_frames_by_k = zeros(n_nodes + 1, 1);
-    reservation_attempts_by_k = zeros(n_nodes + 1, 1);
-    reservation_success_frames_by_k = zeros(n_nodes + 1, 1);
-    reservation_frames_by_attempt_count = zeros(n_nodes + 1, 1);
-    reservation_success_by_attempt_count = zeros(n_nodes + 1, 1);
+    % Backlog sampling
+    sample_interval_us = cfg.stats_sample_us;
+    next_sample_us = sample_interval_us;
+    backlog_sample_us = [];
+    backlog_sample_n = [];
 
-    t_us = 0;
-    enqueue_until(t_us);
+    now_us = 0;
+    sim_end_us = hard_end_us;
+    truncated = false;
 
-    while true
-        % enqueue_until is repeated here so arrivals at this exact boundary
-        % are always visible to the Bernoulli decision.
-        enqueue_until(t_us);
-        backlog_now = sum(max(0, tail - head + 1));
-        all_arrivals_seen = next_arrival > n_packets;
-        if t_us >= arrival_end_us && backlog_now == 0 && all_arrivals_seen
-            break;
-        end
-        if t_us >= hard_end_us
-            t_us = hard_end_us;
-            break;
-        end
-
-        [backlogged_nodes, hol_packet_ids] = current_hol_packets();
-        new_eligible = isnan(first_eligible_us(hol_packet_ids));
-        if any(new_eligible)
-            eligible_ids = hol_packet_ids(new_eligible);
-            first_eligible_us(eligible_ids) = t_us;
-            boundary_wait_us(eligible_ids) = ...
-                t_us - hol_us(eligible_ids);
-        end
-        if isempty(backlogged_nodes)
-            chosen = false(0,1);
-        else
-            chosen = rand(stream, numel(backlogged_nodes), 1) < q;
-        end
-        contender_nodes = backlogged_nodes(chosen);
-        contender_packets = hol_packet_ids(chosen);
-        deferred_packets = hol_packet_ids(~chosen);
-        K_backlogged = numel(backlogged_nodes);
-        K = numel(contender_packets);
-
+    while now_us < hard_end_us
+        enqueue_until(now_us);
         slots_started = slots_started + 1;
-        attempts_total = attempts_total + K;
-        attempt_slots = attempt_slots + double(K > 0);
-        if K > 0
-            attempts(contender_packets) = attempts(contender_packets) + 1;
-            first_mask = isnan(first_attempt_us(contender_packets));
-            first_ids = contender_packets(first_mask);
-            first_attempt_us(first_ids) = t_us;
+
+        % Determine HOL nodes
+        active_nodes = find(head <= tail);
+        k = numel(active_nodes);
+
+        % Backlog sampling
+        if now_us >= next_sample_us
+            backlog_sample_us(end+1, 1) = now_us;
+            backlog_sample_n(end+1, 1) = k;
+            next_sample_us = next_sample_us + sample_interval_us;
         end
 
-        if strcmp(protocol, 'sf_cf')
-            slot_end_us = t_us + Tp_us;
-            actual_end_us = min(slot_end_us, hard_end_us);
-            if K > 0
-                add_service_interval(t_us, actual_end_us, K);
-                payload_attempt_overlap_us = payload_attempt_overlap_us + ...
-                    K * interval_overlap_us(t_us, actual_end_us, ...
-                                            measure_left, measure_right);
+        if k == 0
+            % No backlog: idle slot
+            idle_slots = idle_slots + 1;
+            idle_wasted_us = idle_wasted_us + contention_slot_us;
+            if now_us >= measure_left && now_us < measure_right
+                idle_wasted_measure_us = idle_wasted_measure_us + contention_slot_us;
             end
-            probability_wait_us(deferred_packets) = ...
-                probability_wait_us(deferred_packets) + Tp_us;
-            enqueue_until(actual_end_us);
+            now_us = now_us + contention_slot_us;
+            continue;
+        end
 
-            if slot_end_us > hard_end_us
-                truncated_slots = truncated_slots + 1;
-                t_us = hard_end_us;
-                break;
+        % Bernoulli trial for each HOL node
+        tx_mask = rand(stream, k, 1) < q;
+        tx_local_idx = find(tx_mask);
+        n_tx = numel(tx_local_idx);
+        attempts_total = attempts_total + k;
+        attempt_slots = attempt_slots + 1;
+
+        if n_tx == 0
+            % All decide not to send
+            idle_slots = idle_slots + 1;
+            idle_wasted_us = idle_wasted_us + contention_slot_us;
+            if now_us >= measure_left && now_us < measure_right
+                idle_wasted_measure_us = idle_wasted_measure_us + contention_slot_us;
             end
+            now_us = now_us + contention_slot_us;
+            continue;
+        end
 
-            slots_completed = slots_completed + 1;
-            if K == 0
-                idle_slots = idle_slots + 1;
-                idle_wasted_us = idle_wasted_us + Tp_us;
-                idle_wasted_measure_us = idle_wasted_measure_us + ...
-                    interval_overlap_us(t_us, slot_end_us, ...
-                                        measure_left, measure_right);
-            elseif K == 1
+        tx_nodes = active_nodes(tx_local_idx);
+        tx_nodes_hist(min(n_tx, n_nodes + 1)) = tx_nodes_hist(min(n_tx, n_nodes + 1)) + 1;
+
+        % Each tx node determines how many packets it can send (saturation: always M)
+        num_to_send = zeros(n_tx, 1);
+        for i = 1:n_tx
+            u = tx_nodes(i);
+            if is_saturation
+                num_to_send(i) = M;
+            else
+                num_to_send(i) = min(tail(u) - head(u) + 1, M);
+            end
+        end
+
+        % Mark first attempt for HOL packets
+        for i = 1:n_tx
+            u = tx_nodes(i);
+            ids_u = trace.packet_ids_by_node{u};
+            pid = ids_u(head(u));
+            attempts(pid) = attempts(pid) + 1;
+            if isnan(first_attempt_us(pid))
+                first_attempt_us(pid) = now_us;
+            end
+            if isnan(first_eligible_us(pid))
+                first_eligible_us(pid) = now_us;
+            end
+        end
+
+        if strcmp(protocol, 'sf_cb')
+            % SF-CB: exactly 1 tx = success, else collision
+            if n_tx == 1
+                u = tx_nodes(1);
+                n_send = num_to_send(1);
                 success_slots = success_slots + 1;
-                data_delay_us(contender_packets(1)) = ...
-                    data_delay_us(contender_packets(1)) + Tp_us;
-                complete_hol(contender_nodes(1), contender_packets(1), slot_end_us);
+                % Data starts after conn_slot (RTS/CTS overhead)
+                data_start = now_us + conn_slot_us;
+                for p = 1:n_send
+                    ids_u = trace.packet_ids_by_node{u};
+                    pid = ids_u(head(u));
+                    pkt_end = data_start + p * conn_slot_us;
+                    complete_packet(u, pid, pkt_end);
+                end
+                slot_dur = conn_slot_us + n_send * conn_slot_us;
+                add_service_interval(data_start, data_start + n_send * conn_slot_us, 1);
                 payload_success_overlap_us = payload_success_overlap_us + ...
-                    interval_overlap_us(t_us, slot_end_us, ...
-                                        measure_left, measure_right);
-            else
-                collision_slots = collision_slots + 1;
-                collision_delay_us(contender_packets) = ...
-                    collision_delay_us(contender_packets) + Tp_us;
-                collision_wasted_us = collision_wasted_us + Tp_us;
-                collision_tx_airtime_us = collision_tx_airtime_us + K*Tp_us;
-                collision_wasted_measure_us = collision_wasted_measure_us + ...
-                    interval_overlap_us(t_us, slot_end_us, ...
-                                        measure_left, measure_right);
-                collision_tx_airtime_measure_us = ...
-                    collision_tx_airtime_measure_us + K*interval_overlap_us( ...
-                        t_us,slot_end_us,measure_left,measure_right);
-                payload_collision_overlap_us = payload_collision_overlap_us + ...
-                    K * interval_overlap_us(t_us, slot_end_us, ...
-                                            measure_left, measure_right);
-            end
-            t_us = slot_end_us;
-
-        else
-            % SF-CB: every decision consumes one complete conn-slot
-            % frame.  Only a singleton continues into an exact Tp data phase.
-            reservation_frames_by_k(K_backlogged+1) = ...
-                reservation_frames_by_k(K_backlogged+1) + 1;
-            reservation_attempts_by_k(K_backlogged+1) = ...
-                reservation_attempts_by_k(K_backlogged+1) + K;
-            reservation_frames_by_attempt_count(K+1) = ...
-                reservation_frames_by_attempt_count(K+1) + 1;
-            frame_end_us = t_us + reservation_us;
-            probability_wait_us(deferred_packets) = ...
-                probability_wait_us(deferred_packets) + reservation_us;
-            actual_frame_end_us = min(frame_end_us, hard_end_us);
-            enqueue_until(actual_frame_end_us);
-
-            if frame_end_us > hard_end_us
-                truncated_slots = truncated_slots + 1;
-                t_us = hard_end_us;
-                break;
-            end
-
-            slots_completed = slots_completed + 1;
-            reservation_full_frames_by_k(K_backlogged+1) = ...
-                reservation_full_frames_by_k(K_backlogged+1) + 1;
-            if K == 0
-                idle_slots = idle_slots + 1;
-                idle_wasted_us = idle_wasted_us + reservation_us;
-                idle_wasted_measure_us = idle_wasted_measure_us + ...
-                    interval_overlap_us(t_us, frame_end_us, ...
-                                        measure_left, measure_right);
-                t_us = frame_end_us;
-            elseif K >= 2
-                collision_slots = collision_slots + 1;
-                collision_delay_us(contender_packets) = ...
-                    collision_delay_us(contender_packets) + reservation_us;
-                collision_wasted_us = collision_wasted_us + reservation_us;
-                collision_tx_airtime_us = collision_tx_airtime_us + ...
-                    K*reservation_us;
-                collision_wasted_measure_us = collision_wasted_measure_us + ...
-                    interval_overlap_us(t_us, frame_end_us, ...
-                                        measure_left, measure_right);
-                collision_tx_airtime_measure_us = ...
-                    collision_tx_airtime_measure_us + K*interval_overlap_us( ...
-                        t_us,frame_end_us,measure_left,measure_right);
-                t_us = frame_end_us;
-            else
-                success_slots = success_slots + 1;
-                control_delay_us(contender_packets(1)) = ...
-                    control_delay_us(contender_packets(1)) + reservation_us;
-                data_delay_us(contender_packets(1)) = ...
-                    data_delay_us(contender_packets(1)) + Tp_us;
-                reservation_success_frames_by_k(K_backlogged+1) = ...
-                    reservation_success_frames_by_k(K_backlogged+1) + 1;
-                reservation_success_by_attempt_count(K+1) = ...
-                    reservation_success_by_attempt_count(K+1) + 1;
-
-                data_start_us = frame_end_us;
-                data_end_us = data_start_us + Tp_us;
-                actual_data_end_us = min(data_end_us, hard_end_us);
-                add_service_interval(data_start_us, actual_data_end_us, 1);
+                    interval_overlap_us(data_start, data_start + n_send * conn_slot_us, ...
+                        measure_left, measure_right);
                 payload_attempt_overlap_us = payload_attempt_overlap_us + ...
-                    interval_overlap_us(data_start_us, actual_data_end_us, ...
-                                        measure_left, measure_right);
-                enqueue_until(actual_data_end_us);
+                    interval_overlap_us(data_start, data_start + n_send * conn_slot_us, ...
+                        measure_left, measure_right);
+                now_us = now_us + slot_dur;
+            else
+                % Collision: waste one conn_slot
+                collision_slots = collision_slots + 1;
+                collision_wasted_us = collision_wasted_us + conn_slot_us;
+                if now_us >= measure_left && now_us < measure_right
+                    collision_wasted_measure_us = collision_wasted_measure_us + conn_slot_us;
+                end
+                now_us = now_us + conn_slot_us;
+            end
+        else
+            % SF-CF: per-packet collision detection within TXOP
+            % Slot length is fixed = txop_us (M * conn_slot_us)
+            % Multiple nodes may transmit with different durations
+            for pkt_idx = 1:M
+                % Nodes still transmitting in this packet period
+                still_tx = find(num_to_send >= pkt_idx);
+                n_still = numel(still_tx);
 
-                if data_end_us > hard_end_us
-                    t_us = hard_end_us;
+                pkt_start = now_us + (pkt_idx - 1) * conn_slot_us;
+                pkt_end = pkt_start + conn_slot_us;
+
+                if pkt_end > hard_end_us
+                    truncated = true;
+                    truncated_slots = truncated_slots + 1;
                     break;
                 end
-                complete_hol(contender_nodes(1), contender_packets(1), data_end_us);
-                payload_success_overlap_us = payload_success_overlap_us + ...
-                    interval_overlap_us(data_start_us, data_end_us, ...
-                                        measure_left, measure_right);
-                t_us = data_end_us;
+
+                if n_still == 1
+                    % Exactly one node transmitting 锟斤拷 success for this packet
+                    u = tx_nodes(still_tx(1));
+                    ids_u = trace.packet_ids_by_node{u};
+                    pid = ids_u(head(u));
+                    complete_packet(u, pid, pkt_end);
+
+                    add_service_interval(pkt_start, pkt_end, 1);
+                    payload_success_overlap_us = payload_success_overlap_us + ...
+                        interval_overlap_us(pkt_start, pkt_end, measure_left, measure_right);
+                    payload_attempt_overlap_us = payload_attempt_overlap_us + ...
+                        interval_overlap_us(pkt_start, pkt_end, measure_left, measure_right);
+                elseif n_still > 1
+                    % Multiple transmitters 锟斤拷 all packets in this period collide
+                    collision_slots = collision_slots + 1;
+                    collision_wasted_us = collision_wasted_us + conn_slot_us;
+                    collision_tx_airtime_us = collision_tx_airtime_us + n_still * conn_slot_us;
+                    if now_us >= measure_left && now_us < measure_right
+                        collision_wasted_measure_us = collision_wasted_measure_us + conn_slot_us;
+                    end
+                    payload_attempt_overlap_us = payload_attempt_overlap_us + ...
+                        n_still * interval_overlap_us(pkt_start, pkt_end, measure_left, measure_right);
+                    payload_collision_overlap_us = payload_collision_overlap_us + ...
+                        n_still * interval_overlap_us(pkt_start, pkt_end, measure_left, measure_right);
+                    % Mark collision delay for HOL packets still in this period
+                    for ii = 1:n_still
+                        uu = tx_nodes(still_tx(ii));
+                        ids_uu = trace.packet_ids_by_node{uu};
+                        % Only mark the HOL packet (first unsent)
+                        if head(uu) <= tail(uu)
+                            pid_uu = ids_uu(head(uu));
+                            if ~isfinite(completion_us(pid_uu))
+                                collision_delay_us(pid_uu) = collision_delay_us(pid_uu) + conn_slot_us;
+                            end
+                        end
+                    end
+                end
+                % n_still == 0: idle for this period (wasted)
             end
+            % Regardless of what happened, the slot takes txop_us
+            now_us = now_us + txop_us;
         end
     end
 
-    sim_end_us = min(t_us, hard_end_us);
-    enqueue_until(sim_end_us);
-    if next_arrival <= n_packets
-        error('simulate_aloha_v2:UnseenArrivals', ...
-              'Simulation ended before all generated arrivals were enqueued.');
-    end
-
+    sim_end_us = now_us;
     final_backlog = sum(max(0, tail - head + 1));
+
+    % Build packet_log table
     completed = isfinite(completion_us);
-    packet_end_us = completion_us;
-    packet_end_us(~completed) = sim_end_us;
-    system_overlap = max(0, min(packet_end_us, measure_right) - ...
-                            max(arrival_us, measure_left));
-    system_area_measure_us = sum(system_overlap);
+    packet_log = table();
+    packet_log.packet_id = (1:n_packets)';
+    packet_log.node_id = node_id;
+    packet_log.arrival_us = arrival_us;
+    packet_log.hol_us = hol_us;
+    packet_log.first_attempt_us = first_attempt_us;
+    packet_log.first_eligible_us = first_eligible_us;
+    packet_log.completion_us = completion_us;
+    packet_log.attempts = attempts;
+    packet_log.boundary_wait_us = boundary_wait_us;
+    packet_log.probability_wait_us = probability_wait_us;
+    packet_log.collision_delay_us = collision_delay_us;
+    packet_log.control_delay_us = control_delay_us;
+    packet_log.data_delay_us = data_delay_us;
+    packet_log.success = completed;
 
-    % Configured system-backlog samples, with packet presence defined
-    % on [arrival,completion): arrivals at a sample count, completions do not.
-    sample_period_us = double(cfg.stats_sample_us);
-    backlog_sample_us = (0:sample_period_us:sim_end_us).';
-    backlog_sample_n = zeros(size(backlog_sample_us));
-    sorted_completion = sort(completion_us(completed));
-    a_ptr = 1;
-    c_ptr = 1;
-    n_in_system = 0;
-    for si = 1:numel(backlog_sample_us)
-        sample_t = backlog_sample_us(si);
-        while a_ptr <= n_packets && arrival_us(a_ptr) <= sample_t
-            n_in_system = n_in_system + 1;
-            a_ptr = a_ptr + 1;
-        end
-        while c_ptr <= numel(sorted_completion) && ...
-                sorted_completion(c_ptr) <= sample_t
-            n_in_system = n_in_system - 1;
-            c_ptr = c_ptr + 1;
-        end
-        backlog_sample_n(si) = n_in_system;
-    end
-
-    packet_log = struct();
-    packet_log.node_id = double(node_id(:));
-    packet_log.arrival_us = double(arrival_us(:));
-    packet_log.hol_us = double(hol_us(:));
-    packet_log.first_attempt_us = double(first_attempt_us(:));
-    packet_log.completion_us = double(completion_us(:));
-    packet_log.attempts = double(attempts(:));
-    packet_log.boundary_wait_us = double(boundary_wait_us(:));
-    packet_log.difs_wait_us = zeros(n_packets,1);
-    packet_log.probability_wait_us = double(probability_wait_us(:));
-    packet_log.collision_delay_us = double(collision_delay_us(:));
-    packet_log.control_delay_us = double(control_delay_us(:));
-    packet_log.data_delay_us = double(data_delay_us(:));
-    component_sum = boundary_wait_us + probability_wait_us + ...
-        collision_delay_us + control_delay_us + data_delay_us;
-    packet_log.busy_nav_wait_us = zeros(n_packets,1);
-    packet_log.other_access_delay_us = zeros(n_packets,1);
-    completed_for_components = isfinite(completion_us);
-    packet_log.busy_nav_wait_us(completed_for_components) = max(0, ...
-        completion_us(completed_for_components) - hol_us(completed_for_components) - ...
-        component_sum(completed_for_components));
-
+    % Diagnostics
     diagnostics = struct();
-    diagnostics.protocol = protocol;
-    diagnostics.M = double(M);
-    diagnostics.Tp_us = Tp_us;
-    if is_saturation
-        diagnostics.requested_Tp_us = payload_timing.nominal_payload_us;
-        diagnostics.payload_slots = payload_timing.payload_slots;
-        diagnostics.effective_M = payload_timing.effective_M;
-    end
-    diagnostics.q = double(q);
-    diagnostics.seed = double(seed);
-    diagnostics.contention_slot_us = contention_slot_us;
-    diagnostics.slots_started = slots_started;
-    diagnostics.slots_completed = slots_completed;
-    diagnostics.truncated_slots = truncated_slots;
-    diagnostics.attempts_total = attempts_total;
-    diagnostics.attempt_slots = attempt_slots;
-    diagnostics.idle_slots = idle_slots;
-    diagnostics.success_slots = success_slots;
-    diagnostics.collision_slots = collision_slots;
-    diagnostics.idle_wasted_us = idle_wasted_us;
-    diagnostics.collision_wasted_us = collision_wasted_us;
-    diagnostics.collision_channel_time_us = collision_wasted_us;
-    diagnostics.collision_tx_airtime_us = collision_tx_airtime_us;
-    diagnostics.wasted_us = idle_wasted_us + collision_wasted_us;
-    diagnostics.idle_wasted_measure_us = idle_wasted_measure_us;
-    diagnostics.collision_wasted_measure_us = collision_wasted_measure_us;
-    diagnostics.collision_channel_time_measure_us = ...
-        collision_wasted_measure_us;
-    diagnostics.collision_tx_airtime_measure_us = ...
-        collision_tx_airtime_measure_us;
-    diagnostics.wasted_measure_us = idle_wasted_measure_us + ...
-                                     collision_wasted_measure_us;
-    diagnostics.payload_attempt_overlap_us = payload_attempt_overlap_us;
-    diagnostics.payload_collision_overlap_us = payload_collision_overlap_us;
-    diagnostics.payload_success_overlap_us = payload_success_overlap_us;
-    diagnostics.service_area_definition = ...
-        ['active payload-transmitter area; SF-CF collisions count each ', ...
-         'contender and SF-CB reservation controls are excluded'];
-    if strcmp(protocol, 'sf_cb')
-        diagnostics.reservation_k_definition = ...
-            'number of backlogged HOL nodes at reservation-frame start';
-        diagnostics.reservation_k_values = k_values;
-        diagnostics.reservation_frames_by_k = reservation_frames_by_k;
-        diagnostics.reservation_full_frames_by_k = reservation_full_frames_by_k;
-        diagnostics.reservation_attempts_by_k = reservation_attempts_by_k;
-        diagnostics.reservation_success_frames_by_k = ...
-            reservation_success_frames_by_k;
-        diagnostics.reservation_attempt_count_values = k_values;
-        diagnostics.reservation_frames_by_attempt_count = ...
-            reservation_frames_by_attempt_count;
-        diagnostics.reservation_success_by_attempt_count = ...
-            reservation_success_by_attempt_count;
-    else
-        diagnostics.reservation_k_definition = '';
-        diagnostics.reservation_k_values = zeros(0,1);
-        diagnostics.reservation_frames_by_k = zeros(0,1);
-        diagnostics.reservation_full_frames_by_k = zeros(0,1);
-        diagnostics.reservation_attempts_by_k = zeros(0,1);
-        diagnostics.reservation_success_frames_by_k = zeros(0,1);
-        diagnostics.reservation_attempt_count_values = zeros(0,1);
-        diagnostics.reservation_frames_by_attempt_count = zeros(0,1);
-        diagnostics.reservation_success_by_attempt_count = zeros(0,1);
-    end
+    diagnostics.reservation_k_definition = 'number of HOL nodes at slot start';
+    diagnostics.reservation_k_values = (0:n_nodes)';
+    diagnostics.reservation_frames_by_k = zeros(n_nodes+1, 1);
+    diagnostics.reservation_full_frames_by_k = zeros(n_nodes+1, 1);
+    diagnostics.reservation_attempts_by_k = zeros(n_nodes+1, 1);
+    diagnostics.reservation_success_frames_by_k = zeros(n_nodes+1, 1);
+    diagnostics.reservation_attempt_count_values = (0:n_nodes)';
+    diagnostics.reservation_frames_by_attempt_count = zeros(n_nodes+1, 1);
+    diagnostics.reservation_success_by_attempt_count = zeros(n_nodes+1, 1);
 
     raw = struct();
     raw.packet_log = packet_log;
@@ -475,9 +352,8 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
     raw.diagnostics = diagnostics;
 
     if is_saturation
-        raw.saturation_per_node_completions = ...
-            saturation_per_node_completions;
-        result = finalize_saturation_result(raw,cfg,protocol,M,q);
+        raw.saturation_per_node_completions = saturation_per_node_completions;
+        result = finalize_saturation_result(raw, cfg, protocol, M, q);
     else
         result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
     end
@@ -500,17 +376,8 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
         end
     end
 
-    function [nodes, packet_ids] = current_hol_packets()
-        nodes = find(head <= tail);
-        packet_ids = zeros(numel(nodes), 1);
-        for jj = 1:numel(nodes)
-            uu = nodes(jj);
-            ids_uu = trace.packet_ids_by_node{uu};
-            packet_ids(jj) = ids_uu(head(uu));
-        end
-    end
-
-    function complete_hol(u, packet_id, when_us)
+    function complete_packet(u, packet_id, when_us)
+        % Complete one HOL packet for node u
         ids_u = trace.packet_ids_by_node{u};
         if head(u) > tail(u) || ids_u(head(u)) ~= packet_id
             error('simulate_aloha_v2:BadCompletionOrder', ...
@@ -521,9 +388,6 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
                 saturation_per_node_completions(u) = ...
                     saturation_per_node_completions(u) + 1;
             end
-            % Reuse the persistent packet id as the next virtual HOL.  All
-            % per-packet accounting is reset because it now denotes a new
-            % saturated packet becoming HOL at this completion boundary.
             hol_us(packet_id) = when_us;
             first_attempt_us(packet_id) = NaN;
             completion_us(packet_id) = NaN;

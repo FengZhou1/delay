@@ -1,4 +1,4 @@
-function result = finalize_saturation_result(raw, cfg, protocol, M, q)
+﻿function result = finalize_saturation_result(raw, cfg, protocol, M, q)
 %FINALIZE_SATURATION_RESULT Summarize one persistent-backlog protocol run.
 
     required = {'payload_success_overlap_us','sim_end_us', ...

@@ -29,11 +29,6 @@
     conn_slot_us = double(TR.CONN_OVERHEAD_US);% 162.5 us
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
-    if is_saturation
-        tp_us = conn_slot_us * double(M);
-    else
-        tp_us = conn_slot_us * double(M);
-    end
     % Carrier-sensing mode: 'disabled' disables CCA (stations transmit
     % after DIFS without sensing); otherwise the real channel is sensed.
     cca_mode = 'directional';
@@ -94,9 +89,11 @@
     node_state = zeros(n_nodes,1);
     next_tick = inf(n_nodes,1);
     tx_end = inf(n_nodes,1);
+    txop_n_packets_tx = ones(n_nodes,1);  % stored at TX start, used at TX end
     nav_until = zeros(n_nodes,1);
     sense_count = zeros(n_nodes,1);
     sense_start = nan(n_nodes,1);
+    difs_enter_us = nan(n_nodes,1);
     tx_overlap = false(n_nodes,1);
     ap_idle_at_start = false(n_nodes,1);
     attempt_start = nan(n_nodes,1);
@@ -115,6 +112,8 @@
     winner_data_end = 0;
     data_tx_active = false;
     data_failed = false;
+    txop_n_packets = 0;
+    txop_first_fail = 0;
 
     system_area_measure_us = 0;
     service_area_measure_us = 0;
@@ -417,7 +416,13 @@
         end
         attempt_start(u) = t_now;
         node_state(u) = ST_TX;
-        tx_end(u) = t_now + tp_us;
+        if is_saturation
+            txop_n_packets_tx(u) = M;
+            tx_end(u) = t_now + M * conn_slot_us;
+        else
+            txop_n_packets_tx(u) = max(1, min(queue_count(u), M));
+            tx_end(u) = t_now + txop_n_packets_tx(u) * conn_slot_us;
+        end
         tx_overlap(u) = false;
         ap_idle_at_start(u) = ap_phase == AP_IDLE;
         sense_count(u) = 0;
@@ -429,7 +434,7 @@
             tx_overlap(others) = true;
         end
         if ap_phase == AP_DATA && data_tx_active
-            eval_data_sinr();
+            eval_data_sinr(t_now);
         end
     end
 
@@ -437,17 +442,20 @@
         tx_end(u) = inf;
         % A DATA frame succeeds when it never overlapped another frame and
         % the AP was idle when it started.
+        txop_n_packets = txop_n_packets_tx(u);
         succeeded = ~tx_overlap(u) && ap_idle_at_start(u);
         if succeeded
             winner_id = u;
-            winner_data_start = t_now - tp_us;
-            winner_data_end = t_now;
+            winner_data_start = t_now - txop_n_packets * conn_slot_us;
+            winner_data_end = winner_data_start + txop_n_packets * conn_slot_us;
+            % txop_n_packets computed above
+            txop_first_fail = 0;
             data_tx_active = true;
             data_failed = false;
             ap_phase = AP_DATA;
-            ap_phase_end = t_now;
+            ap_phase_end = winner_data_end;
             % AP judges this frame now (no late interference yet).
-            eval_data_sinr();
+            eval_data_sinr(t_now);
             diagnostics.data_reservations = diagnostics.data_reservations + 1;
             if data_failed
                 diagnostics.data_fail_sinr = diagnostics.data_fail_sinr + 1;
@@ -463,19 +471,19 @@
                 diagnostics.rts_fail_collision = ...
                     diagnostics.rts_fail_collision + 1;
                 diagnostics.collision_waste_us = ...
-                    diagnostics.collision_waste_us + tp_us;
+                    diagnostics.collision_waste_us + txop_n_packets * conn_slot_us;
                 % The wasted interval is clipped to the hard horizon so a
                 % transmission truncated by the end of the simulation does
                 % not report airtime beyond it.
                 waste_end = min(t_now, hard_end_us);
                 diagnostics.collision_waste_measure_us = ...
                     diagnostics.collision_waste_measure_us + ...
-                    interval_overlap_us(t_now - tp_us, waste_end, ...
+                    interval_overlap_us(t_now - txop_n_packets * conn_slot_us, waste_end, ...
                         left_measure_us, right_measure_us);
                 if ~is_saturation && attempt_pid(u) > 0
                     pid = attempt_pid(u);
                     collision_delay_us(pid) = ...
-                        collision_delay_us(pid) + tp_us;
+                        collision_delay_us(pid) + txop_n_packets * conn_slot_us;
                     attempt_pid(u) = 0;
                     attempt_start(u) = nan;
                 end
@@ -492,15 +500,18 @@
                 transaction_success = ~data_failed && winner_id > 0;
                 if transaction_success
                     if is_saturation
-                        if t_now >= left_measure_us && ...
-                                t_now < right_measure_us
-                            saturation_per_node_completions(winner_id) = ...
-                                saturation_per_node_completions(winner_id) + 1;
+                        n_ok_sat = txop_n_packets;
+                        if data_failed && txop_first_fail > 0
+                            n_ok_sat = txop_first_fail - 1;
                         end
-                    elseif attempt_pid(winner_id) > 0
-                        pid = attempt_pid(winner_id);
-                        completion_us(pid) = t_now;
-                        data_delay_us(pid) = tp_us;
+                        n_ok_sat = max(0, min(n_ok_sat, queue_count(winner_id)));
+                        for pp = 1:n_ok_sat
+                            if t_now >= left_measure_us && ...
+                                    t_now < right_measure_us
+                                saturation_per_node_completions(winner_id) = ...
+                                    saturation_per_node_completions(winner_id) + 1;
+                            end
+                        end
                     end
                     payload_success_overlap_us = ...
                         payload_success_overlap_us + ...
@@ -529,7 +540,25 @@
                             if transaction_success && ~isempty( ...
                                     trace.packet_ids_by_node{winner_id}) && ...
                                     queue_count(winner_id) > 0
-                                pop_head(winner_id, t_now);
+                                % TXOP: pop up to txop_n_packets, stop at first failed
+                                n_ok = txop_n_packets;
+                                if data_failed && txop_first_fail > 0
+                                    n_ok = txop_first_fail - 1;
+                                end
+                                n_ok = max(0, min(n_ok, queue_count(winner_id)));
+                                for pp = 1:n_ok
+                                    if queue_count(winner_id) > 0
+                                        cpid = head_packet_id(winner_id);
+                                        completion_us(cpid) = winner_data_start + pp * conn_slot_us;
+                                        data_delay_us(cpid) = conn_slot_us;
+                                        if pp == 1
+                                            control_delay_us(cpid) = 0;
+                                        else
+                                            hol_us(cpid) = winner_data_start;
+                                        end
+                                        pop_head(winner_id, t_now);
+                                    end
+                                end
                             end
                             attempt_pid(winner_id) = 0;
                             attempt_start(winner_id) = nan;
@@ -588,7 +617,7 @@
         end
     end
 
-    function eval_data_sinr()
+    function eval_data_sinr(t_now)
         if ~(data_tx_active && winner_id > 0)
             return;
         end
@@ -602,6 +631,15 @@
         sinr_db = 10*log10(desired / (noise_w + interf + eps));
         if sinr_db < data_sinr_th
             data_failed = true;
+            elapsed = t_now - winner_data_start;
+            if elapsed >= 0 && txop_n_packets > 0
+                pkt_idx = floor(elapsed / conn_slot_us) + 1;
+                if pkt_idx >= 1 && pkt_idx <= txop_n_packets
+                    if txop_first_fail == 0 || pkt_idx < txop_first_fail
+                        txop_first_fail = pkt_idx;
+                    end
+                end
+            end
         end
     end
 end

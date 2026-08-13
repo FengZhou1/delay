@@ -1,4 +1,4 @@
-function analysis = analyze_experiment_v2(output_dir)
+﻿function analysis = analyze_experiment_v2(output_dir)
 %ANALYZE_EXPERIMENT_V2 Analyze a versioned run_experiment result directory.
 %   analysis = analyze_experiment_v2(output_dir) reads summary.csv and the
 %   saved condition checkpoints, then writes:
@@ -9,7 +9,7 @@ function analysis = analyze_experiment_v2(output_dir)
 %     cca_ablation_diagnostics.csv
 %     topology_cluster_ci.csv
 %     acceptance_checks.csv
-%     中文理论-仿真报告.md
+%     涓枃鐞嗚-浠跨湡鎶ュ憡.md
 %
 %   The analyzer is deliberately tolerant of partial experiments: missing
 %   protocols, missing conditions, empty evaluation cells, and diagnostics
@@ -107,7 +107,7 @@ function analysis = analyze_experiment_v2(output_dir)
         plot_topology_clusters(topology_clusters, ...
             fullfile(figure_dir, 'topology_cluster_ci.png')));
 
-    report_path = fullfile(output_dir, '中文理论-仿真报告.md');
+    report_path = fullfile(output_dir, '涓枃鐞嗚-浠跨湡鎶ュ憡.md');
     write_chinese_report(report_path, output_dir, cfg, summary, theory, capacity, ...
         csma, acceptance, cca_ablation, topology_clusters, conditions, ...
         cca_conditions, topology_conditions, figure_paths);
@@ -1679,57 +1679,57 @@ function write_chinese_report(path, output_dir, cfg, summary, theory, capacity, 
     cleanup = onCleanup(@() fclose(fid));
     line = @(varargin) fprintf(fid, varargin{:});
 
-    line('# 当前 Conn-Aloha 理论—仿真对照报告\n\n');
-    line('- 生成时间：%s（本机时区）\n', ...
+    line('# 褰撳墠 Conn-Aloha 鐞嗚鈥斾豢鐪熷鐓ф姤鍛奬n\n');
+    line('- 鐢熸垚鏃堕棿锛?s锛堟湰鏈烘椂鍖猴級\n', ...
          char(datetime('now','Format','yyyy-MM-dd HH:mm:ss')));
-    line('- 数据目录：`%s`\n', strrep(output_dir, '\\', '/'));
-    line('- `summary.csv` 条件数：%d；成功读取检查点：%d。\n', ...
+    line('- 鏁版嵁鐩綍锛歚%s`\n', strrep(output_dir, '\\', '/'));
+    line('- `summary.csv` 鏉′欢鏁帮細%d锛涙垚鍔熻鍙栨鏌ョ偣锛?d銆俓n', ...
          height(summary), numel(conditions));
-    line('- 监听消融检查点：%d；拓扑鲁棒性检查点：%d。缺失检查点时，分析器会以相应 CSV 的条件级汇总作为降级输入。\n', ...
+    line('- 鐩戝惉娑堣瀺妫€鏌ョ偣锛?d锛涙嫇鎵戦瞾妫掓€ф鏌ョ偣锛?d銆傜己澶辨鏌ョ偣鏃讹紝鍒嗘瀽鍣ㄤ細浠ョ浉搴?CSV 鐨勬潯浠剁骇姹囨€讳綔涓洪檷绾ц緭鍏ャ€俓n', ...
          numel(cca_conditions),numel(topology_conditions));
-    line('- 稳态时延口径：只有一个条件的全部独立评估 run 均被判为稳定时，才报告该条件的有限均值；混合或不稳定条件不以完成包条件均值冒充稳态均值。\n');
+    line('- 绋虫€佹椂寤跺彛寰勶細鍙湁涓€涓潯浠剁殑鍏ㄩ儴鐙珛璇勪及 run 鍧囪鍒や负绋冲畾鏃讹紝鎵嶆姤鍛婅鏉′欢鐨勬湁闄愬潎鍊硷紱娣峰悎鎴栦笉绋冲畾鏉′欢涓嶄互瀹屾垚鍖呮潯浠跺潎鍊煎啋鍏呯ǔ鎬佸潎鍊笺€俓n');
     if isfield(cfg,'profile')
-        line('- 运行档位：`%s`。\n',char(string(cfg.profile)));
+        line('- 杩愯妗ｄ綅锛歚%s`銆俓n',char(string(cfg.profile)));
     end
     if isfield(cfg,'profile') && strcmpi(char(string(cfg.profile)),'scaled')
-        line(['\n> **工程验证限定**：本目录来自短时轴 `scaled` 档位', ...
-            '（warm-up %.0f us、测量 %.0f us、每点 %d 个评估 run、', ...
-            '工程稳定速率容差 %.0f%%）。它用于覆盖所有协议/M/负载轴、', ...
-            '发现逻辑和机制趋势，不替代 `full` 的 2 s warm-up、10 s ', ...
-            '测量、10 个独立流量种子与 5%% 稳定性结论。下方自动验收', ...
-            '仍故意使用严格 5%% 门槛，因此速率/Little 失败主要表示当前', ...
-            '样本窗不足，不能解释成包守恒或协议时序失败。\n\n'], ...
+        line(['\n> **宸ョ▼楠岃瘉闄愬畾**锛氭湰鐩綍鏉ヨ嚜鐭椂杞?`scaled` 妗ｄ綅', ...
+            '锛坵arm-up %.0f us銆佹祴閲?%.0f us銆佹瘡鐐?%d 涓瘎浼?run銆?, ...
+            '宸ョ▼绋冲畾閫熺巼瀹瑰樊 %.0f%%锛夈€傚畠鐢ㄤ簬瑕嗙洊鎵€鏈夊崗璁?M/璐熻浇杞淬€?, ...
+            '鍙戠幇閫昏緫鍜屾満鍒惰秼鍔匡紝涓嶆浛浠?`full` 鐨?2 s warm-up銆?0 s ', ...
+            '娴嬮噺銆?0 涓嫭绔嬫祦閲忕瀛愪笌 5%% 绋冲畾鎬х粨璁恒€備笅鏂硅嚜鍔ㄩ獙鏀?, ...
+            '浠嶆晠鎰忎娇鐢ㄤ弗鏍?5%% 闂ㄦ锛屽洜姝ら€熺巼/Little 澶辫触涓昏琛ㄧず褰撳墠', ...
+            '鏍锋湰绐椾笉瓒筹紝涓嶈兘瑙ｉ噴鎴愬寘瀹堟亽鎴栧崗璁椂搴忓け璐ャ€俓n\n'], ...
             cfg.warmup_us,cfg.measure_us,cfg.n_eval_runs, ...
             100*cfg.stability_rate_tolerance);
     elseif isfield(cfg,'profile') && strcmpi(char(string(cfg.profile)),'analysis')
-        line(['\n> **分析档位限定**：本目录保留完整216点主矩阵，使用', ...
-            'warm-up %.0f us、测量 %.0f us、排空 %.0f us、每点 %d 个', ...
-            '独立评估 run和工程速率容差 %.0f%%。它比 `scaled` 更适合', ...
-            '比较机制趋势，但独立样本仍只有两个，也不重复CCA/拓扑消融；', ...
-            '正式论文稳定边界仍以 `full` 或专项长时验证为准。下方严格', ...
-            '5%%验收失败应结合样本窗和置信区间解释。调优按聚合负载使用', ...
-            '轻/中/重三组 q 网格；低到达率调优最多延长到 %.0f us，以', ...
-            '减少短窗口零到达和固定低 q 偏差。\n\n'], ...
+        line(['\n> **鍒嗘瀽妗ｄ綅闄愬畾**锛氭湰鐩綍淇濈暀瀹屾暣216鐐逛富鐭╅樀锛屼娇鐢?, ...
+            'warm-up %.0f us銆佹祴閲?%.0f us銆佹帓绌?%.0f us銆佹瘡鐐?%d 涓?, ...
+            '鐙珛璇勪及 run鍜屽伐绋嬮€熺巼瀹瑰樊 %.0f%%銆傚畠姣?`scaled` 鏇撮€傚悎', ...
+            '姣旇緝鏈哄埗瓒嬪娍锛屼絾鐙珛鏍锋湰浠嶅彧鏈変袱涓紝涔熶笉閲嶅CCA/鎷撴墤娑堣瀺锛?, ...
+            '姝ｅ紡璁烘枃绋冲畾杈圭晫浠嶄互 `full` 鎴栦笓椤归暱鏃堕獙璇佷负鍑嗐€備笅鏂逛弗鏍?, ...
+            '5%%楠屾敹澶辫触搴旂粨鍚堟牱鏈獥鍜岀疆淇″尯闂磋В閲娿€傝皟浼樻寜鑱氬悎璐熻浇浣跨敤', ...
+            '杞?涓?閲嶄笁缁?q 缃戞牸锛涗綆鍒拌揪鐜囪皟浼樻渶澶氬欢闀垮埌 %.0f us锛屼互', ...
+            '鍑忓皯鐭獥鍙ｉ浂鍒拌揪鍜屽浐瀹氫綆 q 鍋忓樊銆俓n\n'], ...
             cfg.warmup_us,cfg.measure_us,cfg.drain_max_us,cfg.n_eval_runs, ...
             100*cfg.stability_rate_tolerance,cfg.tune_measure_max_us);
     else
         line('\n');
     end
 
-    line('## 1. 模型边界与公平口径\n\n');
+    line('## 1. 妯″瀷杈圭晫涓庡叕骞冲彛寰刓n\n');
     report_mmw_slot_us = analysis_mmw_slot_us(cfg);
     report_conn_slot_us = analysis_conn_slot_us(cfg);
     report_phase_count = round(report_conn_slot_us/report_mmw_slot_us);
     report_phase_wait_us = (report_conn_slot_us-report_mmw_slot_us)/2;
-    line(['主实验的所有协议共享 %.0f us 物理到达轨迹；协议只能在自己的合法竞争边界行动，因此中间到达产生的边界等待是真实接入时延的一部分。', ...
-        '若到达相位在 %d 个 %.0f us 相位上均匀，等待下一个 %.0f us 边界的均值为 %.1f us，即 %.4f 个预约帧。', ...
-        '理论边界校验才应把到达强制对齐到 %.0f us；正式公平对比不应按各协议时隙另造到达。\n\n'], ...
+    line(['涓诲疄楠岀殑鎵€鏈夊崗璁叡浜?%.0f us 鐗╃悊鍒拌揪杞ㄨ抗锛涘崗璁彧鑳藉湪鑷繁鐨勫悎娉曠珵浜夎竟鐣岃鍔紝鍥犳涓棿鍒拌揪浜х敓鐨勮竟鐣岀瓑寰呮槸鐪熷疄鎺ュ叆鏃跺欢鐨勪竴閮ㄥ垎銆?, ...
+        '鑻ュ埌杈剧浉浣嶅湪 %d 涓?%.0f us 鐩镐綅涓婂潎鍖€锛岀瓑寰呬笅涓€涓?%.0f us 杈圭晫鐨勫潎鍊间负 %.1f us锛屽嵆 %.4f 涓绾﹀抚銆?, ...
+        '鐞嗚杈圭晫鏍￠獙鎵嶅簲鎶婂埌杈惧己鍒跺榻愬埌 %.0f us锛涙寮忓叕骞冲姣斾笉搴旀寜鍚勫崗璁椂闅欏彟閫犲埌杈俱€俓n\n'], ...
         report_mmw_slot_us,report_phase_count,report_mmw_slot_us, ...
         report_conn_slot_us,report_phase_wait_us, ...
         report_phase_wait_us/report_conn_slot_us,report_conn_slot_us);
-    line('- `fixed_packet`：每个节点的包到达率固定，M 增大时业务量随包长增大。\n');
-    line('- `fixed_payload`：使用 `lambda_effective=lambda_base/M`，使归一化有效载荷输入近似固定。\n');
-    line('这两种负载定义在所有表和图中严格分开，不能混合平均。\n\n');
+    line('- `fixed_packet`锛氭瘡涓妭鐐圭殑鍖呭埌杈剧巼鍥哄畾锛孧 澧炲ぇ鏃朵笟鍔￠噺闅忓寘闀垮澶с€俓n');
+    line('- `fixed_payload`锛氫娇鐢?`lambda_effective=lambda_base/M`锛屼娇褰掍竴鍖栨湁鏁堣浇鑽疯緭鍏ヨ繎浼煎浐瀹氥€俓n');
+    line('杩欎袱绉嶈礋杞藉畾涔夊湪鎵€鏈夎〃鍜屽浘涓弗鏍煎垎寮€锛屼笉鑳芥贩鍚堝钩鍧囥€俓n\n');
 
     write_stability_section(line, summary);
     write_acceptance_section(line, acceptance);
@@ -1740,47 +1740,47 @@ function write_chinese_report(path, output_dir, cfg, summary, theory, capacity, 
     write_conn_comparison_section(line, summary, cfg);
     write_topology_section(line, topology);
 
-    line('## 8. 论文批量模型与当前实现不能直接互换\n\n');
-    line(['论文模型在一次连接建立后发送由 M 个请求时隙对应的批量数据，并包含形成该批次的等待机制。', ...
-        '当前 SF-CB 是“一个 %.0f us 预约帧成功后，发送一个持续 `Tp=%.0fM us` 的长包”，没有形成 M 包批次的等待。', ...
-        '两者的控制开销摊销方向相似，但队列状态、批量形成等待、一次服务移除的包数以及到达相位等待不同。', ...
-        '因此可以比较预约成功概率和开销摊销趋势，却不能把论文总时延公式直接当作当前实现的理论曲线；', ...
-        '出现 1–2 个 M 的最优点偏移并不单独证明代码错误。\n\n'], ...
+    line('## 8. 璁烘枃鎵归噺妯″瀷涓庡綋鍓嶅疄鐜颁笉鑳界洿鎺ヤ簰鎹n\n');
+    line(['璁烘枃妯″瀷鍦ㄤ竴娆¤繛鎺ュ缓绔嬪悗鍙戦€佺敱 M 涓姹傛椂闅欏搴旂殑鎵归噺鏁版嵁锛屽苟鍖呭惈褰㈡垚璇ユ壒娆＄殑绛夊緟鏈哄埗銆?, ...
+        '褰撳墠 SF-CB 鏄€滀竴涓?%.0f us 棰勭害甯ф垚鍔熷悗锛屽彂閫佷竴涓寔缁?`Tp=%.0fM us` 鐨勯暱鍖呪€濓紝娌℃湁褰㈡垚 M 鍖呮壒娆＄殑绛夊緟銆?, ...
+        '涓よ€呯殑鎺у埗寮€閿€鎽婇攢鏂瑰悜鐩镐技锛屼絾闃熷垪鐘舵€併€佹壒閲忓舰鎴愮瓑寰呫€佷竴娆℃湇鍔＄Щ闄ょ殑鍖呮暟浠ュ強鍒拌揪鐩镐綅绛夊緟涓嶅悓銆?, ...
+        '鍥犳鍙互姣旇緝棰勭害鎴愬姛姒傜巼鍜屽紑閿€鎽婇攢瓒嬪娍锛屽嵈涓嶈兘鎶婅鏂囨€绘椂寤跺叕寮忕洿鎺ュ綋浣滃綋鍓嶅疄鐜扮殑鐞嗚鏇茬嚎锛?, ...
+        '鍑虹幇 1鈥? 涓?M 鐨勬渶浼樼偣鍋忕Щ骞朵笉鍗曠嫭璇佹槑浠ｇ爜閿欒銆俓n\n'], ...
         report_conn_slot_us,report_conn_slot_us);
 
-    line('## 9. 服务周期近似的适用范围\n\n');
-    line(['`Tp + %.0f/Ps` 是固定积压节点数 K、独立 Bernoulli 尝试、每次单例预约后立即发送一个长包时的近似。', ...
-        '真实仿真中 K 会随到达与完成变化，成功后的 Tp 数据阶段会冻结下一次预约，空系统阶段和排空期也会改变相邻完成间隔。', ...
-        '因此报告同时给出：按经验 K 分布加权的理论 Ps、由经验 Ps 代入的周期估计，以及完成时间戳直接得到的经验相邻完成间隔。', ...
-        '后两者不是同一个统计量，不应期待逐点严格相等。\n\n'], ...
+    line('## 9. 鏈嶅姟鍛ㄦ湡杩戜技鐨勯€傜敤鑼冨洿\n\n');
+    line(['`Tp + %.0f/Ps` 鏄浐瀹氱Н鍘嬭妭鐐规暟 K銆佺嫭绔?Bernoulli 灏濊瘯銆佹瘡娆″崟渚嬮绾﹀悗绔嬪嵆鍙戦€佷竴涓暱鍖呮椂鐨勮繎浼笺€?, ...
+        '鐪熷疄浠跨湡涓?K 浼氶殢鍒拌揪涓庡畬鎴愬彉鍖栵紝鎴愬姛鍚庣殑 Tp 鏁版嵁闃舵浼氬喕缁撲笅涓€娆￠绾︼紝绌虹郴缁熼樁娈靛拰鎺掔┖鏈熶篃浼氭敼鍙樼浉閭诲畬鎴愰棿闅斻€?, ...
+        '鍥犳鎶ュ憡鍚屾椂缁欏嚭锛氭寜缁忛獙 K 鍒嗗竷鍔犳潈鐨勭悊璁?Ps銆佺敱缁忛獙 Ps 浠ｅ叆鐨勫懆鏈熶及璁★紝浠ュ強瀹屾垚鏃堕棿鎴崇洿鎺ュ緱鍒扮殑缁忛獙鐩搁偦瀹屾垚闂撮殧銆?, ...
+        '鍚庝袱鑰呬笉鏄悓涓€涓粺璁￠噺锛屼笉搴旀湡寰呴€愮偣涓ユ牸鐩哥瓑銆俓n\n'], ...
         report_conn_slot_us);
 
-    line('## 10. 输出文件与解读限制\n\n');
-    line('- `theory_validation.csv`：按 K 的预约成功率、二项 95%% CI、理论值及服务周期近似；`condition_mixture` 行是经验 K 混合，不使用同分布二项 CI。\n');
-    line('- `aloha_capacity_theory.csv`：以 `q*=1/N` 和固定积压 K=N 推导的 SF-CB 饱和服务能力、业务输入、rho 与理论稳定标记。\n');
-    line('- `csma_diagnostics.csv`：从评估检查点按条件汇总的 CCA、晚启动、经典RTS/DATA碰撞、CTS/DATA SINR、ICR和NAV诊断；`collision_channel_time_us` 是碰撞区间并集的墙钟时间，`collision_tx_airtime_us` 是失败发送者空口时间之和，后者在多发送者碰撞时可以更大。\n');
-    line('- `cca_ablation_diagnostics.csv`：保留 `cca_variant/cca_mode/rx_sens_dbm` 的监听消融性能、稳定性和有效 TP/FN/FP/TN。\n');
-    line('- `topology_cluster_ci.csv`：先把同一 topology seed 内的 run 压缩成一个条件均值，再以 topology seed 为独立样本计算 t 分布 95%% CI；绝不按包计算性能置信区间。\n');
-    line('- `acceptance_checks.csv`：逐主条件给出稳定性分类、到达/完成速率相对误差、Little 定律误差、主实验 Aloha K-bin 诊断，以及独立受控 Aloha 硬门状态。\n');
+    line('## 10. 杈撳嚭鏂囦欢涓庤В璇婚檺鍒禱n\n');
+    line('- `theory_validation.csv`锛氭寜 K 鐨勯绾︽垚鍔熺巼銆佷簩椤?95%% CI銆佺悊璁哄€煎強鏈嶅姟鍛ㄦ湡杩戜技锛沗condition_mixture` 琛屾槸缁忛獙 K 娣峰悎锛屼笉浣跨敤鍚屽垎甯冧簩椤?CI銆俓n');
+    line('- `aloha_capacity_theory.csv`锛氫互 `q*=1/N` 鍜屽浐瀹氱Н鍘?K=N 鎺ㄥ鐨?SF-CB 楗卞拰鏈嶅姟鑳藉姏銆佷笟鍔¤緭鍏ャ€乺ho 涓庣悊璁虹ǔ瀹氭爣璁般€俓n');
+    line('- `csma_diagnostics.csv`锛氫粠璇勪及妫€鏌ョ偣鎸夋潯浠舵眹鎬荤殑 CCA銆佹櫄鍚姩銆佺粡鍏窻TS/DATA纰版挒銆丆TS/DATA SINR銆両CR鍜孨AV璇婃柇锛沗collision_channel_time_us` 鏄鎾炲尯闂村苟闆嗙殑澧欓挓鏃堕棿锛宍collision_tx_airtime_us` 鏄け璐ュ彂閫佽€呯┖鍙ｆ椂闂翠箣鍜岋紝鍚庤€呭湪澶氬彂閫佽€呯鎾炴椂鍙互鏇村ぇ銆俓n');
+    line('- `cca_ablation_diagnostics.csv`锛氫繚鐣?`cca_variant/cca_mode/rx_sens_dbm` 鐨勭洃鍚秷铻嶆€ц兘銆佺ǔ瀹氭€у拰鏈夋晥 TP/FN/FP/TN銆俓n');
+    line('- `topology_cluster_ci.csv`锛氬厛鎶婂悓涓€ topology seed 鍐呯殑 run 鍘嬬缉鎴愪竴涓潯浠跺潎鍊硷紝鍐嶄互 topology seed 涓虹嫭绔嬫牱鏈绠?t 鍒嗗竷 95%% CI锛涚粷涓嶆寜鍖呰绠楁€ц兘缃俊鍖洪棿銆俓n');
+    line('- `acceptance_checks.csv`锛氶€愪富鏉′欢缁欏嚭绋冲畾鎬у垎绫汇€佸埌杈?瀹屾垚閫熺巼鐩稿璇樊銆丩ittle 瀹氬緥璇樊銆佷富瀹為獙 Aloha K-bin 璇婃柇锛屼互鍙婄嫭绔嬪彈鎺?Aloha 纭棬鐘舵€併€俓n');
     if isempty(figure_paths)
-        line('- 当前部分结果不足以生成图。\n');
+        line('- 褰撳墠閮ㄥ垎缁撴灉涓嶈冻浠ョ敓鎴愬浘銆俓n');
     else
-        line('- 已生成 %d 张图，位于 `figures/`。\n', numel(figure_paths));
+        line('- 宸茬敓鎴?%d 寮犲浘锛屼綅浜?`figures/`銆俓n', numel(figure_paths));
     end
-    line('\n主实验 `summary.csv` 的 CI 以独立 run 为单位；拓扑鲁棒性 CI 以 topology seed 为单位；预约概率校验的二项 CI 只针对同一 K 的预约帧试验。三种区间的抽样单位不同，不能互相替代。\n');
+    line('\n涓诲疄楠?`summary.csv` 鐨?CI 浠ョ嫭绔?run 涓哄崟浣嶏紱鎷撴墤椴佹鎬?CI 浠?topology seed 涓哄崟浣嶏紱棰勭害姒傜巼鏍￠獙鐨勪簩椤?CI 鍙拡瀵瑰悓涓€ K 鐨勯绾﹀抚璇曢獙銆備笁绉嶅尯闂寸殑鎶芥牱鍗曚綅涓嶅悓锛屼笉鑳戒簰鐩告浛浠ｃ€俓n');
 end
 
 function write_stability_section(line, summary)
-    line('## 2. 稳定性与性能结果\n\n');
+    line('## 2. 绋冲畾鎬т笌鎬ц兘缁撴灉\n\n');
     needed = {'protocol','load_mode','stable_fraction'};
     if isempty(summary) || ~has_variables(summary, needed)
-        line('当前汇总中没有足够的稳定性字段。\n\n');
+        line('褰撳墠姹囨€讳腑娌℃湁瓒冲鐨勭ǔ瀹氭€у瓧娈点€俓n\n');
         return;
     end
     protocol = string(summary.protocol);
     mode = string(summary.load_mode);
     sf = double(summary.stable_fraction);
-    line('| 负载口径 | 协议 | 全部 run 稳定 | 混合 | 全部不稳定 |\n');
+    line('| 璐熻浇鍙ｅ緞 | 鍗忚 | 鍏ㄩ儴 run 绋冲畾 | 娣峰悎 | 鍏ㄩ儴涓嶇ǔ瀹?|\n');
     line('|---|---:|---:|---:|---:|\n');
     modes = unique(mode,'stable');
     protocols = unique(protocol,'stable');
@@ -1796,13 +1796,13 @@ function write_stability_section(line, summary)
                  stable_n, mixed_n, unstable_n);
         end
     end
-    line('\n吞吐和积压斜率仍可用于识别不稳定条件，但不稳定条件下“已完成包的有限平均时延”受删失偏差影响，故本报告不把它作为稳态时延。\n\n');
+    line('\n鍚炲悙鍜岀Н鍘嬫枩鐜囦粛鍙敤浜庤瘑鍒笉绋冲畾鏉′欢锛屼絾涓嶇ǔ瀹氭潯浠朵笅鈥滃凡瀹屾垚鍖呯殑鏈夐檺骞冲潎鏃跺欢鈥濆彈鍒犲け鍋忓樊褰卞搷锛屾晠鏈姤鍛婁笉鎶婂畠浣滀负绋虫€佹椂寤躲€俓n\n');
 end
 
 function write_acceptance_section(line, checks)
-    line('## 2.1 自动验收门槛\n\n');
+    line('## 2.1 鑷姩楠屾敹闂ㄦ\n\n');
     if isempty(checks)
-        line('当前主汇总为空，无法执行条件级验收。\n\n');
+        line('褰撳墠涓绘眹鎬讳负绌猴紝鏃犳硶鎵ц鏉′欢绾ч獙鏀躲€俓n\n');
         return;
     end
     n_pass = nnz(checks.overall_status == "pass");
@@ -1811,22 +1811,22 @@ function write_acceptance_section(line, checks)
     rate_fail = nnz(checks.rate_check_status == "fail");
     little_fail = nnz(checks.little_check_status == "fail");
     aloha_fail = nnz(checks.aloha_controlled_hard_gate_status == "fail");
-    line('共检查 %d 个主条件：通过 %d，失败 %d，`not_applicable` %d。速率守恒失败 %d，Little 定律失败 %d，SF-CB 受控硬门失败 %d。\n\n', ...
+    line('鍏辨鏌?%d 涓富鏉′欢锛氶€氳繃 %d锛屽け璐?%d锛宍not_applicable` %d銆傞€熺巼瀹堟亽澶辫触 %d锛孡ittle 瀹氬緥澶辫触 %d锛孲F-CB 鍙楁帶纭棬澶辫触 %d銆俓n\n', ...
          height(checks),n_pass,n_fail,n_na,rate_fail,little_fail,aloha_fail);
-    line('速率与 Little 定律门槛均为相对误差不超过 5%%，且只在 `stable_fraction=1` 时适用。主实验中动态 K 的分箱不是预注册独立检验：仅保留 `n_frames>=10` 的 coverage 诊断，不进入 overall 硬门，也不能要求所有未校正 95%% CI 同时覆盖。SF-CB 的概率硬门只读取 `verification/aloha_controlled/aloha_theory_validation.csv` 中单一预注册 `K=N、q=1/N` 受控试验，并同时检查服务周期误差不超过 5%%。\n\n');
+    line('閫熺巼涓?Little 瀹氬緥闂ㄦ鍧囦负鐩稿璇樊涓嶈秴杩?5%%锛屼笖鍙湪 `stable_fraction=1` 鏃堕€傜敤銆備富瀹為獙涓姩鎬?K 鐨勫垎绠变笉鏄娉ㄥ唽鐙珛妫€楠岋細浠呬繚鐣?`n_frames>=10` 鐨?coverage 璇婃柇锛屼笉杩涘叆 overall 纭棬锛屼篃涓嶈兘瑕佹眰鎵€鏈夋湭鏍℃ 95%% CI 鍚屾椂瑕嗙洊銆係F-CB 鐨勬鐜囩‖闂ㄥ彧璇诲彇 `verification/aloha_controlled/aloha_theory_validation.csv` 涓崟涓€棰勬敞鍐?`K=N銆乹=1/N` 鍙楁帶璇曢獙锛屽苟鍚屾椂妫€鏌ユ湇鍔″懆鏈熻宸笉瓒呰繃 5%%銆俓n\n');
     sf = checks.protocol == "sf_cb";
     if any(sf & checks.aloha_controlled_file_status == "missing")
-        line('> 当前目录缺少受控验证文件；相关 SF-CB 条件的硬门为 `not_applicable`，必须单独运行 `validate_aloha_theory_v2` 或由实验预检生成该文件，不能据此误报通过或失败。\n\n');
+        line('> 褰撳墠鐩綍缂哄皯鍙楁帶楠岃瘉鏂囦欢锛涚浉鍏?SF-CB 鏉′欢鐨勭‖闂ㄤ负 `not_applicable`锛屽繀椤诲崟鐙繍琛?`validate_aloha_theory_v2` 鎴栫敱瀹為獙棰勬鐢熸垚璇ユ枃浠讹紝涓嶈兘鎹璇姤閫氳繃鎴栧け璐ャ€俓n\n');
     end
-    line('字段缺失、非 SF-CB 概率项、混合或不稳定条件明确记为 `not_applicable`，不会被当作通过。\n\n');
+    line('瀛楁缂哄け銆侀潪 SF-CB 姒傜巼椤广€佹贩鍚堟垨涓嶇ǔ瀹氭潯浠舵槑纭涓?`not_applicable`锛屼笉浼氳褰撲綔閫氳繃銆俓n\n');
 
     failed = checks(checks.overall_status == "fail",:);
     if isempty(failed)
-        line('当前可执行门槛中没有失败条件。\n\n');
+        line('褰撳墠鍙墽琛岄棬妲涗腑娌℃湁澶辫触鏉′欢銆俓n\n');
         return;
     end
-    line('失败条件：\n\n');
-    line('| 协议/条件 | 稳定性 | 速率误差/状态 | Little误差/状态 | 主实验K-bin诊断coverage | 受控硬门 |\n');
+    line('澶辫触鏉′欢锛歕n\n');
+    line('| 鍗忚/鏉′欢 | 绋冲畾鎬?| 閫熺巼璇樊/鐘舵€?| Little璇樊/鐘舵€?| 涓诲疄楠孠-bin璇婃柇coverage | 鍙楁帶纭棬 |\n');
     line('|---|---:|---:|---:|---:|---:|\n');
     max_rows = min(30,height(failed));
     for i = 1:max_rows
@@ -1845,22 +1845,22 @@ function write_acceptance_section(line, checks)
             failed.aloha_controlled_hard_gate_status(i));
     end
     if height(failed) > max_rows
-        line('| … | … | … | … | … | … |\n');
+        line('| 鈥?| 鈥?| 鈥?| 鈥?| 鈥?| 鈥?|\n');
     end
     line('\n');
 end
 
 function write_theory_section(line, theory)
-    line('## 3. SF-CB 预约成功概率验证\n\n');
+    line('## 3. SF-CB 棰勭害鎴愬姛姒傜巼楠岃瘉\n\n');
     if isempty(theory)
-        line('当前检查点中没有可用的 SF-CB 评估诊断。\n\n');
+        line('褰撳墠妫€鏌ョ偣涓病鏈夊彲鐢ㄧ殑 SF-CB 璇勪及璇婃柇銆俓n\n');
         return;
     end
     mask = theory.row_type == "by_K" & theory.K >= 1 & theory.n_frames > 0 & ...
            isfinite(theory.empirical_ps) & isfinite(theory.theoretical_ps);
     t = theory(mask,:);
     if isempty(t)
-        line('没有 K>0 的完整预约帧可用于校验。\n\n');
+        line('娌℃湁 K>0 鐨勫畬鏁撮绾﹀抚鍙敤浜庢牎楠屻€俓n\n');
         return;
     end
     enough = t.n_frames >= 10;
@@ -1869,30 +1869,30 @@ function write_theory_section(line, theory)
         weights = t.n_frames(enough);
         rmse = sqrt(sum(weights.*(t.empirical_ps(enough)-t.theoretical_ps(enough)).^2) ...
                     /sum(weights));
-        line('共有 %d 个 `(条件,K)` 点，其中 %d 个至少包含 10 个完整预约帧。对这些点，理论值落入二项 95%% CI 的比例为 %s，加权 RMSE 为 %s。\n\n', ...
+        line('鍏辨湁 %d 涓?`(鏉′欢,K)` 鐐癸紝鍏朵腑 %d 涓嚦灏戝寘鍚?10 涓畬鏁撮绾﹀抚銆傚杩欎簺鐐癸紝鐞嗚鍊艰惤鍏ヤ簩椤?95%% CI 鐨勬瘮渚嬩负 %s锛屽姞鏉?RMSE 涓?%s銆俓n\n', ...
              height(t), sum(enough), format_percent(coverage), format_number(rmse));
     else
-        line('已有 %d 个 `(条件,K)` 点，但每点完整预约帧均少于 10，当前样本不足以判断概率模型。\n\n', height(t));
+        line('宸叉湁 %d 涓?`(鏉′欢,K)` 鐐癸紝浣嗘瘡鐐瑰畬鏁撮绾﹀抚鍧囧皯浜?10锛屽綋鍓嶆牱鏈笉瓒充互鍒ゆ柇姒傜巼妯″瀷銆俓n\n', height(t));
     end
     q_error = abs(t.empirical_attempt_probability-t.q);
     q_valid = isfinite(q_error) & t.n_frames >= 10;
     if any(q_valid)
-        line('Bernoulli 尝试概率的加权平均绝对偏差为 %s；它用于先核查随机尝试实现，再解释成功率偏差。\n\n', ...
+        line('Bernoulli 灏濊瘯姒傜巼鐨勫姞鏉冨钩鍧囩粷瀵瑰亸宸负 %s锛涘畠鐢ㄤ簬鍏堟牳鏌ラ殢鏈哄皾璇曞疄鐜帮紝鍐嶈В閲婃垚鍔熺巼鍋忓樊銆俓n\n', ...
              format_number(sum(t.n_frames(q_valid).*q_error(q_valid))/sum(t.n_frames(q_valid))));
     end
-    line('这里的动态 K 分箱只用于模型诊断。由于同时检查许多 K-bin，不能把“所有未校正 95%% CI 都覆盖”作为主实验硬验收；稀疏分箱也不参与 coverage 汇总。正式概率硬门来自独立预注册的 `K=N、q=1/N` 受控试验。\n\n');
+    line('杩欓噷鐨勫姩鎬?K 鍒嗙鍙敤浜庢ā鍨嬭瘖鏂€傜敱浜庡悓鏃舵鏌ヨ澶?K-bin锛屼笉鑳芥妸鈥滄墍鏈夋湭鏍℃ 95%% CI 閮借鐩栤€濅綔涓轰富瀹為獙纭獙鏀讹紱绋€鐤忓垎绠变篃涓嶅弬涓?coverage 姹囨€汇€傛寮忔鐜囩‖闂ㄦ潵鑷嫭绔嬮娉ㄥ唽鐨?`K=N銆乹=1/N` 鍙楁帶璇曢獙銆俓n\n');
 end
 
 function write_capacity_section(line, capacity, cfg)
-    line('## 4. SF-CB 固定积压容量边界\n\n');
+    line('## 4. SF-CB 鍥哄畾绉帇瀹归噺杈圭晫\n\n');
     if isempty(capacity)
-        line('当前配置不足以生成容量边界。\n\n');
+        line('褰撳墠閰嶇疆涓嶈冻浠ョ敓鎴愬閲忚竟鐣屻€俓n\n');
         return;
     end
     n_nodes = capacity.n_nodes(1);
     q_opt = capacity.q_opt(1);
     ps_opt = capacity.ps_opt(1);
-    line('按固定积压 `K=N=%d` 且 `q*=1/N=%.6g`，单个 %.0f us 预约帧的最优单例成功概率为 `Ps*=%.6g`。该边界只描述饱和、独立 Bernoulli 尝试下的服务上限，不等同于有限负载的精确队列时延。\n\n', ...
+    line('鎸夊浐瀹氱Н鍘?`K=N=%d` 涓?`q*=1/N=%.6g`锛屽崟涓?%.0f us 棰勭害甯х殑鏈€浼樺崟渚嬫垚鍔熸鐜囦负 `Ps*=%.6g`銆傝杈圭晫鍙弿杩伴ケ鍜屻€佺嫭绔?Bernoulli 灏濊瘯涓嬬殑鏈嶅姟涓婇檺锛屼笉绛夊悓浜庢湁闄愯礋杞界殑绮剧‘闃熷垪鏃跺欢銆俓n\n', ...
          n_nodes,q_opt,analysis_conn_slot_us(cfg),ps_opt);
 
     target_lambda = 30;
@@ -1901,8 +1901,8 @@ function write_capacity_section(line, capacity, cfg)
         target_lambda = max(available);
     end
     target = capacity(abs(capacity.lambda_base-target_lambda) < 1e-12,:);
-    line('对 `lambda_base=%g pkt/STA/s`：\n\n',target_lambda);
-    line('| 负载口径 | M | 系统容量 pkt/s | 每节点容量 pkt/s | 聚合输入 pkt/s | rho | 理论稳定 |\n');
+    line('瀵?`lambda_base=%g pkt/STA/s`锛歕n\n',target_lambda);
+    line('| 璐熻浇鍙ｅ緞 | M | 绯荤粺瀹归噺 pkt/s | 姣忚妭鐐瑰閲?pkt/s | 鑱氬悎杈撳叆 pkt/s | rho | 鐞嗚绋冲畾 |\n');
     line('|---|---:|---:|---:|---:|---:|---:|\n');
     for i = 1:height(target)
         line('| %s | %g | %.3f | %.3f | %.3f | %.3f | %s |\n', ...
@@ -1917,20 +1917,20 @@ function write_capacity_section(line, capacity, cfg)
         sub = target(target.load_mode == modes(i),:);
         stable_M = sub.M(sub.theory_stable);
         unstable_M = sub.M(~sub.theory_stable);
-        line('- %s：理论稳定 M=%s；理论不稳定 M=%s。\n', ...
+        line('- %s锛氱悊璁虹ǔ瀹?M=%s锛涚悊璁轰笉绋冲畾 M=%s銆俓n', ...
             display_load_mode(modes(i)),number_list(stable_M),number_list(unstable_M));
     end
-    line('\n特别地，在 N=%d、lambda_base=%g 的 fixed-packet 口径，聚合输入为 %g pkt/s；容量随 M 增大而下降，因此预期只有较小的 M 能稳定。fixed-payload 把每节点到达率除以 M，不能与 fixed-packet 的曲线混为同一负载。\n\n', ...
+    line('\n鐗瑰埆鍦帮紝鍦?N=%d銆乴ambda_base=%g 鐨?fixed-packet 鍙ｅ緞锛岃仛鍚堣緭鍏ヤ负 %g pkt/s锛涘閲忛殢 M 澧炲ぇ鑰屼笅闄嶏紝鍥犳棰勬湡鍙湁杈冨皬鐨?M 鑳界ǔ瀹氥€俧ixed-payload 鎶婃瘡鑺傜偣鍒拌揪鐜囬櫎浠?M锛屼笉鑳戒笌 fixed-packet 鐨勬洸绾挎贩涓哄悓涓€璐熻浇銆俓n\n', ...
          n_nodes,target_lambda,n_nodes*target_lambda);
 end
 
 function write_csma_section(line, csma)
-    line('## 5. Conn-CSMA 监听与失败链路\n\n');
+    line('## 5. Conn-CSMA 鐩戝惉涓庡け璐ラ摼璺痋n\n');
     if isempty(csma)
-        line('当前检查点中没有可用的 Conn-CSMA 评估诊断。\n\n');
+        line('褰撳墠妫€鏌ョ偣涓病鏈夊彲鐢ㄧ殑 Conn-CSMA 璇勪及璇婃柇銆俓n\n');
         return;
     end
-    line('| 协议 | 原始忙时漏听率 | 有效 CCA 有害漏检率 | 有效 CCA 误报率 | 晚启动计数 | RTS失败检测附加时延/次 us | 数据失败事务附加时延/次 us |\n');
+    line('| 鍗忚 | 鍘熷蹇欐椂婕忓惉鐜?| 鏈夋晥 CCA 鏈夊婕忔鐜?| 鏈夋晥 CCA 璇姤鐜?| 鏅氬惎鍔ㄨ鏁?| RTS澶辫触妫€娴嬮檮鍔犳椂寤?娆?us | 鏁版嵁澶辫触浜嬪姟闄勫姞鏃跺欢/娆?us |\n');
     line('|---|---:|---:|---:|---:|---:|---:|\n');
     protocols = unique(csma.protocol,'stable');
     for pi = 1:numel(protocols)
@@ -1954,17 +1954,17 @@ function write_csma_section(line, csma)
              format_percent(fp_rate), format_number(late), ...
              format_number(rts_failure_delay),format_number(data_failure_delay));
     end
-    line('\n“原始监听不准确率”与“有 HOL、空闲且 NAV=0 时的有效 CCA 错误率”分母不同。原始漏听即使超过 90%%，也可能发生在节点尚未准备竞争的时刻；判断时延机制必须进一步查看有害 FN 是否实际转化为晚启动、RTS/数据失败和碰撞浪费。SB-CF采用全向经典碰撞真值：新DATA只要与任一在途DATA重叠，相关帧全部失败，不使用AP侧SINR。SB-CB的RTS同样采用经典碰撞；反事实CCA还检查新RTS是否会使当前扇区CTS低于6 dB，或使定向DATA低于21 dB。两项失败附加时延分别严格使用 `rts_failure_detection_delay_us/rts_fail_total` 与 `data_failure_transaction_delay_us/data_fail_sinr`；旧检查点缺少字段或分母为零时显示 N/A。\n\n');
+    line('\n鈥滃師濮嬬洃鍚笉鍑嗙‘鐜団€濅笌鈥滄湁 HOL銆佺┖闂蹭笖 NAV=0 鏃剁殑鏈夋晥 CCA 閿欒鐜団€濆垎姣嶄笉鍚屻€傚師濮嬫紡鍚嵆浣胯秴杩?90%%锛屼篃鍙兘鍙戠敓鍦ㄨ妭鐐瑰皻鏈噯澶囩珵浜夌殑鏃跺埢锛涘垽鏂椂寤舵満鍒跺繀椤昏繘涓€姝ユ煡鐪嬫湁瀹?FN 鏄惁瀹為檯杞寲涓烘櫄鍚姩銆丷TS/鏁版嵁澶辫触鍜岀鎾炴氮璐广€係B-CF閲囩敤鍏ㄥ悜缁忓吀纰版挒鐪熷€硷細鏂癉ATA鍙涓庝换涓€鍦ㄩ€擠ATA閲嶅彔锛岀浉鍏冲抚鍏ㄩ儴澶辫触锛屼笉浣跨敤AP渚INR銆係B-CB鐨凴TS鍚屾牱閲囩敤缁忓吀纰版挒锛涘弽浜嬪疄CCA杩樻鏌ユ柊RTS鏄惁浼氫娇褰撳墠鎵囧尯CTS浣庝簬6 dB锛屾垨浣垮畾鍚慏ATA浣庝簬21 dB銆備袱椤瑰け璐ラ檮鍔犳椂寤跺垎鍒弗鏍间娇鐢?`rts_failure_detection_delay_us/rts_fail_total` 涓?`data_failure_transaction_delay_us/data_fail_sinr`锛涙棫妫€鏌ョ偣缂哄皯瀛楁鎴栧垎姣嶄负闆舵椂鏄剧ず N/A銆俓n\n');
 end
 
 function write_cca_ablation_section(line, cca)
-    line('## 6. Conn-CSMA 监听消融\n\n');
+    line('## 6. Conn-CSMA 鐩戝惉娑堣瀺\n\n');
     if isempty(cca)
-        line('未发现可用的 `checkpoints_cca` 或 `cca_ablation.csv` 条件。\n\n');
+        line('鏈彂鐜板彲鐢ㄧ殑 `checkpoints_cca` 鎴?`cca_ablation.csv` 鏉′欢銆俓n\n');
         return;
     end
     data = summarize_cca_variants(cca);
-    line('| 协议/变体 | 条件数 | 稳定条件比例 | 有效FN率 | 有效FP率 | RTS失败检测附加时延/次 us | 数据失败事务附加时延/次 us | 匹配条件相对吞吐 | 匹配条件相对时延 |\n');
+    line('| 鍗忚/鍙樹綋 | 鏉′欢鏁?| 绋冲畾鏉′欢姣斾緥 | 鏈夋晥FN鐜?| 鏈夋晥FP鐜?| RTS澶辫触妫€娴嬮檮鍔犳椂寤?娆?us | 鏁版嵁澶辫触浜嬪姟闄勫姞鏃跺欢/娆?us | 鍖归厤鏉′欢鐩稿鍚炲悙 | 鍖归厤鏉′欢鐩稿鏃跺欢 |\n');
     line('|---|---:|---:|---:|---:|---:|---:|---:|---:|\n');
     for i = 1:height(data)
         line('| %s | %d | %s | %s | %s | %s | %s | %s | %s |\n', ...
@@ -1977,15 +1977,15 @@ function write_cca_ablation_section(line, cca)
             format_number(data.relative_goodput(i)), ...
             format_number(data.relative_delay(i)));
     end
-    line('\n相对吞吐以同一 `(协议,负载口径,lambda,M)` 内表现最好的变体归一化；相对时延以同一条件内最低的稳定时延归一化，只在稳定变体间比较。这样不会把不同 M 或不同负载的绝对时延直接平均。`directional`、`perfect/oracle`、`disabled` 及不同 `rx_sens_dbm` 均保留为独立变体；原始漏听高并不自动意味着有效有害 FN 高。\n\n');
+    line('\n鐩稿鍚炲悙浠ュ悓涓€ `(鍗忚,璐熻浇鍙ｅ緞,lambda,M)` 鍐呰〃鐜版渶濂界殑鍙樹綋褰掍竴鍖栵紱鐩稿鏃跺欢浠ュ悓涓€鏉′欢鍐呮渶浣庣殑绋冲畾鏃跺欢褰掍竴鍖栵紝鍙湪绋冲畾鍙樹綋闂存瘮杈冦€傝繖鏍蜂笉浼氭妸涓嶅悓 M 鎴栦笉鍚岃礋杞界殑缁濆鏃跺欢鐩存帴骞冲潎銆俙directional`銆乣perfect/oracle`銆乣disabled` 鍙婁笉鍚?`rx_sens_dbm` 鍧囦繚鐣欎负鐙珛鍙樹綋锛涘師濮嬫紡鍚珮骞朵笉鑷姩鎰忓懗鐫€鏈夋晥鏈夊 FN 楂樸€俓n\n');
 end
 
 function write_conn_comparison_section(line, summary, cfg)
-    line('## 6.1 Conn-Aloha 与 Conn-CSMA 直接对照\n\n');
+    line('## 6.1 Conn-Aloha 涓?Conn-CSMA 鐩存帴瀵圭収\n\n');
     needed = {'protocol','load_mode','lambda_base','M','stable_fraction', ...
         'mean_delay_us','normalized_goodput_units_s'};
     if isempty(summary) || ~has_variables(summary,needed)
-        line('当前汇总字段不足，无法生成 SF-CB/SB-CB 直接对照。\n\n');
+        line('褰撳墠姹囨€诲瓧娈典笉瓒筹紝鏃犳硶鐢熸垚 SF-CB/SB-CB 鐩存帴瀵圭収銆俓n\n');
         return;
     end
     protocol = string(summary.protocol);
@@ -1993,7 +1993,7 @@ function write_conn_comparison_section(line, summary, cfg)
     lambdas = double(summary.lambda_base);
     available = unique(lambdas(isfinite(lambdas)));
     if isempty(available)
-        line('当前汇总没有有限到达率。\n\n');
+        line('褰撳墠姹囨€绘病鏈夋湁闄愬埌杈剧巼銆俓n\n');
         return;
     end
     target_lambda = 30;
@@ -2004,9 +2004,9 @@ function write_conn_comparison_section(line, summary, cfg)
         (protocol=="sf_cb" | protocol=="sb_cb")),'stable');
     for mi=1:numel(target_modes)
         mode=target_modes(mi);
-        line('**%s，lambda_base=%g pkt/STA/s**\n\n', ...
+        line('**%s锛宭ambda_base=%g pkt/STA/s**\n\n', ...
             display_load_mode(mode),target_lambda);
-        line('| M | SF-CB稳定 | SF-CB时延 us | SF-CB吞吐 units/s | SB-CB稳定 | SB-CB时延 us | SB-CB吞吐 units/s | 稳态时延较优 |\n');
+        line('| M | SF-CB绋冲畾 | SF-CB鏃跺欢 us | SF-CB鍚炲悙 units/s | SB-CB绋冲畾 | SB-CB鏃跺欢 us | SB-CB鍚炲悙 units/s | 绋虫€佹椂寤惰緝浼?|\n');
         line('|---:|---:|---:|---:|---:|---:|---:|---|\n');
         in_mode = modes==mode & abs(lambdas-target_lambda)<1e-12;
         m_values=unique(double(summary.M(in_mode & ...
@@ -2028,20 +2028,20 @@ function write_conn_comparison_section(line, summary, cfg)
         end
         line('\n');
     end
-    line(['低 M 时，SB-CB 即使原始漏听很高，仍可能凭借 %.0f us 决策机会、', ...
-        '唯一RTS预约和成功 NAV 保护，避开 SF-CB 的 %.0f us 边界等待及', ...
-        '空预约/碰撞预约，因此完成包时延更低。原始漏听率不是失败概率；', ...
-        '只有有害 FN、晚启动及其造成的 RTS/数据失败才进入机制代价。M ', ...
-        '增大后，CTS 扫描、晚启动干扰和失败事务超时会被更长数据阶段放大，', ...
-        'SB-CB 可能先失稳或反超；另一方面 fixed-packet 下 SF-CB 在', ...
-        '`lambda=30` 的固定积压容量理论只支持 M=1，短窗口中 M>=2 的', ...
-        '“稳定”不能推翻该饱和边界。\n\n'], ...
+    line(['浣?M 鏃讹紝SB-CB 鍗充娇鍘熷婕忓惉寰堥珮锛屼粛鍙兘鍑€?%.0f us 鍐崇瓥鏈轰細銆?, ...
+        '鍞竴RTS棰勭害鍜屾垚鍔?NAV 淇濇姢锛岄伩寮€ SF-CB 鐨?%.0f us 杈圭晫绛夊緟鍙?, ...
+        '绌洪绾?纰版挒棰勭害锛屽洜姝ゅ畬鎴愬寘鏃跺欢鏇翠綆銆傚師濮嬫紡鍚巼涓嶆槸澶辫触姒傜巼锛?, ...
+        '鍙湁鏈夊 FN銆佹櫄鍚姩鍙婂叾閫犳垚鐨?RTS/鏁版嵁澶辫触鎵嶈繘鍏ユ満鍒朵唬浠枫€侻 ', ...
+        '澧炲ぇ鍚庯紝CTS 鎵弿銆佹櫄鍚姩骞叉壈鍜屽け璐ヤ簨鍔¤秴鏃朵細琚洿闀挎暟鎹樁娈垫斁澶э紝', ...
+        'SB-CB 鍙兘鍏堝け绋虫垨鍙嶈秴锛涘彟涓€鏂归潰 fixed-packet 涓?SF-CB 鍦?, ...
+        '`lambda=30` 鐨勫浐瀹氱Н鍘嬪閲忕悊璁哄彧鏀寔 M=1锛岀煭绐楀彛涓?M>=2 鐨?, ...
+        '鈥滅ǔ瀹氣€濅笉鑳芥帹缈昏楗卞拰杈圭晫銆俓n\n'], ...
         analysis_mmw_slot_us(cfg),analysis_conn_slot_us(cfg));
-    line(['把 SF-CB 改成 unslotted 只能去掉边界相位等待，不能保证总时延', ...
-        '下降：经典纯 Aloha 的易碰撞时间窗由一帧扩大到约两帧，吞吐上限', ...
-        '也低于 slotted Aloha。在本场景中它还会重新引入 RTS 与 CTS 扫描', ...
-        '相互重叠的问题；除非增加保护/忙音等机制，否则不是当前结果的直接', ...
-        '修复。\n\n']);
+    line(['鎶?SF-CB 鏀规垚 unslotted 鍙兘鍘绘帀杈圭晫鐩镐綅绛夊緟锛屼笉鑳戒繚璇佹€绘椂寤?, ...
+        '涓嬮檷锛氱粡鍏哥函 Aloha 鐨勬槗纰版挒鏃堕棿绐楃敱涓€甯ф墿澶у埌绾︿袱甯э紝鍚炲悙涓婇檺', ...
+        '涔熶綆浜?slotted Aloha銆傚湪鏈満鏅腑瀹冭繕浼氶噸鏂板紩鍏?RTS 涓?CTS 鎵弿', ...
+        '鐩镐簰閲嶅彔鐨勯棶棰橈紱闄ら潪澧炲姞淇濇姢/蹇欓煶绛夋満鍒讹紝鍚﹀垯涓嶆槸褰撳墠缁撴灉鐨勭洿鎺?, ...
+        '淇銆俓n\n']);
 end
 
 function winner=conn_delay_winner(a_stable,a_delay,c_stable,c_delay)
@@ -2052,21 +2052,21 @@ function winner=conn_delay_winner(a_stable,a_delay,c_stable,c_delay)
             winner='SB-CB';
         end
     elseif a_stable && isfinite(a_delay)
-        winner='SF-CB（SB-CB不稳定）';
+        winner='SF-CB锛圫B-CB涓嶇ǔ瀹氾級';
     elseif c_stable && isfinite(c_delay)
-        winner='SB-CB（SF-CB不稳定）';
+        winner='SB-CB锛圫F-CB涓嶇ǔ瀹氾級';
     else
-        winner='无可报告稳态时延';
+        winner='鏃犲彲鎶ュ憡绋虫€佹椂寤?;
     end
 end
 
 function write_topology_section(line, topology)
-    line('## 7. 独立拓扑鲁棒性\n\n');
+    line('## 7. 鐙珛鎷撴墤椴佹鎬n\n');
     if isempty(topology)
-        line('未发现可用的 `checkpoints_topology` 或 `topology_robustness.csv` 条件。\n\n');
+        line('鏈彂鐜板彲鐢ㄧ殑 `checkpoints_topology` 鎴?`topology_robustness.csv` 鏉′欢銆俓n\n');
         return;
     end
-    line('| 协议/条件 | 拓扑数 | 稳定拓扑比例 | 稳态均值时延 us（95%% CI半宽） | 归一化吞吐 units/s（95%% CI半宽） |\n');
+    line('| 鍗忚/鏉′欢 | 鎷撴墤鏁?| 绋冲畾鎷撴墤姣斾緥 | 绋虫€佸潎鍊兼椂寤?us锛?5%% CI鍗婂锛?| 褰掍竴鍖栧悶鍚?units/s锛?5%% CI鍗婂锛?|\n');
     line('|---|---:|---:|---:|---:|\n');
     max_rows = min(height(topology),24);
     for i = 1:max_rows
@@ -2083,9 +2083,9 @@ function write_topology_section(line, topology)
                                topology.normalized_goodput_units_s_ci95(i)));
     end
     if height(topology) > max_rows
-        line('| … | … | … | … | … |\n');
+        line('| 鈥?| 鈥?| 鈥?| 鈥?| 鈥?|\n');
     end
-    line('\n每个 topology seed 先形成一个条件级观测，再跨 seed 计算 Student-t 95%% CI；同一拓扑内的多个 run 和海量包不会增加这里的独立样本数。若任一拓扑未达到稳定判据，汇总稳态时延置为 NaN，而吞吐、积压斜率和稳定比例仍保留用于判断失稳。单个拓扑时可报告均值，但无法估计 t 区间。\n\n');
+    line('\n姣忎釜 topology seed 鍏堝舰鎴愪竴涓潯浠剁骇瑙傛祴锛屽啀璺?seed 璁＄畻 Student-t 95%% CI锛涘悓涓€鎷撴墤鍐呯殑澶氫釜 run 鍜屾捣閲忓寘涓嶄細澧炲姞杩欓噷鐨勭嫭绔嬫牱鏈暟銆傝嫢浠讳竴鎷撴墤鏈揪鍒扮ǔ瀹氬垽鎹紝姹囨€荤ǔ鎬佹椂寤剁疆涓?NaN锛岃€屽悶鍚愩€佺Н鍘嬫枩鐜囧拰绋冲畾姣斾緥浠嶄繚鐣欑敤浜庡垽鏂け绋炽€傚崟涓嫇鎵戞椂鍙姤鍛婂潎鍊硷紝浣嗘棤娉曚及璁?t 鍖洪棿銆俓n\n');
 end
 
 function info = condition_info(condition, cfg)
@@ -2096,8 +2096,7 @@ function info = condition_info(condition, cfg)
     info.lambda_base = numeric_value(row, 'lambda_base', NaN);
     info.lambda_effective = numeric_value(row, 'lambda_effective', NaN);
     info.M = numeric_value(row, 'M', NaN);
-    info.Tp_us = numeric_value(row, 'Tp_us', ...
-        analysis_conn_slot_us(cfg)*info.M);
+    info.Tp_us = analysis_conn_slot_us(cfg)*info.M;  % always use config conn_slot
     info.best_q = numeric_value(row, 'best_q', NaN);
 end
 
@@ -2236,7 +2235,10 @@ function value = analysis_mmw_slot_us(cfg)
 end
 
 function value = analysis_conn_slot_us(cfg)
-    if isstruct(cfg) && isfield(cfg,'mmw_slot_us')
+    if isstruct(cfg) && isfield(cfg,'mmw_real_conn_slot_us') && ...
+            ~isempty(cfg.mmw_real_conn_slot_us) && isfinite(cfg.mmw_real_conn_slot_us)
+        value = double(cfg.mmw_real_conn_slot_us);   % 162.5 us real conn-slot
+    elseif isstruct(cfg) && isfield(cfg,'mmw_slot_us')
         value = mmw_timing_config(cfg).CONN_SLOT_US;
     elseif isstruct(cfg) && isfield(cfg,'arrival_tick_us') && ...
             isequal(double(cfg.arrival_tick_us),5)
@@ -2245,7 +2247,6 @@ function value = analysis_conn_slot_us(cfg)
         value = mmw_timing_config().CONN_SLOT_US;
     end
 end
-
 function value = config_scalar(cfg, field, fallback)
     value = fallback;
     if isstruct(cfg) && isfield(cfg,field) && isnumeric(cfg.(field)) && ...
@@ -2325,20 +2326,20 @@ function text = format_estimate_ci(value, half_width)
     if ~isfinite(value)
         text = 'N/A';
     elseif isfinite(half_width)
-        text = sprintf('%.6g ± %.3g',value,half_width);
+        text = sprintf('%.6g 卤 %.3g',value,half_width);
     else
-        text = sprintf('%.6g（CI不可估）',value);
+        text = sprintf('%.6g锛圕I涓嶅彲浼帮級',value);
     end
 end
 
 function text = yes_no(value)
-    if value, text = '是'; else, text = '否'; end
+    if value, text = '鏄?; else, text = '鍚?; end
 end
 
 function text = number_list(values)
     values = values(isfinite(values));
     if isempty(values)
-        text = '无';
+        text = '鏃?;
     else
         text = strjoin(arrayfun(@(x) sprintf('%g',x),values(:).', ...
             'UniformOutput',false),', ');

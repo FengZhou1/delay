@@ -1,0 +1,2 @@
+protocol,load_mode,lambda_base,M,hit_side,old_best_q,old_mean_delay_us,new_best_q,new_mean_delay_us,ext_stable_count,selection_source,fallback_log
+sf_cf,fixed_packet,16,3,full_grid,0.1,10130.586846543,0.1,10130.586846543,38,scan_min_delay,scan q=0.1 comp=1.000 stable=1

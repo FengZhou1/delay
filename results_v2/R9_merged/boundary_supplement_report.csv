@@ -1,0 +1,39 @@
+protocol,load_mode,lambda_base,M,hit_side,old_best_q,old_mean_delay_us,new_best_q,new_mean_delay_us,ext_stable_count,selection_source,fallback_log
+sf_cf,fixed_packet,16,1,upper,0.2,1041.27403035413,0.5,574.87436762226,6,extension,ext q=0.5 comp=1.000 stable=1
+sf_cb,fixed_packet,16,1,upper,0.2,1274.19983136594,0.35,1010.30860033727,4,extension,ext q=0.45 comp=0.600 stable=1 | ext q=0.35 comp=1.000 stable=1
+sf_cf,fixed_packet,16,2,upper,0.2,2120.67959527825,0.35,1360.7934232715,4,extension,ext q=0.35 comp=1.000 stable=1
+sf_cb,fixed_packet,16,2,upper,0.2,1274.7478920742,0.4,768.887858347386,5,extension,ext q=0.5 comp=0.000 stable=0 | ext q=0.4 comp=1.000 stable=1
+sb_cb,fixed_packet,16,2,upper,0.2,1012.24704890388,0.4,842.673693086003,6,extension,ext q=0.4 comp=1.000 stable=1
+sf_cb,fixed_packet,16,3,upper,0.2,1299.13659359191,0.4,765.599494097808,6,extension,ext q=0.5 comp=0.617 stable=1 | ext q=0.4 comp=1.000 stable=1
+sf_cb,fixed_packet,16,4,upper,0.2,1236.93170320405,0.5,722.850758853288,6,extension,ext q=0.5 comp=1.000 stable=1
+sf_cb,fixed_packet,16,5,upper,0.2,1289.5455311973,0.4,791.632377740304,4,extension,ext q=0.4 comp=1.000 stable=1
+sf_cb,fixed_packet,16,6,upper,0.2,1272.82967959528,0.5,865.894603709949,5,extension,ext q=0.5 comp=1.000 stable=1
+sf_cf,fixed_packet,30,1,upper,0.2,1262.90338164251,0.3,989.845813204509,2,extension,ext q=0.3 comp=1.000 stable=1
+sf_cb,fixed_packet,30,2,upper,0.2,1962.62157809984,0.25,1789.78542673108,1,extension,ext q=0.25 comp=1.000 stable=1
+sf_cb,fixed_packet,30,4,upper,0.2,1891.5768921095,0.25,1699.2459742351,1,extension,ext q=0.25 comp=1.000 stable=1
+sf_cb,fixed_packet,30,5,upper,0.2,2069.2540257649,0.2,2069.2540257649,1,left_fallback,ext q=0.25 comp=0.324 stable=0 | left q=0.2 comp=1.000 stable=1
+sf_cb,fixed_packet,30,6,upper,0.2,1764.40297906602,0.25,1555.45571658615,1,extension,ext q=0.25 comp=1.000 stable=1
+sf_cf,fixed_packet,16,3,full_grid,0.1,10130.586846543,0.1,10130.586846543,38,scan_min_delay,scan q=0.1 comp=1.000 stable=1
+unslotted,fixed_packet,16,1,full_grid,0.15,496.745641869296,0.2,512.059735450124,62,scan_min_delay,scan q=0.35 rejected (1/3 seeds ok) | scan q=0.25 rejected (2/3 seeds ok) | scan q=0.45 rejected (1/3 seeds ok) | scan q=0.2 comp=1.000 stable=1
+unslotted,fixed_packet,16,2,full_grid,0.065,1082.74312676151,0.035,1063.58321354831,51,scan_min_delay,scan q=0.1 rejected (1/3 seeds ok) | scan q=0.055 rejected (2/3 seeds ok) | scan q=0.035 comp=1.000 stable=1
+unslotted,fixed_packet,16,3,full_grid,0.04,1439.27608182561,0.02,1878.68473890089,42,scan_min_delay,scan q=0.035 rejected (1/3 seeds ok) | scan q=0.03 rejected (2/3 seeds ok) | scan q=0.02 comp=1.000 stable=1
+unslotted,fixed_packet,16,4,full_grid,0.0095,3293.62695476253,0.015,2800.68470053863,39,scan_min_delay,scan q=0.015 comp=1.000 stable=1
+unslotted,fixed_packet,16,5,full_grid,0.008,5664.73973789319,0.008,4817.50324206051,37,scan_min_delay,scan q=0.008 comp=1.000 stable=1
+unslotted,fixed_packet,16,6,full_grid,0.007,8304.62398154689,0.0075,8915.79258245049,37,scan_min_delay,scan q=0.0075 comp=1.000 stable=1
+unslotted,fixed_packet,30,1,full_grid,0.035,1082.55560745529,0.03,1122.16365832965,43,scan_min_delay,scan q=0.06 rejected (1/3 seeds ok) | scan q=0.045 rejected (2/3 seeds ok) | scan q=0.035 rejected (2/3 seeds ok) | scan q=0.03 comp=1.000 stable=1
+unslotted,fixed_packet,30,2,full_grid,0.015,2931.57906103107,0.01,3456.43958824473,39,scan_min_delay,scan q=0.01 comp=1.000 stable=1
+unslotted,fixed_packet,30,3,full_grid,0.009,119452.352133016,0.006,8041.11992347599,37,scan_min_delay,scan q=0.006 comp=1.000 stable=1
+unslotted,fixed_packet,30,4,full_grid,0.0035,15056.4724230387,0.003,15160.2636034723,36,scan_min_delay,scan q=0.003 comp=1.000 stable=1
+unslotted,fixed_packet,30,5,full_grid,0.0025,23114.1757670125,0.002,24805.7553489543,33,scan_min_delay,scan q=0.002 comp=1.000 stable=1
+unslotted,fixed_packet,30,6,full_grid,0.002,27897.8489253466,0.002,31916.5607628501,32,scan_min_delay,scan q=0.002 comp=1.000 stable=1
+unslotted,fixed_packet,16,1,original_flow,0.15,496.745641869296,0.09,538.571135686913,NaN,self_stable,
+unslotted,fixed_packet,16,2,original_flow,0.065,1082.74312676151,0.065,828.304275165097,NaN,self_stable,
+unslotted,fixed_packet,16,3,original_flow,0.04,1439.27608182561,0.03,2000.89326650649,NaN,self_stable,
+unslotted,fixed_packet,16,4,original_flow,0.0095,3293.62695476253,0.015,3410.99730015256,NaN,self_stable,
+unslotted,fixed_packet,16,5,original_flow,0.008,5664.73973789319,0.0075,4716.30009142091,NaN,self_stable,
+unslotted,fixed_packet,16,6,original_flow,0.007,8304.62398154689,0.0065,8072.45132331282,NaN,self_stable,
+unslotted,fixed_packet,30,1,original_flow,0.035,1082.55560745529,0.055,889.445721079243,NaN,self_stable,
+unslotted,fixed_packet,30,2,original_flow,0.015,2931.57906103107,0.015,2857.88685497008,NaN,self_stable,
+unslotted,fixed_packet,30,4,original_flow,0.0035,15056.4724230387,0.004,16416.4887108441,NaN,self_stable,
+unslotted,fixed_packet,30,5,original_flow,0.0025,23114.1757670125,0.003,21764.5983657086,NaN,self_stable,
+unslotted,fixed_packet,30,6,original_flow,0.002,27897.8489253466,0.002,31654.0351721555,NaN,self_stable,

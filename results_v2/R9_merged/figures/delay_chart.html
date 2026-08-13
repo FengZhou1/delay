@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Delay Comparison</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; max-width: 1400px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #eee; }
+h2 { text-align: center; }
+.chart-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+.chart-box { flex: 1; min-width: 600px; max-width: 700px; background: #16213e; border-radius: 8px; padding: 15px; }
+canvas { width: 100% !important; height: auto !important; max-height: 450px; }
+</style></head><body>
+<h2>Mean End-to-End Delay vs M (TXOP length)</h2>
+<div class="chart-container">
+<div class="chart-box"><h3>λ = 16 pkts/STA/s</h3><canvas id="chart_lam16"></canvas></div>
+<script>
+new Chart(document.getElementById('chart_lam16'), {
+    type: 'line',
+    data: {
+        labels: ["M=1","M=2","M=3","M=4","M=5","M=6"],
+        datasets: [{"label":"SF-CF","data":[574.87436762226,1360.7934232715,10130.586846543,12263.6391231029,26805.607925801,31275.3170320405],"borderColor":"rgb(255, 99, 132)","backgroundColor":"rgb(255, 99, 132)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"SF-CB","data":[1010.30860033727,768.887858347386,765.599494097808,722.850758853288,791.632377740304,865.894603709949],"borderColor":"rgb(54, 162, 235)","backgroundColor":"rgb(54, 162, 235)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"SB-CF","data":[2712.93001686341,16774.8752107926,52524.0430016863,83836.6357504216,120079.073355818,156534.839797639],"borderColor":"rgb(255, 206, 86)","backgroundColor":"rgb(255, 206, 86)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"SB-CB","data":[530.831365935919,842.673693086003,1805.35413153457,2822.41399662732,5237.60033726813,7742.95362563238],"borderColor":"rgb(75, 192, 192)","backgroundColor":"rgb(75, 192, 192)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"S7-clean","data":[324.395784148342,542.003709949354,816.722934232659,1150.10151770652,1642.91517706571,2265.6748735244],"borderColor":"rgb(153, 102, 255)","backgroundColor":"rgb(153, 102, 255)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"Unslotted","data":[538.571135686913,828.304275165097,2000.89326650649,3410.99730015256,4716.30009142091,8072.45132331282],"borderColor":"rgb(255, 159, 64)","backgroundColor":"rgb(255, 159, 64)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8}]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                type: 'logarithmic',
+                title: { display: true, text: 'Mean End-to-End Delay (μs)', color: '#eee' },
+                ticks: { color: '#ccc' },
+                grid: { color: '#333' }
+            },
+            x: {
+                title: { display: true, text: 'TXOP Length M (conn_slots)', color: '#eee' },
+                ticks: { color: '#ccc' },
+                grid: { color: '#333' }
+            }
+        },
+        plugins: {
+            legend: { labels: { color: '#eee' } }
+        }
+    }
+});
+</script>
+<div class="chart-box"><h3>λ = 30 pkts/STA/s</h3><canvas id="chart_lam30"></canvas></div>
+<script>
+new Chart(document.getElementById('chart_lam30'), {
+    type: 'line',
+    data: {
+        labels: ["M=1","M=2","M=3","M=4","M=5","M=6"],
+        datasets: [{"label":"SF-CF","data":[989.845813204509,6542.97584541063,18876.6211755233,27080.9086151369,36420.6026570048,51082.7604669887],"borderColor":"rgb(255, 99, 132)","backgroundColor":"rgb(255, 99, 132)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"SF-CB","data":[2486.36352657005,1789.78542673108,2157.04589371981,1699.2459742351,2069.2540257649,1555.45571658615],"borderColor":"rgb(54, 162, 235)","backgroundColor":"rgb(54, 162, 235)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"SB-CF","data":[79395.7463768116,157414.347826087,232867.528985507,241494.543478261,269207.094202899,293556.913043478],"borderColor":"rgb(255, 206, 86)","backgroundColor":"rgb(255, 206, 86)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"SB-CB","data":[848.920289855072,3096.10869565217,7361.3768115942,14467.884057971,23854.4565217391,29846.0144927536],"borderColor":"rgb(75, 192, 192)","backgroundColor":"rgb(75, 192, 192)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"S7-clean","data":[386.863768115887,720.385507246322,1460.66086956516,3427.66086956516,7834.1826086956,12982.5666666666],"borderColor":"rgb(153, 102, 255)","backgroundColor":"rgb(153, 102, 255)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8},{"label":"Unslotted","data":[889.445721079243,2857.88685497008,8041.11992347599,16416.4887108441,21764.5983657086,31654.0351721555],"borderColor":"rgb(255, 159, 64)","backgroundColor":"rgb(255, 159, 64)33","tension":0.3,"pointRadius":5,"pointHoverRadius":8}]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                type: 'logarithmic',
+                title: { display: true, text: 'Mean End-to-End Delay (μs)', color: '#eee' },
+                ticks: { color: '#ccc' },
+                grid: { color: '#333' }
+            },
+            x: {
+                title: { display: true, text: 'TXOP Length M (conn_slots)', color: '#eee' },
+                ticks: { color: '#ccc' },
+                grid: { color: '#333' }
+            }
+        },
+        plugins: {
+            legend: { labels: { color: '#eee' } }
+        }
+    }
+});
+</script>
+</div></body></html>

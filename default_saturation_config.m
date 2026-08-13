@@ -25,7 +25,7 @@ function cfg = default_saturation_config(profile)
     % saturated-throughput sweep.  DATA airtime is quantized to an integer
     % number of 9-us mmWave slots; effective payload is never promoted to a
     % full 198-us connection slot.
-    cfg.M_values = [1/10, 1/5, 2/5, 3/5, 1:6, 8, 10, 15, 20];
+    cfg.M_values = 1:6;
     cfg.warmup_us = 2e5;
     cfg.measure_us = 1e6;
     cfg.drain_max_us = 0;

@@ -1,0 +1,15 @@
+protocol,load_mode,lambda_base,M,hit_side,old_best_q,old_mean_delay_us,new_best_q,new_mean_delay_us,ext_stable_count,selection_source,fallback_log
+sf_cf,fixed_packet,16,1,upper,0.2,1041.27403035413,0.5,574.87436762226,6,extension,ext q=0.5 comp=1.000 stable=1
+sf_cb,fixed_packet,16,1,upper,0.2,1274.19983136594,0.35,1010.30860033727,4,extension,ext q=0.45 comp=0.600 stable=1 | ext q=0.35 comp=1.000 stable=1
+sf_cf,fixed_packet,16,2,upper,0.2,2120.67959527825,0.35,1360.7934232715,4,extension,ext q=0.35 comp=1.000 stable=1
+sf_cb,fixed_packet,16,2,upper,0.2,1274.7478920742,0.4,768.887858347386,5,extension,ext q=0.5 comp=0.000 stable=0 | ext q=0.4 comp=1.000 stable=1
+sb_cb,fixed_packet,16,2,upper,0.2,1012.24704890388,0.4,842.673693086003,6,extension,ext q=0.4 comp=1.000 stable=1
+sf_cb,fixed_packet,16,3,upper,0.2,1299.13659359191,0.4,765.599494097808,6,extension,ext q=0.5 comp=0.617 stable=1 | ext q=0.4 comp=1.000 stable=1
+sf_cb,fixed_packet,16,4,upper,0.2,1236.93170320405,0.5,722.850758853288,6,extension,ext q=0.5 comp=1.000 stable=1
+sf_cb,fixed_packet,16,5,upper,0.2,1289.5455311973,0.4,791.632377740304,4,extension,ext q=0.4 comp=1.000 stable=1
+sf_cb,fixed_packet,16,6,upper,0.2,1272.82967959528,0.5,865.894603709949,5,extension,ext q=0.5 comp=1.000 stable=1
+sf_cf,fixed_packet,30,1,upper,0.2,1262.90338164251,0.3,989.845813204509,2,extension,ext q=0.3 comp=1.000 stable=1
+sf_cb,fixed_packet,30,2,upper,0.2,1962.62157809984,0.25,1789.78542673108,1,extension,ext q=0.25 comp=1.000 stable=1
+sf_cb,fixed_packet,30,4,upper,0.2,1891.5768921095,0.25,1699.2459742351,1,extension,ext q=0.25 comp=1.000 stable=1
+sf_cb,fixed_packet,30,5,upper,0.2,2069.2540257649,0.2,2069.2540257649,1,left_fallback,ext q=0.25 comp=0.324 stable=0 | left q=0.2 comp=1.000 stable=1
+sf_cb,fixed_packet,30,6,upper,0.2,1764.40297906602,0.25,1555.45571658615,1,extension,ext q=0.25 comp=1.000 stable=1

@@ -1,4 +1,4 @@
-function cfg = default_experiment_config(profile)
+﻿function cfg = default_experiment_config(profile)
 %DEFAULT_EXPERIMENT_CONFIG Reproducible configuration for the v2 simulator.
 %   cfg = default_experiment_config('smoke'|'scaled'|'analysis'|'pilot'|'full')
 %
@@ -14,7 +14,7 @@ function cfg = default_experiment_config(profile)
     cfg.profile = lower(char(profile));
     cfg.protocols = {'sf_cf', 'sf_cb', 'sb_cf', 'sb_cb', ...
                      's7_clean', 's7_busy', 'unslotted'};
-    cfg.lambda_values = [5, 15, 30];       % pkt/STA/s at M=1
+    cfg.lambda_values = [16, 30];       % pkt/STA/s (fixed packet length = 1 conn_slot)
     cfg.M_values = 1:6;
     cfg.load_modes = {'fixed_packet'};
 
@@ -55,8 +55,8 @@ function cfg = default_experiment_config(profile)
     cfg.traffic_seed_base = 20260722;
     cfg.protocol_seed_base = 731927;
 
-    cfg.q_coarse = unique([10.^(-5:0.25:0), 0.05:0.05:1.0]);
-    cfg.q_refine_points = 9;
+    cfg.q_coarse = [0.0001:0.00005:0.00095, 0.001:0.0005:0.0095, 0.01:0.005:0.095, 0.1, 0.15, 0.2];
+    cfg.q_refine_points = 0;
     cfg.q_two_stage_tuning = false;
     cfg.q_coarse_tune_runs = 1;
     cfg.q_fine_tune_runs = 3;
@@ -85,7 +85,7 @@ function cfg = default_experiment_config(profile)
     cfg.tuning_rate_screen = false;
     cfg.common_arrivals_by_effective_rate = true;
     cfg.parallel = true;
-    cfg.n_workers = 6;
+    cfg.n_workers = 4;
     cfg.condition_timeout_s = 1800;
     cfg.tune_warmup_us = 0;
     cfg.tune_measure_us = 2e6;
@@ -157,7 +157,7 @@ function cfg = default_experiment_config(profile)
             cfg.n_tune_runs = 3;
             cfg.n_eval_runs = 3;
             cfg.tune_measure_us = 5e5;
-            cfg.tune_drain_max_us = 1e6;
+            cfg.tune_drain_max_us = 5e5;
         case 'scaled'
             % Reproducible, all-axis engineering validation.  It is useful
             % for finding logic/performance regressions but is intentionally
@@ -195,16 +195,16 @@ function cfg = default_experiment_config(profile)
             % using a one-second evaluation window. CCA and topology studies
             % are intentionally not repeated here; use the scaled/full
             % profiles or enable them explicitly when needed.
-            cfg.lambda_values = [5 10];
+            cfg.lambda_values = [16 30];
             cfg.warmup_us = 2e5;
             cfg.measure_us = 1e6;
             cfg.drain_max_us = 1e6;
             cfg.n_tune_runs = 1;
             cfg.n_eval_runs = 1;
             cfg.tune_warmup_us = 2e5;
-            cfg.tune_measure_us = 1e6;
-            cfg.tune_drain_max_us = 1e6;
-            cfg.q_coarse = [0.0001:0.00002:0.0009, 0.001:0.0002:0.009, 0.01:0.002:0.09, 0.1:0.02:0.98];
+            cfg.tune_measure_us = 5e5;  % 0.5s for better stability detection
+            cfg.tune_drain_max_us = 1e6;  % 1s drain
+            cfg.q_coarse = [0.0001:0.00005:0.00095, 0.001:0.0005:0.0095, 0.01:0.005:0.095, 0.1, 0.15, 0.2];
             cfg.q_refine_points = 0;
             cfg.q_two_stage_tuning = false;
             cfg.q_coarse_tune_runs = 1;
@@ -213,31 +213,25 @@ function cfg = default_experiment_config(profile)
             cfg.q_max_refinement_passes = 3;
             cfg.q_refine_neighbor_span = 2;
             cfg.q_preferred_neighbor_radius = 2;
-            cfg.q_validation_runs = 0;
-            cfg.q_validation_max_candidates = 3;
+            cfg.q_validation_runs = 0;  % validation on top-5 candidates
+              cfg.q_validation_max_candidates = 5;  % test top-5 if best q fails eval
             cfg.q_refine_scale = 'auto';
             cfg.q_refine_floor = 1e-7;
             cfg.q_require_stable_neighbors = true;
             cfg.q_fallback_self_stable = true;
             cfg.adaptive_q_grid = false;
-            cfg.protocol_q_grids_enabled = false;
-            cfg.protocol_q_grids.sf_cf = ...
-                linspace(0.30, 1.00, 25);
-            cfg.protocol_q_grids.sf_cb = ...
-                linspace(0.60, 0.98, 20);
-            cfg.protocol_q_grids.sb_cf = ...
-                logspace(log10(0.0005), log10(0.10), 50);
-            cfg.protocol_q_grids.sb_cb = ...
-                [1e-4 2e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
-                 5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
-            cfg.protocol_q_grids.s7_clean = ...
-                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
-                 5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
-            cfg.protocol_q_grids.s7_busy = ...
-                [1e-4 5e-4 1e-3 2e-3 5e-3 1e-2 2e-2 ...
-                 5e-2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1];
-            cfg.protocol_q_grids.unslotted = ...
-                linspace(0.35, 0.95, 40);
+            cfg.protocol_q_grids_enabled = true;  % non-S7 uses new 57-pt grid, S7 uses its own grid
+            % New dense 57-point scan grid shared by all non-S7 protocols
+            q_grid_dense = [0.0001:0.00005:0.00095, 0.001:0.0005:0.0095, ...
+                0.01:0.005:0.095, 0.1, 0.15, 0.2];
+            cfg.protocol_q_grids.sf_cf = q_grid_dense;
+            cfg.protocol_q_grids.sf_cb = q_grid_dense;
+            cfg.protocol_q_grids.sb_cf = q_grid_dense;
+            cfg.protocol_q_grids.sb_cb = q_grid_dense;
+            cfg.protocol_q_grids.unslotted = q_grid_dense;
+            % S7 keeps its dedicated 69-point grid
+            cfg.protocol_q_grids.s7_clean = [0.0001:0.00005:0.0009, 0.001:0.0005:0.009, 0.01:0.005:0.09, 0.1:0.05:0.95];
+            cfg.protocol_q_grids.s7_busy = [0.0001:0.00005:0.0009, 0.001:0.0005:0.009, 0.01:0.005:0.09, 0.1:0.05:0.95];
             cfg.q_grid_light = [0.001 0.003 0.01 0.025 0.05 0.1 0.2 0.5 1];
             cfg.q_grid_medium = [0.005 0.01 0.025 0.05 0.1 0.2 0.3 0.5 0.7];
             cfg.q_grid_heavy = [0.01 0.025 0.05 0.1 0.15 0.2 0.3 0.5 0.7];

@@ -21,6 +21,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
 
     n_mlo = cfg.n_nodes;
     n_total = n_mlo + n_slo;
+    conn_slot_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
     if is_saturation
         tp_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US) * M;
     else
@@ -48,8 +49,8 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
 
     stream = RandStream('mt19937ar', 'Seed', double(seed));
     node_packets = trace.packet_ids_by_node;
-    arrived_tail = zeros(n_mlo, 1);
-    head_pos = ones(n_mlo, 1);
+    arrived_tail = zeros(n_total, 1);
+    head_pos = ones(n_total, 1);
     backlog = 0;
 
     n_pkt = trace.n_packets;
@@ -95,6 +96,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     next_tick = 0;
     next_sample = cfg.warmup_us;
     reserved_until = 0;
+    req_n_to_send_stored = ones(n_total, 1);  % stored at request, used at completion
     last_t = 0;
     t = 0;
 
@@ -162,7 +164,9 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     reserved_until = max(reserved_until, response_end);
                     if request_is_mlo(w)
                         diag.request_success_mlo = diag.request_success_mlo + 1;
-                        data_end = response_end + tp_us;
+                        qd_w = arrived_tail(w) - head_pos(w) + 1;
+                        req_n_to_send_w = max(1, min(qd_w, M));
+                        data_end = response_end + req_n_to_send_w * conn_slot_us;
                         other_mlo = (1:n_mlo)' ~= w;
                         nav_until(1:n_mlo) = max(nav_until(1:n_mlo), ...
                                                 data_end * double(other_mlo));
@@ -172,7 +176,9 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                         end
                     else
                         diag.request_success_slo = diag.request_success_slo + 1;
-                        data_end = response_end + tp_us;
+                        qd_w = arrived_tail(w) - head_pos(w) + 1;
+                        req_n_to_send_w = max(1, min(qd_w, M));
+                        data_end = response_end + req_n_to_send_w * conn_slot_us;
                         others = true(n_total,1); others(w) = false;
                         nav_until(others) = max(nav_until(others), data_end);
                         reserved_until = max(reserved_until, data_end);
@@ -212,9 +218,14 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     state(u) = TX_DATA_MMW;
                 else
                     state(u) = TX_DATA_SLO;
-                    reserved_until = max(reserved_until, t + tp_us);
+                    qd_uu = arrived_tail(u) - head_pos(u) + 1;
+                    n_uu = max(1, min(qd_uu, M));
+                    reserved_until = max(reserved_until, t + n_uu * conn_slot_us);
                 end
-                deadline(u) = t + tp_us;
+                qd_u = arrived_tail(u) - head_pos(u) + 1;
+                n_u = max(1, min(qd_u, M));
+                deadline(u) = t + n_u * conn_slot_us;
+                req_n_to_send_stored(u) = n_u;
             end
 
             timeout_done = ending(ending_state == WAIT_TIMEOUT);
@@ -226,28 +237,47 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                 can_count_prev(timeout_done) = false;
             end
 
+            n_to_send = 1;  % default (used by SLO block if no MLO)
             mlo_done = ending(ending_state == TX_DATA_MMW);
             for k = 1:numel(mlo_done)
                 u = mlo_done(k);
                 pid = node_packets{u}(head_pos(u));
                 diag.mlo_payload_success = diag.mlo_payload_success + 1;
+                n_to_send = req_n_to_send_stored(u);
                 payload_overlap = payload_overlap + interval_overlap_us( ...
-                    t-tp_us, t, cfg.warmup_us, cfg.arrival_end_us);
+                    t - n_to_send * conn_slot_us, t, cfg.warmup_us, cfg.arrival_end_us);
                 if is_saturation
-                    if t >= cfg.warmup_us && t < cfg.arrival_end_us
-                        saturation_per_node_completions(u) = ...
-                            saturation_per_node_completions(u) + 1;
+                    for pp = 1:n_to_send
+                        if t >= cfg.warmup_us && t < cfg.arrival_end_us
+                            saturation_per_node_completions(u) = ...
+                                saturation_per_node_completions(u) + 1;
+                        end
                     end
-                    pkt.hol_us(pid) = t;
+                    pkt.hol_us(pid) = max(t, pkt.arrival_us(pid));
                     pkt.first_attempt_us(pid) = NaN;
                     pkt.completion_us(pid) = NaN;
                     pkt.attempts(pid) = 0;
                     pkt.difs_wait_us(pid) = 0;
                     pkt.probability_wait_us(pid) = 0;
                 else
-                    pkt.completion_us(pid) = t;
-                    head_pos(u) = head_pos(u) + 1;
-                    backlog = backlog - 1;
+                    for pp = 1:n_to_send
+                        if head_pos(u) <= arrived_tail(u)
+                            cpid = node_packets{u}(head_pos(u));
+                            pkt.completion_us(cpid) = t - n_to_send * conn_slot_us + pp * conn_slot_us;
+                            pkt.data_delay_us(cpid) = conn_slot_us;
+                            if pp == 1
+                                pkt.control_delay_us(cpid) = req_us + resp_wait_us;
+                            else
+                                pkt.hol_us(cpid) = t - n_to_send * conn_slot_us + (pp-1) * conn_slot_us;
+                            end
+                            head_pos(u) = head_pos(u) + 1;
+                            backlog = backlog - 1;
+                            if head_pos(u) <= arrived_tail(u)
+                                npid = node_packets{u}(head_pos(u));
+                                pkt.hol_us(npid) = max(t, pkt.arrival_us(npid));
+                            end
+                        end
+                    end
                 end
                 state(u) = IDLE;
                 deadline(u) = inf;
@@ -256,14 +286,14 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                 can_count_prev(u) = false;
                 if ~is_saturation && head_pos(u) <= arrived_tail(u)
                     next_pid = node_packets{u}(head_pos(u));
-                    pkt.hol_us(next_pid) = t;
+                    pkt.hol_us(next_pid) = max(t, pkt.arrival_us(next_pid));
                 end
             end
 
             slo_done = ending(ending_state == TX_DATA_SLO);
             if ~isempty(slo_done)
                 diag.slo_payload_success = diag.slo_payload_success + numel(slo_done);
-                slo_overlap = interval_overlap_us(t-tp_us,t, ...
+                slo_overlap = interval_overlap_us(t - n_to_send * conn_slot_us,t, ...
                     cfg.warmup_us,cfg.arrival_end_us);
                 diag.slo_payload_overlap_us = ...
                     diag.slo_payload_overlap_us + numel(slo_done)*slo_overlap;
@@ -382,10 +412,11 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     pkt.collision_delay_us = zeros(n_pkt,1);
     pkt.collision_delay_us(completed_mask) = ...
         max(0,pkt.attempts(completed_mask)-1) * (req_us+resp_wait_us);
-    pkt.control_delay_us = zeros(n_pkt,1);
-    pkt.control_delay_us(completed_mask) = req_us + resp_wait_us;
+    pkt.control_delay_us(completed_mask) = 0;
+    has_attempts = completed_mask & pkt.attempts > 0;
+    pkt.control_delay_us(has_attempts) = req_us + resp_wait_us;
     pkt.data_delay_us = zeros(n_pkt,1);
-    pkt.data_delay_us(completed_mask) = tp_us;
+    pkt.data_delay_us(completed_mask) = conn_slot_us;
     component_sum = pkt.boundary_wait_us + pkt.difs_wait_us + ...
         pkt.probability_wait_us + pkt.collision_delay_us + ...
         pkt.control_delay_us + pkt.data_delay_us;

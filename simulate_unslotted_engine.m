@@ -1,5 +1,5 @@
-﻿function raw = simulate_lightload_continuous(mode, trace, scenario, cfg, M, q, seed)
-%SIMULATE_LIGHTLOAD_CONTINUOUS Shared event-driven continuous-time engine.
+﻿function raw = simulate_unslotted_engine(mode, trace, scenario, cfg, M, q, seed)
+%SIMULATE_UNSLOTTED_ENGINE Shared event-driven continuous-time engine.
 % mode = 'unslotted' -> non-slotted p-persistent ALOHA with an
 %   exponential retry delay: whenever the HOL queue is non-empty the node
 %   draws T ~ Exp(lambda) with lambda = -ln(1-q)/9 per us (the continuous
@@ -28,11 +28,10 @@
     cts_timeout_us = double(TR.CTS_TIMEOUT_US);
     difs_ticks = double(TR.DIFS_TICKS);
     exp_rate_us = -log(1 - q) / slot_us;   % per microsecond
-    tp_us = conn_slot_us * double(M);
 
     mode = lower(char(mode));
     if ~ismember(mode, {'unslotted','sb_cb'})
-        error('simulate_lightload_continuous:BadMode', ...
+        error('simulate_unslotted_engine:BadMode', ...
             'mode must be unslotted or sb_cb.');
     end
     is_saturation = isfield(cfg,'traffic_mode') && ...
@@ -120,6 +119,8 @@
     winner_data_end = 0;
     data_tx_active = false;
     data_failed = false;
+    txop_n_packets = 0;
+    txop_first_fail = 0;
 
     system_area_measure_us = 0;
     service_area_measure_us = 0;
@@ -181,11 +182,11 @@
             end
         end
         if ~isfinite(cand)
-            error('simulate_lightload_continuous:NoEvent', ...
+            error('simulate_unslotted_engine:NoEvent', ...
                 'No event is scheduled; simulation cannot advance.');
         end
         if cand < t
-            error('simulate_lightload_continuous:PastEvent', ...
+            error('simulate_unslotted_engine:PastEvent', ...
                 'Event time went backwards from %.6f to %.6f.', t, cand);
         end
         next_t = cand;
@@ -239,7 +240,7 @@
     sim_end_us = t;
     enqueue_until(sim_end_us);
     if ~is_saturation && next_arrival <= n_packets
-        error('simulate_lightload_continuous:UnseenArrivals', ...
+        error('simulate_unslotted_engine:UnseenArrivals', ...
             'Simulation ended before all arrivals were enqueued.');
     end
     final_backlog = sum(queue_count);
@@ -350,7 +351,7 @@
             next_tick(u) = ceil(t_hol / slot_us) * slot_us;
         else
             % Unslotted: draw an exponential retry delay, wait, then send.
-            T = exprnd(1 / exp_rate_us);
+            T = -log(rand(stream)) / exp_rate_us;
             node_state(u) = ST_READY;
             backoff_remaining(u) = T;
             if ~is_saturation
@@ -393,7 +394,7 @@
                 return;
             else
                 % Unslotted: NAV ended, draw a fresh exponential delay.
-                T = exprnd(1 / exp_rate_us);
+                T = -log(rand(stream)) / exp_rate_us;
                 node_state(u) = ST_READY;
                 backoff_remaining(u) = T;
                 if ~is_saturation
@@ -496,7 +497,7 @@
             update_cts_sinr(t_now);
         end
         if ap_phase == AP_DATA && data_tx_active
-            eval_data_sinr();
+            eval_data_sinr(t_now);
         end
 
         if strcmp(mode,'sb_cb')
@@ -533,7 +534,13 @@
             ap_phase_start = t_now;
             ap_phase_end = t_now + sifs_us;
             winner_data_start = t_now + sifs_us + cts_sweep_us + sifs_us;
-            winner_data_end = winner_data_start + tp_us;
+            if is_saturation
+                txop_n_packets = M;
+            else
+                txop_n_packets = max(1, min(queue_count(u), M));
+            end
+            winner_data_end = winner_data_start + txop_n_packets * conn_slot_us;
+            txop_first_fail = 0;
             diagnostics.rts_success = diagnostics.rts_success + 1;
         else
             node_state(u) = ST_WAIT;
@@ -558,7 +565,7 @@
             update_cts_sinr(t_now);
         end
         if ap_phase == AP_DATA && data_tx_active
-            eval_data_sinr();
+            eval_data_sinr(t_now);
         end
     end
 
@@ -584,7 +591,7 @@
             next_tick(u) = ceil(t_now / slot_us) * slot_us;
         else
             % Unslotted: draw a fresh exponential delay after timeout.
-            T = exprnd(1 / exp_rate_us);
+            T = -log(rand(stream)) / exp_rate_us;
             node_state(u) = ST_READY;
             backoff_remaining(u) = T;
             if ~is_saturation
@@ -708,13 +715,13 @@
             case AP_SIFS_POST
                 ap_phase = AP_DATA;
                 ap_phase_start = t_now;
-                ap_phase_end = t_now + tp_us;
+                ap_phase_end = t_now + txop_n_packets * conn_slot_us;
                 data_failed = false;
                 if winner_cts_ok && winner_id > 0
                     data_tx_active = true;
                     diagnostics.data_reservations = ...
                         diagnostics.data_reservations + 1;
-                    eval_data_sinr();
+                    eval_data_sinr(t_now);
                     if strcmp(mode,'sb_cb')
                         hearers = find( ...
                             (node_state == ST_SENSE | ...
@@ -742,16 +749,13 @@
                 transaction_success = winner_cts_ok && ~data_failed;
                 if transaction_success
                     if is_saturation
-                        if t_now >= left_measure_us && ...
-                                t_now < right_measure_us
-                            saturation_per_node_completions(winner_id) = ...
-                                saturation_per_node_completions(winner_id) + 1;
+                        for pp_sat = 1:txop_n_packets
+                            if t_now >= left_measure_us && ...
+                                    t_now < right_measure_us
+                                saturation_per_node_completions(winner_id) = ...
+                                    saturation_per_node_completions(winner_id) + 1;
+                            end
                         end
-                    elseif attempt_pid(winner_id) > 0
-                        pid = attempt_pid(winner_id);
-                        completion_us(pid) = t_now;
-                        control_delay_us(pid) = conn_slot_us;
-                        data_delay_us(pid) = tp_us;
                     end
                     payload_success_overlap_us = ...
                         payload_success_overlap_us + ...
@@ -780,7 +784,22 @@
                             if transaction_success && ~isempty( ...
                                     trace.packet_ids_by_node{winner_id}) && ...
                                     queue_count(winner_id) > 0
-                                pop_head(winner_id, t_now);
+                                n_ok = max(1, min(txop_n_packets, queue_count(winner_id)));
+                                for pp = 1:n_ok
+                                    if queue_count(winner_id) > 0
+                                        if ~is_saturation
+                                            cpid = head_packet_id(winner_id);
+                                            completion_us(cpid) = winner_data_start + pp * conn_slot_us;
+                                            data_delay_us(cpid) = conn_slot_us;
+                                            if pp == 1
+                                                control_delay_us(cpid) = conn_slot_us;
+                                            else
+                                                hol_us(cpid) = winner_data_start;
+                                            end
+                                        end
+                                        pop_head(winner_id, t_now);
+                                    end
+                                end
                             end
                             attempt_pid(winner_id) = 0;
                             attempt_start(winner_id) = nan;
@@ -800,7 +819,7 @@
                             % Unslotted: the next queued packet immediately
                             % draws a fresh exponential delay.
                             node_state(winner_id) = ST_READY;
-                            T = exprnd(1 / exp_rate_us);
+                            T = -log(rand(stream)) / exp_rate_us;
                             backoff_remaining(winner_id) = T;
                             if ~is_saturation
                                 pid = head_packet_id(winner_id);
@@ -892,7 +911,7 @@
         end
     end
 
-    function eval_data_sinr()
+    function eval_data_sinr(t_now)
         if ~(data_tx_active && winner_cts_ok && winner_id > 0)
             return;
         end
@@ -905,6 +924,15 @@
         sinr_db = 10*log10(desired / (noise_w + interf + eps));
         if sinr_db < data_sinr_th
             data_failed = true;
+            elapsed = t_now - winner_data_start;
+            if elapsed >= 0 && txop_n_packets > 0
+                pkt_idx = floor(elapsed / conn_slot_us) + 1;
+                if pkt_idx >= 1 && pkt_idx <= txop_n_packets
+                    if txop_first_fail == 0 || pkt_idx < txop_first_fail
+                        txop_first_fail = pkt_idx;
+                    end
+                end
+            end
         end
     end
 end

@@ -119,9 +119,9 @@ function output = plot_saturation_throughput_v2(output_dir)
 
     xlabel(ax,'$T_p$ ($\mu$s)','Interpreter','latex','FontSize',18);
     ylabel(ax,'Maximum Throughput','FontSize',18);
-    xlim(ax,[0 4000]);
+    xlim(ax,[0 1200]);
     ylim(ax,[0 1]);
-    xticks(ax,0:1000:4000);
+    xticks(ax,0:200:1200);
     grid(ax,'off');
     if ~isempty(plotted_handles)
         legend(ax,plotted_handles,plotted_names,'Interpreter','latex', ...

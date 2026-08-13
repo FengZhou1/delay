@@ -1,0 +1,12 @@
+protocol,load_mode,lambda_base,M,hit_side,old_best_q,old_mean_delay_us,new_best_q,new_mean_delay_us,ext_stable_count,selection_source,fallback_log
+unslotted,fixed_packet,16,1,original_flow,0.15,496.745641869296,0.09,538.571135686913,NaN,self_stable,
+unslotted,fixed_packet,16,2,original_flow,0.065,1082.74312676151,0.065,828.304275165097,NaN,self_stable,
+unslotted,fixed_packet,16,3,original_flow,0.04,1439.27608182561,0.03,2000.89326650649,NaN,self_stable,
+unslotted,fixed_packet,16,4,original_flow,0.0095,3293.62695476253,0.015,3410.99730015256,NaN,self_stable,
+unslotted,fixed_packet,16,5,original_flow,0.008,5664.73973789319,0.0075,4716.30009142091,NaN,self_stable,
+unslotted,fixed_packet,16,6,original_flow,0.007,8304.62398154689,0.0065,8072.45132331282,NaN,self_stable,
+unslotted,fixed_packet,30,1,original_flow,0.035,1082.55560745529,0.055,889.445721079243,NaN,self_stable,
+unslotted,fixed_packet,30,2,original_flow,0.015,2931.57906103107,0.015,2857.88685497008,NaN,self_stable,
+unslotted,fixed_packet,30,4,original_flow,0.0035,15056.4724230387,0.004,16416.4887108441,NaN,self_stable,
+unslotted,fixed_packet,30,5,original_flow,0.0025,23114.1757670125,0.003,21764.5983657086,NaN,self_stable,
+unslotted,fixed_packet,30,6,original_flow,0.002,27897.8489253466,0.002,31654.0351721555,NaN,self_stable,
