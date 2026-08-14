@@ -58,6 +58,11 @@
     arrival_rate_system = n_arrived / measure_s;
     eligible_arrival_rate_system = n_eligible / measure_s;
     departure_rate_system = departures / measure_s;
+    if is_batch_txop_mode(cfg)
+        stability_departure_rate_system = n_completed_eligible / measure_s;
+    else
+        stability_departure_rate_system = departure_rate_system;
+    end
     goodput_pkt_s = departure_rate_system;
     normalized_goodput = goodput_pkt_s;  % each packet = 1 conn_slot
     if isfinite(cfg.payload_bits_M1)
@@ -90,7 +95,7 @@
 
     rate_tol = cfg.stability_rate_tolerance * max(eligible_arrival_rate_system, 1);
     slope_tol = max(1, cfg.stability_slope_fraction * max(eligible_arrival_rate_system,1));
-    rate_ok = abs(departure_rate_system - eligible_arrival_rate_system) <= rate_tol;
+    rate_ok = abs(stability_departure_rate_system - eligible_arrival_rate_system) <= rate_tol;
     allowed_censored = floor(cfg.stability_censor_tolerance*n_eligible);
     censor_ok = n_censored <= allowed_censored;
     slope_ok = ~cfg.stability_require_slope || ...
@@ -209,7 +214,7 @@
     summary.stability_censor_ok = censor_ok;
     summary.stability_slope_ok = slope_ok;
     summary.stability_rate_relative_error = ...
-        abs(departure_rate_system-eligible_arrival_rate_system) / ...
+        abs(stability_departure_rate_system-eligible_arrival_rate_system) / ...
         max(eligible_arrival_rate_system,1);
     summary.stability_allowed_censored = allowed_censored;
     summary.stability_slope_limit_pkt_s = slope_tol;
