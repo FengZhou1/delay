@@ -17,6 +17,7 @@
     cfg.lambda_values = [16, 30];       % pkt/STA/s (fixed packet length = 1 conn_slot)
     cfg.M_values = 1:6;
     cfg.load_modes = {'fixed_packet'};
+    cfg.txop_mode = 'ready_queue';
 
     cfg.n_nodes = 40;
     cfg.n_sectors = 8;
@@ -58,6 +59,11 @@
     cfg.q_coarse = [0.0001:0.00005:0.00095, 0.001:0.0005:0.0095, 0.01:0.005:0.095, 0.1, 0.15, 0.2];
     cfg.q_refine_points = 0;
     cfg.q_two_stage_tuning = false;
+    cfg.q_multi_basin_tuning = false;
+    cfg.q_coarse_seed_count = 1;
+    cfg.q_refine_windows = 3;
+    cfg.q_refine_points_per_window = 7;
+    cfg.q_candidate_seed_count = 3;
     cfg.q_coarse_tune_runs = 1;
     cfg.q_fine_tune_runs = 3;
     cfg.q_fine_points = 5;

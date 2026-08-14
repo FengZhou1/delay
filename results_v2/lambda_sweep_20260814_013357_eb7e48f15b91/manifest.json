@@ -1,0 +1,18 @@
+{
+  "schema_version": "2.0",
+  "config_hash": "eb7e48f15b91",
+  "code_fingerprint": "7c4feac2e80dde43",
+  "profile": "analysis",
+  "status": "running",
+  "created_at": "2026-08-14T01:33:57",
+  "matlab_version": "24.2.0.2712019 (R2024b)",
+  "computer": "PCWIN64",
+  "output_dir": "results_v2\\lambda_sweep_20260814_013357_eb7e48f15b91",
+  "material_passport": {
+    "origin_skill": "experiment-agent",
+    "origin_mode": "run/validate",
+    "origin_date": "2026-07-22",
+    "verification_status": "UNVERIFIED",
+    "version_label": "exp_result_v2"
+  }
+}

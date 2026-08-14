@@ -36,6 +36,7 @@
     end
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
+    batch_requests = is_batch_txop_mode(cfg) && ~is_saturation;
     n_nodes = double(cfg.n_nodes);
     n_sectors = double(cfg.n_sectors);
     n_packets = double(trace.n_packets);
@@ -106,6 +107,8 @@
     queue_head = ones(n_nodes,1);
     queue_tail = zeros(n_nodes,1);
     queue_count = zeros(n_nodes,1);
+    batch_fill = zeros(n_nodes,1);
+    request_count = zeros(n_nodes,1);
     next_arrival = 1;
 
     ap_phase = AP_IDLE;
@@ -150,6 +153,8 @@
     diagnostics.cts_winner_fail_sinr = 0;
     diagnostics.collision_waste_measure_us = 0;
     diagnostics.payload_success_overlap_us = 0;
+    diagnostics.txop_mode = txop_mode(cfg);
+    diagnostics.batch_requests = batch_requests;
 
     t = 0;
     enqueue_until(t);
@@ -158,7 +163,12 @@
         backlog_now = sum(queue_count);
         all_arrivals_seen = next_arrival > n_packets;
         radio_idle = ap_phase == AP_IDLE && ~any(node_state == ST_RTS);
-        if all_arrivals_seen && backlog_now == 0 && radio_idle
+        if batch_requests
+            no_contention = sum(request_count) == 0;
+        else
+            no_contention = backlog_now == 0;
+        end
+        if all_arrivals_seen && no_contention && radio_idle
             % No arrivals pending, no backlog and no radio activity: no
             % future event exists, so the simulation is finished.
             break;
@@ -264,6 +274,17 @@
     diagnostics.data_reception_model = 'directional_sinr';
     diagnostics.cts_sinr_th_db = cts_sinr_th;
     diagnostics.data_sinr_th_db = data_sinr_th;
+    structural_censored = false(n_packets, 1);
+    if ~is_saturation && batch_requests
+        for u = 1:n_nodes
+            if batch_fill(u) > 0 && queue_tail(u) >= batch_fill(u)
+                first = queue_tail(u) - batch_fill(u) + 1;
+                ids = trace.packet_ids_by_node{u}(first:queue_tail(u));
+                structural_censored(ids) = true;
+            end
+        end
+    end
+    diagnostics.structural_censored = sum(structural_censored);
 
     raw = struct();
     raw.final_backlog = final_backlog;
@@ -274,6 +295,7 @@
     raw.backlog_sample_us = backlog_sample_us;
     raw.backlog_sample_n = backlog_sample_n;
     raw.diagnostics = diagnostics;
+    raw.structural_censored = structural_censored;
     if is_saturation
         raw.packet_log = struct();
         raw.saturation_per_node_completions = saturation_per_node_completions;
@@ -306,6 +328,14 @@
     end
 
     % ---------------- nested helpers ----------------
+    function flag = has_contention(u)
+        if batch_requests
+            flag = request_count(u) > 0;
+        else
+            flag = queue_count(u) > 0;
+        end
+    end
+
     function pid = head_packet_id(u)
         if queue_head(u) > queue_tail(u) || isempty(trace.packet_ids_by_node{u}) || ...
                 queue_head(u) > numel(trace.packet_ids_by_node{u})
@@ -322,11 +352,23 @@
             u = node_id(pid);
             queue_tail(u) = queue_tail(u) + 1;
             queue_count(u) = queue_count(u) + 1;
-            if queue_count(u) == 1
+            if ~batch_requests && queue_count(u) == 1
                 if ~is_saturation
                     hol_us(pid) = arrival_us(pid);
                 end
                 enter_hol(u, arrival_us(pid));
+            elseif batch_requests
+                if queue_count(u) == 1 && ~is_saturation
+                    hol_us(pid) = arrival_us(pid);
+                end
+                batch_fill(u) = batch_fill(u) + 1;
+                if batch_fill(u) >= M
+                    batch_fill(u) = 0;
+                    request_count(u) = request_count(u) + 1;
+                    if request_count(u) == 1
+                        enter_hol(u, arrival_us(pid));
+                    end
+                end
             end
             next_arrival = next_arrival + 1;
         end
@@ -370,7 +412,7 @@
             next_tick(u) = inf;
             return;
         end
-        if queue_count(u) == 0
+        if ~has_contention(u)
             node_state(u) = ST_IDLE;
             next_tick(u) = inf;
             return;
@@ -535,6 +577,8 @@
             ap_phase_end = t_now + sifs_us;
             winner_data_start = t_now + sifs_us + cts_sweep_us + sifs_us;
             if is_saturation
+                txop_n_packets = M;
+            elseif batch_requests
                 txop_n_packets = M;
             else
                 txop_n_packets = max(1, min(queue_count(u), M));
@@ -800,13 +844,17 @@
                                         pop_head(winner_id, t_now);
                                     end
                                 end
+                                if batch_requests
+                                    request_count(winner_id) = ...
+                                        max(0, request_count(winner_id) - 1);
+                                end
                             end
                             attempt_pid(winner_id) = 0;
                             attempt_start(winner_id) = nan;
                         end
                     end
                     wait_timeout(winner_id) = inf;
-                    if queue_count(winner_id) > 0
+                    if has_contention(winner_id)
                         if strcmp(mode,'sb_cb')
                             node_state(winner_id) = ST_SENSE;
                             sense_start(winner_id) = t_now;
@@ -831,8 +879,8 @@
                             next_tick(winner_id) = t_now + T;
                         end
                     else
-                        % Queue is empty: the node returns to IDLE and is
-                        % re-awakened by enter_hol on the next arrival.
+                        % No complete request is ready.  The node returns
+                        % to IDLE; a future Mth arrival re-enables it.
                         node_state(winner_id) = ST_IDLE;
                         next_tick(winner_id) = inf;
                     end

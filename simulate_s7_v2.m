@@ -13,6 +13,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     end
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
+    batch_requests = is_batch_txop_mode(cfg) && ~is_saturation;
     if ~isscalar(M) || ~isfinite(M) || M <= 0 || ...
             (~is_saturation && (M < 1 || M ~= round(M)))
         error('simulate_s7_v2:BadM', ...
@@ -51,6 +52,8 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     node_packets = trace.packet_ids_by_node;
     arrived_tail = zeros(n_total, 1);
     head_pos = ones(n_total, 1);
+    batch_fill = zeros(n_total, 1);
+    request_count = zeros(n_total, 1);
     backlog = 0;
 
     n_pkt = trace.n_packets;
@@ -83,6 +86,8 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     diag.collision_channel_time_measure_us = 0;
     diag.collision_tx_airtime_measure_us = 0;
     diag.Tp_us = tp_us;
+    diag.txop_mode = txop_mode(cfg);
+    diag.batch_requests = batch_requests;
 
     system_area = 0;
     service_area = 0;
@@ -142,8 +147,22 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
             if was_empty
                 pkt.hol_us(pid) = t;
                 difs_elapsed(u) = 0;
-                sense_start(u) = t;
                 can_count_prev(u) = false;
+                if ~batch_requests
+                    sense_start(u) = t;
+                end
+            end
+            if batch_requests && u <= n_mlo
+                batch_fill(u) = batch_fill(u) + 1;
+                if batch_fill(u) >= M
+                    batch_fill(u) = 0;
+                    request_count(u) = request_count(u) + 1;
+                    if request_count(u) == 1
+                        sense_start(u) = t;
+                        difs_elapsed(u) = 0;
+                        can_count_prev(u) = false;
+                    end
+                end
             end
             backlog = backlog + 1;
             event_idx = event_idx + 1;
@@ -279,6 +298,9 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                         end
                     end
                 end
+                if ~is_saturation && batch_requests && u <= n_mlo
+                    request_count(u) = max(0, request_count(u) - 1);
+                end
                 state(u) = IDLE;
                 deadline(u) = inf;
                 difs_elapsed(u) = 0;
@@ -334,7 +356,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
 
             has_mlo = false(n_mlo,1);
             for u = 1:n_mlo
-                has_mlo(u) = head_pos(u) <= arrived_tail(u);
+                has_mlo(u) = has_mlo_contention(u);
             end
             has_packet = [has_mlo; true(n_slo,1)];
             % DIFS is boundary-aligned (matching mmWave SB-CB):
@@ -389,7 +411,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
 
             has_mlo = false(n_mlo,1);
             for u = 1:n_mlo
-                has_mlo(u) = head_pos(u) <= arrived_tail(u);
+                has_mlo(u) = has_mlo_contention(u);
             end
             has_packet = [has_mlo; true(n_slo,1)];
             can_count_prev = state == IDLE & has_packet & nav_until <= t & ...
@@ -426,6 +448,18 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
         component_sum(completed_mask);
     pkt.other_access_delay_us = zeros(n_pkt,1);
     raw.packet_log = pkt;
+    structural_censored = false(n_pkt, 1);
+    if ~is_saturation && batch_requests
+        for u = 1:n_mlo
+            if batch_fill(u) > 0
+                first = arrived_tail(u) - batch_fill(u) + 1;
+                ids = node_packets{u}(first:arrived_tail(u));
+                structural_censored(ids) = true;
+            end
+        end
+    end
+    raw.structural_censored = structural_censored;
+    diag.structural_censored = sum(structural_censored);
     raw.final_backlog = backlog;
     raw.sim_end_us = t;
     raw.system_area_measure_us = system_area;
@@ -440,5 +474,13 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
         result = finalize_saturation_result(raw,cfg,protocol,M,q);
     else
         result = finalize_sim_result(raw, trace, cfg, protocol, M, q);
+    end
+
+    function flag = has_mlo_contention(u)
+        if batch_requests
+            flag = request_count(u) > 0;
+        else
+            flag = head_pos(u) <= arrived_tail(u);
+        end
     end
 end

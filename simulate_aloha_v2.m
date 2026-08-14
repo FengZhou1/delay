@@ -1,8 +1,10 @@
 ﻿function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 %SIMULATE_ALOHA_V2 Event-driven sensing-free Aloha simulators (TXOP model).
 %   Fixed packet length = 1 conn_slot (162.5 us).  M = TXOP length in
-%   conn_slots.  Each successful contention transmits min(queue_depth, M)
-%   packets.  sf_cf uses per-packet collision detection (A-MPDU).
+%   conn_slots.  In ready_queue mode each successful contention transmits
+%   min(queue_depth, M) packets.  In batch_M mode every M packets form one
+%   request; only complete requests contend and one success transmits
+%   exactly M packets.  sf_cf uses per-packet collision detection (A-MPDU).
 %
 %   protocol: 'sf_cf' (slot = TXOP) or 'sf_cb' (slot = conn_slot).
 
@@ -74,6 +76,8 @@
     end
     conn_slot_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
     txop_us = conn_slot_us * double(M);
+    batch_requests = strcmp(protocol, 'sf_cb') && ...
+        is_batch_txop_mode(cfg) && ~is_saturation;
 
     if strcmp(protocol, 'sf_cf')
         contention_slot_us = txop_us;     % slot = whole TXOP
@@ -93,6 +97,8 @@
     % FIFO queue state
     head = ones(n_nodes, 1);
     tail = zeros(n_nodes, 1);
+    batch_fill = zeros(n_nodes, 1);
+    request_count = zeros(n_nodes, 1);
     next_arrival = 1;
 
     % Per-packet statistics
@@ -136,6 +142,9 @@
     next_sample_us = sample_interval_us;
     backlog_sample_us = [];
     backlog_sample_n = [];
+    diagnostics = struct();
+    diagnostics.rts_success = 0;
+    diagnostics.rts_collisions = 0;
 
     now_us = 0;
     sim_end_us = hard_end_us;
@@ -146,7 +155,11 @@
         slots_started = slots_started + 1;
 
         % Determine HOL nodes
-        active_nodes = find(head <= tail);
+        if batch_requests
+            active_nodes = find(request_count > 0);
+        else
+            active_nodes = find(head <= tail);
+        end
         k = numel(active_nodes);
 
         % Backlog sampling
@@ -194,6 +207,8 @@
             u = tx_nodes(i);
             if is_saturation
                 num_to_send(i) = M;
+            elseif batch_requests
+                num_to_send(i) = M;
             else
                 num_to_send(i) = min(tail(u) - head(u) + 1, M);
             end
@@ -214,18 +229,28 @@
         end
 
         if strcmp(protocol, 'sf_cb')
-            % SF-CB: exactly 1 tx = success, else collision
+            % SF-CB: one RTS transmitter reserves the channel.  The RTS,
+            % SIFS, eight-sector CTS sweep and final SIFS occupy one
+            % 162.5 us connection slot; DATA starts at the next boundary.
+            % Multiple simultaneous RTS frames collide for the whole slot.
             if n_tx == 1
                 u = tx_nodes(1);
                 n_send = num_to_send(1);
                 success_slots = success_slots + 1;
-                % Data starts after conn_slot (RTS/CTS overhead)
+                diagnostics.rts_success = diagnostics.rts_success + 1;
                 data_start = now_us + conn_slot_us;
                 for p = 1:n_send
                     ids_u = trace.packet_ids_by_node{u};
                     pid = ids_u(head(u));
                     pkt_end = data_start + p * conn_slot_us;
+                    if p == 1
+                        control_delay_us(pid) = conn_slot_us;
+                    end
+                    data_delay_us(pid) = conn_slot_us;
                     complete_packet(u, pid, pkt_end);
+                end
+                if batch_requests
+                    request_count(u) = max(0, request_count(u) - 1);
                 end
                 slot_dur = conn_slot_us + n_send * conn_slot_us;
                 add_service_interval(data_start, data_start + n_send * conn_slot_us, 1);
@@ -235,13 +260,37 @@
                 payload_attempt_overlap_us = payload_attempt_overlap_us + ...
                     interval_overlap_us(data_start, data_start + n_send * conn_slot_us, ...
                         measure_left, measure_right);
+                deferred = setdiff(active_nodes, tx_nodes);
+                for uu = deferred(:).'
+                    if head(uu) <= tail(uu)
+                        pid_uu = trace.packet_ids_by_node{uu}(head(uu));
+                        probability_wait_us(pid_uu) = ...
+                            probability_wait_us(pid_uu) + conn_slot_us;
+                    end
+                end
                 now_us = now_us + slot_dur;
             else
-                % Collision: waste one conn_slot
+                % RTS collision: nodes retry at the next reservation slot.
                 collision_slots = collision_slots + 1;
+                diagnostics.rts_collisions = diagnostics.rts_collisions + 1;
                 collision_wasted_us = collision_wasted_us + conn_slot_us;
                 if now_us >= measure_left && now_us < measure_right
                     collision_wasted_measure_us = collision_wasted_measure_us + conn_slot_us;
+                end
+                for uu = tx_nodes(:).'
+                    if head(uu) <= tail(uu)
+                        pid_uu = trace.packet_ids_by_node{uu}(head(uu));
+                        collision_delay_us(pid_uu) = ...
+                            collision_delay_us(pid_uu) + conn_slot_us;
+                    end
+                end
+                deferred = setdiff(active_nodes, tx_nodes);
+                for uu = deferred(:).'
+                    if head(uu) <= tail(uu)
+                        pid_uu = trace.packet_ids_by_node{uu}(head(uu));
+                        probability_wait_us(pid_uu) = ...
+                            probability_wait_us(pid_uu) + conn_slot_us;
+                    end
                 end
                 now_us = now_us + conn_slot_us;
             end
@@ -329,7 +378,6 @@
     packet_log.success = completed;
 
     % Diagnostics
-    diagnostics = struct();
     diagnostics.reservation_k_definition = 'number of HOL nodes at slot start';
     diagnostics.reservation_k_values = (0:n_nodes)';
     diagnostics.reservation_frames_by_k = zeros(n_nodes+1, 1);
@@ -339,6 +387,20 @@
     diagnostics.reservation_attempt_count_values = (0:n_nodes)';
     diagnostics.reservation_frames_by_attempt_count = zeros(n_nodes+1, 1);
     diagnostics.reservation_success_by_attempt_count = zeros(n_nodes+1, 1);
+    diagnostics.txop_mode = txop_mode(cfg);
+    diagnostics.batch_requests = batch_requests;
+    diagnostics.reservation_control_us = conn_slot_us;
+    structural_censored = false(n_packets, 1);
+    if batch_requests
+        for u = 1:n_nodes
+            if batch_fill(u) > 0 && tail(u) >= batch_fill(u)
+                first = tail(u) - batch_fill(u) + 1;
+                ids = trace.packet_ids_by_node{u}(first:tail(u));
+                structural_censored(ids) = true;
+            end
+        end
+    end
+    diagnostics.structural_censored = sum(structural_censored);
 
     raw = struct();
     raw.packet_log = packet_log;
@@ -350,6 +412,7 @@
     raw.backlog_sample_us = double(backlog_sample_us(:));
     raw.backlog_sample_n = double(backlog_sample_n(:));
     raw.diagnostics = diagnostics;
+    raw.structural_censored = structural_censored;
 
     if is_saturation
         raw.saturation_per_node_completions = saturation_per_node_completions;
@@ -371,6 +434,13 @@
             end
             if was_empty
                 hol_us(packet_id) = arrival_us(packet_id);
+            end
+            if batch_requests
+                batch_fill(u) = batch_fill(u) + 1;
+                if batch_fill(u) >= M
+                    batch_fill(u) = 0;
+                    request_count(u) = request_count(u) + 1;
+                end
             end
             next_arrival = next_arrival + 1;
         end

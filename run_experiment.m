@@ -224,6 +224,11 @@ end
 
 function tune = tune_condition(protocol, spec, scenario, cfg, M, ...
                                lambda_eff, lambda_base, load_idx, lambda_idx, protocol_idx)
+    if cfg.q_multi_basin_tuning
+        tune = tune_condition_multi_basin(protocol, spec, scenario, cfg, M, ...
+            lambda_eff, lambda_base, load_idx, lambda_idx, protocol_idx);
+        return;
+    end
     tune_cfg = cfg;
     tune_cfg.warmup_us = cfg.tune_warmup_us;
     tune_cfg.measure_us = cfg.tune_measure_us;
@@ -385,6 +390,140 @@ function tune = tune_condition(protocol, spec, scenario, cfg, M, ...
         'stable_basin_right_q',selection_meta.stable_basin_right_q, ...
         'q_search_boundary_hit',selection_meta.q_search_boundary_hit, ...
         'q_refinement_passes',double(~isempty(refine)));
+end
+
+function tune = tune_condition_multi_basin(protocol, spec, scenario, cfg, M, ...
+        lambda_eff, lambda_base, load_idx, lambda_idx, protocol_idx)
+    tune_cfg = cfg;
+    tune_cfg.warmup_us = cfg.tune_warmup_us;
+    tune_cfg.measure_us = cfg.tune_measure_us;
+    if isfield(cfg,'tune_min_expected_arrivals') && ...
+            cfg.tune_min_expected_arrivals>0 && lambda_eff>0
+        aggregate_rate = cfg.n_nodes*lambda_eff;
+        required_us = cfg.tune_min_expected_arrivals/aggregate_rate*1e6;
+        if isfield(cfg,'tune_measure_max_us') && isfinite(cfg.tune_measure_max_us)
+            required_us = min(required_us,cfg.tune_measure_max_us);
+        end
+        required_us = ceil(required_us/cfg.arrival_tick_us)*cfg.arrival_tick_us;
+        tune_cfg.measure_us = max(tune_cfg.measure_us,required_us);
+    end
+    tune_cfg.drain_max_us = cfg.tune_drain_max_us;
+    tune_cfg.arrival_end_us = tune_cfg.warmup_us + tune_cfg.measure_us;
+    tune_cfg.sim_hard_end_us = tune_cfg.arrival_end_us + tune_cfg.drain_max_us;
+    tune_cfg.collect_diagnostics = false;
+
+    q_values = condition_q_values(cfg,protocol,lambda_eff,M);
+    coarse = evaluate_q_grid(protocol,q_values,cfg.q_coarse_seed_count,0, ...
+        scenario,tune_cfg,M,lambda_eff,lambda_base,load_idx,lambda_idx,protocol_idx);
+
+    refine_q = select_q_refine_windows(coarse,q_values,cfg.q_refine_windows, ...
+        cfg.q_refine_points_per_window);
+    refine_q = unique_q_tol(refine_q);
+    refine_q = setdiff_q_tol(refine_q,q_values);
+    refine = struct([]);
+    if ~isempty(refine_q)
+        refine = evaluate_q_grid(protocol,refine_q,1,0,scenario,tune_cfg,M, ...
+            lambda_eff,lambda_base,load_idx,lambda_idx,protocol_idx);
+    end
+
+    combined = merge_q_grids(coarse,refine);
+    [~,~,rank_meta] = select_best_q_v2(combined,false,true);
+    candidate_q = double(rank_meta.ranked_candidate_q);
+    candidate_q = candidate_q(1:min(3,numel(candidate_q)));
+    validated = struct([]);
+    if ~isempty(candidate_q)
+        validated = evaluate_q_grid(protocol,candidate_q, ...
+            cfg.q_candidate_seed_count,0,scenario,tune_cfg,M,lambda_eff, ...
+            lambda_base,load_idx,lambda_idx,protocol_idx);
+        combined = replace_q_grid_entries(combined,validated,candidate_q);
+    end
+
+    [best_q,~,selection_meta] = select_best_q_v2(combined,false,true);
+    tune = struct( ...
+        'best_q',best_q, 'grid',combined, ...
+        'coarse_grid',coarse, 'refined_grid',refine, ...
+        'trace_spec',spec, 'selection_mode',selection_meta.selection_mode, ...
+        'stable_basin_left_q',selection_meta.stable_basin_left_q, ...
+        'stable_basin_right_q',selection_meta.stable_basin_right_q, ...
+        'q_search_boundary_hit',selection_meta.q_search_boundary_hit, ...
+        'q_refinement_passes',1, ...
+        'ranked_candidate_q',selection_meta.ranked_candidate_q, ...
+        'preferred_neighbor_radius',selection_meta.preferred_neighbor_radius, ...
+        'neighbor_radius_used',selection_meta.neighbor_radius_used, ...
+        'q_refine_windows',{refine_q}, ...
+        'q_validated_candidates',{candidate_q});
+end
+
+function refine_q = select_q_refine_windows(grid,q_values,n_windows,n_points)
+    if isempty(grid)
+        refine_q = zeros(1,0);
+        return;
+    end
+    stable = double([grid.stable_fraction]) >= 1-1e-12 & ...
+             isfinite(double([grid.mean_delay_us]));
+    if ~any(stable)
+        refine_q = zeros(1,0);
+        return;
+    end
+    means = double([grid.mean_delay_us]);
+    means(~stable) = inf;
+    [~,order] = sort(means);
+    chosen = [];
+    for k = order(:).'
+        if numel(chosen) >= n_windows
+            break;
+        end
+        if isempty(chosen) || min(abs(chosen-k)) >= 2
+            chosen(end+1) = k; %#ok<AGROW>
+        end
+    end
+    q = double(q_values(:).');
+    n = numel(q);
+    refine_q = zeros(1,0);
+    for k = chosen(:).'
+        if k == 1 && q(k) > 1e-6
+            qlo = max(1e-6,q(k)/10);
+            qhi = q(min(n,k+1));
+        elseif k == n && q(k) < 1
+            qlo = q(max(1,k-1));
+            qhi = min(1,q(k)*10);
+        else
+            lo = max(1,k-1);
+            hi = min(n,k+1);
+            if lo == hi
+                if lo > 1, lo = lo-1; else, hi = min(n,hi+1); end
+            end
+            qlo = q(lo);
+            qhi = q(hi);
+        end
+        qlo = max(qlo,1e-9);
+        qhi = max(qhi,1e-9);
+        points = logspace(log10(qlo),log10(qhi),n_points);
+        refine_q = [refine_q, points]; %#ok<AGROW>
+    end
+    refine_q = unique_q_tol(refine_q);
+end
+
+function q = setdiff_q_tol(q,exclude)
+    q = double(q(:).');
+    exclude = double(exclude(:).');
+    keep = true(size(q));
+    for i = 1:numel(q)
+        if any(abs(exclude-q(i)) <= 1e-12)
+            keep(i) = false;
+        end
+    end
+    q = q(keep);
+end
+
+function combined = replace_q_grid_entries(existing,replacement,replaced_q)
+    keep = true(numel(existing),1);
+    for i = 1:numel(existing)
+        if any(abs(double(replaced_q)-double(existing(i).q)) <= 1e-12)
+            keep(i) = false;
+        end
+    end
+    combined = merge_q_grids(existing(keep),replacement);
 end
 
 function center_index = select_refinement_center(grid)
@@ -1006,7 +1145,9 @@ end
 
 function metrics = condition_metric_names()
     metrics = { ...
-        'n_arrived','n_completed','n_censored','final_backlog', ...
+        'n_arrived','n_completed','n_eligible','n_completed_eligible', ...
+        'n_structural_censored','n_censored','raw_completion_ratio', ...
+        'final_backlog', ...
         'mean_delay_us','mean_queue_delay_us','mean_access_delay_us', ...
         'conditional_mean_delay_us','p50_delay_us','p95_delay_us', ...
         'p99_delay_us','conditional_p50_delay_us', ...
@@ -1015,7 +1156,8 @@ function metrics = condition_metric_names()
         'mean_probability_wait_us','mean_busy_nav_wait_us', ...
         'mean_collision_delay_us','mean_control_delay_us', ...
         'mean_data_delay_us','mean_other_access_delay_us', ...
-        'arrival_rate_pkt_s','goodput_pkt_s','normalized_offered_units_s', ...
+        'arrival_rate_pkt_s','eligible_arrival_rate_pkt_s','goodput_pkt_s', ...
+        'normalized_offered_units_s', ...
         'normalized_goodput_units_s','goodput_bit_s','payload_airtime', ...
         'mean_system_packets','mean_waiting_packets','mean_service_packets', ...
         'backlog_slope_pkt_s','completion_ratio','little_relative_error', ...

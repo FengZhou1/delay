@@ -32,16 +32,31 @@
     right = cfg.arrival_end_us;
     measure_s = cfg.measure_us * 1e-6;
     cohort = pkt.arrival_us >= left & pkt.arrival_us < right;
+    structural_censored = false(numel(cohort), 1);
+    if isfield(raw, 'structural_censored')
+        structural_censored = logical(raw.structural_censored(:));
+        if numel(structural_censored) ~= numel(cohort)
+            error('finalize_sim_result:BadStructuralCensor', ...
+                  'raw.structural_censored length does not match packet log.');
+        end
+    end
+    eligible_cohort = cohort & ~structural_censored;
     cohort_completed = cohort & completed;
+    eligible_cohort_completed = eligible_cohort & completed;
     completed_in_window = completed & pkt.completion_us >= left & ...
                           pkt.completion_us < right;
 
     n_arrived = sum(cohort);
     n_completed_cohort = sum(cohort_completed);
-    n_censored = n_arrived - n_completed_cohort;
-    completion_ratio = n_completed_cohort / max(1, n_arrived);
+    n_eligible = sum(eligible_cohort);
+    n_completed_eligible = sum(eligible_cohort_completed);
+    n_structural_censored = sum(cohort & structural_censored);
+    n_censored = n_eligible - n_completed_eligible;
+    raw_completion_ratio = n_completed_cohort / max(1, n_arrived);
+    completion_ratio = n_completed_eligible / max(1, n_eligible);
     departures = sum(completed_in_window);
     arrival_rate_system = n_arrived / measure_s;
+    eligible_arrival_rate_system = n_eligible / measure_s;
     departure_rate_system = departures / measure_s;
     goodput_pkt_s = departure_rate_system;
     normalized_goodput = goodput_pkt_s;  % each packet = 1 conn_slot
@@ -51,9 +66,9 @@
         goodput_bit_s = NaN;
     end
 
-    d = total_delay(cohort_completed);
-    qd = queue_delay(cohort_completed);
-    ad = access_delay(cohort_completed);
+    d = total_delay(eligible_cohort_completed);
+    qd = queue_delay(eligible_cohort_completed);
+    ad = access_delay(eligible_cohort_completed);
     conditional_mean = safe_mean(d);
     conditional_p50 = safe_prctile(d, 50);
     conditional_p95 = safe_prctile(d, 95);
@@ -73,21 +88,21 @@
         backlog_slope = NaN;
     end
 
-    rate_tol = cfg.stability_rate_tolerance * max(arrival_rate_system, 1);
-    slope_tol = max(1, cfg.stability_slope_fraction * max(arrival_rate_system,1));
-    rate_ok = abs(departure_rate_system - arrival_rate_system) <= rate_tol;
-    allowed_censored = floor(cfg.stability_censor_tolerance*n_arrived);
+    rate_tol = cfg.stability_rate_tolerance * max(eligible_arrival_rate_system, 1);
+    slope_tol = max(1, cfg.stability_slope_fraction * max(eligible_arrival_rate_system,1));
+    rate_ok = abs(departure_rate_system - eligible_arrival_rate_system) <= rate_tol;
+    allowed_censored = floor(cfg.stability_censor_tolerance*n_eligible);
     censor_ok = n_censored <= allowed_censored;
     slope_ok = ~cfg.stability_require_slope || ...
                (isfinite(backlog_slope) && backlog_slope <= slope_tol);
-    stable = n_arrived>0 && n_completed_cohort>0 && ...
+    stable = n_eligible>0 && n_completed_eligible>0 && ...
              rate_ok && censor_ok && slope_ok;
 
     mean_system = raw.system_area_measure_us / cfg.measure_us;
     mean_service = raw.service_area_measure_us / cfg.measure_us;
     mean_waiting = max(0, mean_system - mean_service);
     if stable && ~isempty(d)
-        little_error = abs(mean_system - arrival_rate_system*conditional_mean*1e-6) / ...
+        little_error = abs(mean_system - eligible_arrival_rate_system*conditional_mean*1e-6) / ...
                        max(mean_system, eps);
         mean_delay = conditional_mean;
         mean_qd = safe_mean(qd);
@@ -106,10 +121,10 @@
     end
 
     attempts_total = sum(pkt.attempts);
-    attempts_completed = sum(pkt.attempts(cohort_completed));
-    retransmissions_completed = sum(max(0,pkt.attempts(cohort_completed)-1));
-    if n_completed_cohort > 0
-        mean_attempts_completed = attempts_completed / n_completed_cohort;
+    attempts_completed = sum(pkt.attempts(eligible_cohort_completed));
+    retransmissions_completed = sum(max(0,pkt.attempts(eligible_cohort_completed)-1));
+    if n_completed_eligible > 0
+        mean_attempts_completed = attempts_completed / n_completed_eligible;
     else
         mean_attempts_completed = NaN;
     end
@@ -149,12 +164,17 @@
     summary.n_completed_total = all_completed;
     summary.n_arrived = n_arrived;
     summary.n_completed = n_completed_cohort;
+    summary.n_eligible = n_eligible;
+    summary.n_completed_eligible = n_completed_eligible;
+    summary.n_structural_censored = n_structural_censored;
     summary.n_departures_window = departures;
     summary.n_censored = n_censored;
+    summary.raw_completion_ratio = raw_completion_ratio;
     summary.completion_ratio = completion_ratio;
     summary.final_backlog = raw.final_backlog;
     summary.backlog_slope_pkt_s = backlog_slope;
     summary.arrival_rate_pkt_s = arrival_rate_system;
+    summary.eligible_arrival_rate_pkt_s = eligible_arrival_rate_system;
     summary.goodput_pkt_s = goodput_pkt_s;
     summary.normalized_goodput_units_s = normalized_goodput;
     summary.normalized_offered_units_s = M * arrival_rate_system;
@@ -189,8 +209,8 @@
     summary.stability_censor_ok = censor_ok;
     summary.stability_slope_ok = slope_ok;
     summary.stability_rate_relative_error = ...
-        abs(departure_rate_system-arrival_rate_system) / ...
-        max(arrival_rate_system,1);
+        abs(departure_rate_system-eligible_arrival_rate_system) / ...
+        max(eligible_arrival_rate_system,1);
     summary.stability_allowed_censored = allowed_censored;
     summary.stability_slope_limit_pkt_s = slope_tol;
     summary.stable = stable;
@@ -202,6 +222,7 @@
     pkt.total_delay_us = total_delay;
     pkt.status = uint8(completed);
     pkt.is_censored = ~completed;
+    pkt.structural_censored = structural_censored;
     pkt.in_measurement_cohort = cohort;
 
     component_fields = { ...
@@ -232,7 +253,7 @@
         if isfield(pkt,field)
             values = pkt.(field);
             if stable
-                summary.(summary_name) = safe_mean(values(cohort_completed));
+                summary.(summary_name) = safe_mean(values(eligible_cohort_completed));
             else
                 summary.(summary_name) = NaN;
             end
