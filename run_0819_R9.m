@@ -24,7 +24,7 @@ function run_0819_R9()
     cfg1.run_preflight_tests = false;
     cfg1.n_eval_runs = 3;
     cfg1.condition_timeout_s = 1800;
-    cfg1.n_workers = 4;
+    cfg1.n_workers = 2;
     cfg1.q_multi_basin_tuning = true;
     qgrid = build_piecewise_q_grid(NaN);
     cfg1.q_coarse = qgrid;
@@ -101,7 +101,7 @@ function run_0819_R9()
     cfg2.run_preflight_tests = false;
     cfg2.n_eval_runs = 3;
     cfg2.condition_timeout_s = 1800;
-    cfg2.n_workers = 4;
+    cfg2.n_workers = 2;
     cfg2.q_multi_basin_tuning = true;
     cfg2.q_coarse = qgrid;
     cfg2.protocol_q_grids_enabled = true;
