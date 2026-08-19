@@ -1,4 +1,4 @@
-﻿function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
+function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
 %SIMULATE_ALOHA_V2 Event-driven sensing-free Aloha simulators (TXOP model).
 %   Fixed packet length = 1 conn_slot (162.5 us).  M = TXOP length in
 %   conn_slots.  In ready_queue mode each successful contention transmits
@@ -375,6 +375,9 @@
     packet_log.collision_delay_us = collision_delay_us;
     packet_log.control_delay_us = control_delay_us;
     packet_log.data_delay_us = data_delay_us;
+    packet_log.difs_wait_us = zeros(n_packets, 1);
+    packet_log.busy_nav_wait_us = zeros(n_packets, 1);
+    packet_log.other_access_delay_us = zeros(n_packets, 1);
     packet_log.success = completed;
 
     % Diagnostics
