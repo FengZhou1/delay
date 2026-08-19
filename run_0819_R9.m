@@ -20,7 +20,7 @@ function run_0819_R9()
     cfg1.M_values = [1, 5];
     cfg1.lambda_values = [8, 15, 25, 30, 45];
     cfg1.load_modes = {'fixed_packet'};
-    cfg1.resume = false;
+    cfg1.resume = true;
     cfg1.run_preflight_tests = false;
     cfg1.n_eval_runs = 3;
     cfg1.condition_timeout_s = 1800;
@@ -97,7 +97,7 @@ function run_0819_R9()
     cfg2.M_values = [1, 5];
     cfg2.lambda_values = [8, 15, 25, 30, 45];
     cfg2.load_modes = {'fixed_packet'};
-    cfg2.resume = false;
+    cfg2.resume = true;
     cfg2.run_preflight_tests = false;
     cfg2.n_eval_runs = 3;
     cfg2.condition_timeout_s = 1800;
@@ -152,7 +152,7 @@ function run_0819_R9()
     fprintf('\n===== Saturation M=[1:6] =====\n');
     sat_cfg = default_saturation_config('analysis');
     sat_cfg.M_values = 1:6;
-    sat_cfg.resume = false;
+    sat_cfg.resume = true;
     sat_cfg.run_preflight_tests = false;
     % CF 协议只跑 M=1
     sat_cfg.protocols = {'sf_cb','sb_cb','s7_clean','s7_busy','unslotted'};
