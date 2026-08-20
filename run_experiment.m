@@ -1,4 +1,4 @@
-﻿function experiment = run_experiment(cfg)
+function experiment = run_experiment(cfg)
 %RUN_EXPERIMENT Tune and evaluate all requested v2 protocol conditions.
 % Results are written to a versioned results_v2 directory and never replace
 % legacy files in results/.
@@ -116,21 +116,29 @@
                             eval_results = evaluate_jobs(protocol, tune.best_q, ...
                                 cfg.n_eval_runs, 30000, scenario, cfg, M, ...
                                 lambda_eff, lambda_base, li, bi, pi);
-                            %% FALLBACK: if completion<0.95, try left-stable q
+                            %% FALLBACK: if any eval seed is unstable or completion<0.95,
+                            %% try every stable grid candidate by ascending delay until all seeds stable.
                             if ~isempty(eval_results) && isfield(tune,'grid') && ~isempty(tune.grid)
                                 eval_structs = [eval_results{:}];
                                 summaries = [eval_structs.summary];
                                 comp_ratio = mean([summaries.completion_ratio],'omitnan');
-                                if ~isfinite(comp_ratio) || comp_ratio < 0.95
+                                stable_frac = mean([summaries.stable]);
+                                if ~isfinite(comp_ratio) || comp_ratio < 0.95 || stable_frac < 1-1e-12
                                     grid_q = double([tune.grid.q]);
+                                    grid_delay = double([tune.grid.mean_delay_us]);
                                     grid_stable = double([tune.grid.stable_fraction]) >= 1-1e-12 & ...
-                                                  isfinite(double([tune.grid.mean_delay_us]));
+                                                  isfinite(grid_delay);
                                     stable_q = grid_q(grid_stable);
-                                    left_q = stable_q(stable_q < tune.best_q);
-                                    left_q = sort(left_q,'descend');
-                                    for fi = 1:numel(left_q)
-                                        fq = left_q(fi);
-                                        fprintf('  eval fallback: comp=%.3f, trying q=%.4g\n', comp_ratio, fq);
+                                    % 按时延升序排列所有稳定候选（时延最低优先，但排除当前 best_q）
+                                    [~,order] = sort(grid_delay(grid_stable));
+                                    candidate_q = stable_q(order);
+                                    candidate_q = candidate_q(abs(candidate_q - tune.best_q) > 1e-12);
+                                    tried = 0;
+                                    for fi = 1:numel(candidate_q)
+                                        fq = candidate_q(fi);
+                                        tried = tried + 1;
+                                        fprintf('  eval fallback #%d: stable=%.2f comp=%.3f, trying q=%.4g\n', ...
+                                            tried, stable_frac, comp_ratio, fq);
                                         eval_results = evaluate_jobs(protocol, fq, ...
                                             cfg.n_eval_runs, 30000, scenario, cfg, M, ...
                                             lambda_eff, lambda_base, li, bi, pi);
@@ -138,12 +146,20 @@
                                             eval_structs = [eval_results{:}];
                                             summaries = [eval_structs.summary];
                                             comp_ratio = mean([summaries.completion_ratio],'omitnan');
-                                            if isfinite(comp_ratio) && comp_ratio >= 0.95
+                                            stable_frac = mean([summaries.stable]);
+                                            if (isfinite(comp_ratio) && comp_ratio >= 0.95) && ...
+                                                    (stable_frac >= 1-1e-12)
                                                 tune.best_q = fq;
-                                                fprintf('  fallback succeeded: q=%.4g comp=%.3f\n', fq, comp_ratio);
+                                                fprintf('  fallback succeeded: q=%.4g comp=%.3f stable=%.2f\n', ...
+                                                    fq, comp_ratio, stable_frac);
                                                 break;
                                             end
                                         end
+                                    end
+                                    if tried > 0 && ~(isfinite(comp_ratio) && comp_ratio >= 0.95) && ...
+                                            ~(stable_frac >= 1-1e-12)
+                                        fprintf('  eval fallback exhausted: no fully stable q found (last comp=%.3f stable=%.2f)\n', ...
+                                            comp_ratio, stable_frac);
                                     end
                                 end
                             end
