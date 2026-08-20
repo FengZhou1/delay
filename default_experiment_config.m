@@ -76,6 +76,8 @@
     cfg.q_refine_floor = 1e-7;
     cfg.q_require_stable_neighbors = true;
     cfg.q_fallback_self_stable = true;
+    cfg.q_eval_delay_inflate_ratio = 3;  % eval/tune delay ratio beyond this triggers q fallback
+
     cfg.adaptive_q_grid = false;
     cfg.q_grid_light = [];
     cfg.q_grid_medium = [];

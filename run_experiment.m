@@ -116,14 +116,25 @@ function experiment = run_experiment(cfg)
                             eval_results = evaluate_jobs(protocol, tune.best_q, ...
                                 cfg.n_eval_runs, 30000, scenario, cfg, M, ...
                                 lambda_eff, lambda_base, li, bi, pi);
-                            %% FALLBACK: if any eval seed is unstable or completion<0.95,
+                            %% FALLBACK: if any eval seed is unstable, completion<0.95, or
+                            %% eval delay inflates vs tune delay (boundary-divergence soft check),
                             %% try every stable grid candidate by ascending delay until all seeds stable.
                             if ~isempty(eval_results) && isfield(tune,'grid') && ~isempty(tune.grid)
                                 eval_structs = [eval_results{:}];
                                 summaries = [eval_structs.summary];
                                 comp_ratio = mean([summaries.completion_ratio],'omitnan');
                                 stable_frac = mean([summaries.stable]);
-                                if ~isfinite(comp_ratio) || comp_ratio < 0.95 || stable_frac < 1-1e-12
+                                eval_delay = mean([summaries.mean_delay_us],'omitnan');
+                                tune_delay = tune_grid_delay(tune, tune.best_q);
+                                inflate_ratio = cfg.q_eval_delay_inflate_ratio;
+                                delay_inflated = isfinite(eval_delay) && isfinite(tune_delay) && ...
+                                    tune_delay > 0 && eval_delay > inflate_ratio * tune_delay;
+                                if delay_inflated
+                                    fprintf('  eval delay %.1f us vs tune %.1f us (ratio %.1fx) - boundary inflation detected\n', ...
+                                        eval_delay, tune_delay, eval_delay/tune_delay);
+                                end
+                                if ~isfinite(comp_ratio) || comp_ratio < 0.95 || ...
+                                        stable_frac < 1-1e-12 || delay_inflated
                                     grid_q = double([tune.grid.q]);
                                     grid_delay = double([tune.grid.mean_delay_us]);
                                     grid_stable = double([tune.grid.stable_fraction]) >= 1-1e-12 & ...
@@ -1247,6 +1258,26 @@ function manifest = make_manifest(cfg,cfg_hash,code_fingerprint,output_dir, ...
         'origin_date','2026-07-22', ...
         'verification_status',verification_status, ...
         'version_label','exp_result_v2');
+end
+
+function tune_delay = tune_grid_delay(tune, best_q)
+%TUNE_GRID_DELAY 返回 tune.grid 中与 best_q 匹配的 tune 阶段时延
+%   用于检测最终评估时延是否相对 tune 时延异常膨胀（边界发散）。
+%   找不到匹配或字段缺失时返回 NaN（此时不做膨胀判断）。
+    tune_delay = NaN;
+    if ~isfield(tune,'grid') || isempty(tune.grid) || ~isfinite(best_q)
+        return;
+    end
+    grid_q = double([tune.grid.q]);
+    grid_delay = double([tune.grid.mean_delay_us]);
+    match = abs(grid_q - best_q) <= 1e-9 * max(1, abs(best_q));
+    if any(match)
+        vals = grid_delay(match);
+        vals = vals(isfinite(vals));
+        if ~isempty(vals)
+            tune_delay = mean(vals);
+        end
+    end
 end
 
 function write_json(path, value)
