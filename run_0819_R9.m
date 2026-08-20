@@ -173,8 +173,10 @@ function run_0819_R9()
     sat_cfg_cf = sat_cfg;
     sat_cfg_cf.protocols = {'sf_cf','sb_cf'};
     sat_cfg_cf.M_values = 1;
-    sat_cfg_cf.protocol_q_grids.sf_cf = 1/40;
-    sat_cfg_cf.protocol_q_grids.sb_cf = 1/40;
+    sat_cfg_cf.protocol_q_grids.sf_cf = 1/40;   % ALOHA 最优 q=1/N
+    % sb_cf 是 CSMA 无 RTS，饱和下需要更小 q，保留 default 的 logspace 网格自动扫描
+    sat_cfg_cf.protocol_q_grids.sb_cf = unique([ ...
+        logspace(-5, log10(3e-2), 13), 1e-3, 3e-3, 1e-2, 3e-2]);
     sat_exp_cf = run_saturation_experiment(sat_cfg_cf);
 
     out_sat = fullfile(root, 'saturation');
