@@ -241,8 +241,12 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     n_uu = max(1, min(qd_uu, M));
                     reserved_until = max(reserved_until, t + n_uu * conn_slot_us);
                 end
-                qd_u = arrived_tail(u) - head_pos(u) + 1;
-                n_u = max(1, min(qd_u, M));
+                if is_saturation
+                    n_u = M;
+                else
+                    qd_u = arrived_tail(u) - head_pos(u) + 1;
+                    n_u = max(1, min(qd_u, M));
+                end
                 deadline(u) = t + n_u * conn_slot_us;
                 req_n_to_send_stored(u) = n_u;
             end

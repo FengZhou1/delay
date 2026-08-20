@@ -114,15 +114,27 @@ function run_0819_R9()
     cfg2.stability_require_slope = true;
     exp2 = run_experiment(cfg2);
 
+    % M=1 时 batch_M 与 ready_queue 等价，补充 CF 协议 M=1 基线
+    fprintf('Logic2 CF baseline (sf_cf/sb_cf, M=1)...\n');
+    cfg2cf = cfg2;
+    cfg2cf.protocols = {'sf_cf','sb_cf'};
+    cfg2cf.M_values = 1;
+    cfg2cf.txop_mode = 'batch_M';
+    exp2cf = run_experiment(cfg2cf);
+
     out2_lambda = fullfile(root, 'logic2', 'lambda_sweep');
     if ~isfolder(out2_lambda), mkdir(out2_lambda); end
     s2 = readtable(fullfile(exp2.output_dir,'summary.csv'),'VariableNamingRule','preserve');
-    writetable(s2, fullfile(out2_lambda, 'merged_summary.csv'));
+    s2.fixed_M_baseline = false(height(s2),1);
+    s2cf = readtable(fullfile(exp2cf.output_dir,'summary.csv'),'VariableNamingRule','preserve');
+    s2cf.fixed_M_baseline = true(height(s2cf),1);
+    merged2 = [s2; s2cf];
+    writetable(merged2, fullfile(out2_lambda, 'merged_summary.csv'));
 
     for mi = [1, 5]
         subdir = fullfile(out2_lambda, sprintf('M%d', mi));
         if ~isfolder(subdir), mkdir(subdir); end
-        sub = s2(s2.M == mi, :);
+        sub = merged2(merged2.M == mi, :);
         writetable(sub, fullfile(subdir, 'summary.csv'));
         sub_fig = fullfile(subdir, 'figures');
         if ~isfolder(sub_fig), mkdir(sub_fig); end
@@ -173,9 +185,14 @@ function run_0819_R9()
         'VariableNamingRule','preserve');
     sat_merged = [sat_sum; sat_cf_sum];
     writetable(sat_merged, fullfile(out_sat, 'saturation_summary.csv'));
-    % 复制原图
-    copyfile(fullfile(sat_exp.output_dir,'figures'), fullfile(out_sat,'figures'),'f');
-    copyfile(fullfile(sat_exp_cf.output_dir,'figures'), fullfile(out_sat,'figures'),'f');
+    % 用合并后的 summary 重新画图，避免同名图片被 CF 实验覆盖
+    if ~isfolder(fullfile(out_sat,'figures')), mkdir(fullfile(out_sat,'figures')); end
+    try
+        plot_saturation_throughput_v2(out_sat);
+        fprintf('饱和吞吐完整图已生成: %s\n', fullfile(out_sat,'figures','saturation_throughput_vs_Tp.png'));
+    catch ME
+        warning('饱和吞吐绘图失败: %s', ME.message);
+    end
 
     %% ========== 6. 生成 README ==========
     write_readme(root);
