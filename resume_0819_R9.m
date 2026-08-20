@@ -98,7 +98,7 @@ function resume_0819_R9()
     cfg2 = cfg;
     cfg2.txop_mode = 'batch_M';
     cfg2.protocols = {'sf_cb','sb_cb','unslotted','s7_clean','s7_busy'};
-    cfg2.n_workers = 1;  % 内存紧张时单 worker，避免 sb_cb 内存溢出
+    cfg2.n_workers = 2;
     cfg2.output_dir = [];
     exp2 = run_experiment(cfg2);
 

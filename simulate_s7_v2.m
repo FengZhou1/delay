@@ -183,8 +183,12 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     reserved_until = max(reserved_until, response_end);
                     if request_is_mlo(w)
                         diag.request_success_mlo = diag.request_success_mlo + 1;
-                        qd_w = arrived_tail(w) - head_pos(w) + 1;
-                        req_n_to_send_w = max(1, min(qd_w, M));
+                        if is_saturation
+                            req_n_to_send_w = M;
+                        else
+                            qd_w = arrived_tail(w) - head_pos(w) + 1;
+                            req_n_to_send_w = max(1, min(qd_w, M));
+                        end
                         data_end = response_end + req_n_to_send_w * conn_slot_us;
                         other_mlo = (1:n_mlo)' ~= w;
                         nav_until(1:n_mlo) = max(nav_until(1:n_mlo), ...
@@ -195,8 +199,12 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                         end
                     else
                         diag.request_success_slo = diag.request_success_slo + 1;
-                        qd_w = arrived_tail(w) - head_pos(w) + 1;
-                        req_n_to_send_w = max(1, min(qd_w, M));
+                        if is_saturation
+                            req_n_to_send_w = M;
+                        else
+                            qd_w = arrived_tail(w) - head_pos(w) + 1;
+                            req_n_to_send_w = max(1, min(qd_w, M));
+                        end
                         data_end = response_end + req_n_to_send_w * conn_slot_us;
                         others = true(n_total,1); others(w) = false;
                         nav_until(others) = max(nav_until(others), data_end);
