@@ -38,8 +38,8 @@ function resume_0819_R9()
     cfg_cf.M_values = 1;
     cfg_cf.protocol_q_grids.sf_cf = qgrid;
     cfg_cf.protocol_q_grids.sb_cf = qgrid;
-    cfg_cf.output_dir = [];  % 新建目录，因为CF还没跑过
-    fprintf('跑 Logic1 CF baseline...\n');
+    cfg_cf.output_dir = fullfile('results_v2', '20260819_202504_079a12a5cc1b'); % CF 已完成，续跑跳过
+    fprintf('合并 Logic1 CF baseline...\n');
     exp1cf = run_experiment(cfg_cf);
 
     % 合并保存
@@ -69,7 +69,10 @@ function resume_0819_R9()
 
     %% Logic1 M-sweep
     fprintf('\n跑 Logic1 M-sweep...\n');
-    override = struct('lambda_values', [15, 30], 'q_multi_basin_tuning', true);
+    override = struct('lambda_values', [15, 30], 'q_multi_basin_tuning', true, ...
+        'resume', true, ...
+        'output_dir', fullfile('results_v2','20260819_211902_f4ddfa116f71'), ...
+        'cf_output_dir', fullfile('results_v2','20260820_011732_366197bb0fb1'));
     out1_msweep = run_delay_m_analysis('ready_queue', ...
         fullfile(root, 'logic1', 'M_sweep'), true, override);
 

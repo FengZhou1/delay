@@ -51,10 +51,15 @@ function summary_path = run_delay_m_analysis(txop_mode, merged_name, include_cf,
     cfg.stability_censor_tolerance = 0.01;
     cfg.stability_slope_fraction = 0.05;
     cfg.stability_require_slope = true;
+    cf_output_dir = [];
     if nargin >= 4 && isstruct(cfg_override)
         names = fieldnames(cfg_override);
         for i = 1:numel(names)
-            cfg.(names{i}) = cfg_override.(names{i});
+            if strcmp(names{i},'cf_output_dir')
+                cf_output_dir = cfg_override.(names{i});
+            else
+                cfg.(names{i}) = cfg_override.(names{i});
+            end
         end
     end
 
@@ -73,6 +78,11 @@ function summary_path = run_delay_m_analysis(txop_mode, merged_name, include_cf,
         cf_cfg.txop_mode = 'ready_queue';
         cf_cfg.q_multi_basin_tuning = true;
         cf_cfg.q_refine_windows = 3;
+        if ~isempty(cf_output_dir)
+            cf_cfg.output_dir = cf_output_dir;
+        elseif isfield(cf_cfg,'output_dir') && ~isempty(cf_cfg.output_dir)
+            cf_cfg = rmfield(cf_cfg,'output_dir');
+        end
         cf_experiment = run_experiment(cf_cfg);
         cf_dir = cf_experiment.output_dir;
         cf_summary = readtable(fullfile(cf_dir,'summary.csv'), ...
@@ -81,7 +91,11 @@ function summary_path = run_delay_m_analysis(txop_mode, merged_name, include_cf,
         fprintf('CF baseline experiment: %s\n', cf_dir);
     end
 
-    merged_dir = fullfile('results_v2',merged_name);
+    if is_absolute_path(char(merged_name))
+        merged_dir = char(merged_name);
+    else
+        merged_dir = fullfile('results_v2',merged_name);
+    end
     if ~isfolder(merged_dir)
         mkdir(merged_dir);
     end
@@ -120,4 +134,16 @@ function write_m_analysis_readme(out_dir,scan_dir,txop_mode,include_cf,n_figs)
     fprintf(fid,'- q scan: piecewise 10 points/decade, 3 refined basins, top candidates 3 seeds, final eval 3 seeds\n');
     fprintf(fid,'- Raw scan experiment: `%s`\n',scan_dir);
     fprintf(fid,'- Figures generated: %d\n',n_figs);
+end
+
+function tf = is_absolute_path(p)
+%IS_ABSOLUTE_PATH 判断路径是否为绝对路径（Windows 盘符或 UNC / 根路径）
+    tf = false;
+    if ~ischar(p) && ~isstring(p), return; end
+    p = char(p);
+    if ispc && numel(p) >= 2 && p(2) == ':' && ~isempty(regexp(p(1),'[A-Za-z]','once'))
+        tf = true;
+    elseif startsWith(p,'\') || startsWith(p,'/')
+        tf = true;
+    end
 end
