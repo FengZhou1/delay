@@ -75,10 +75,11 @@ function resume_0819_R9()
         'cf_output_dir', fullfile('results_v2','20260820_011732_366197bb0fb1'));
     out1_msweep = run_delay_m_analysis('ready_queue', ...
         fullfile(root, 'logic1', 'M_sweep'), true, override);
+    msweep1_dir = fileparts(out1_msweep);
 
-    ms1 = readtable(fullfile(out1_msweep, 'summary.csv'),'VariableNamingRule','preserve');
+    ms1 = readtable(out1_msweep,'VariableNamingRule','preserve');
     for li = [15, 30]
-        subdir = fullfile(out1_msweep, sprintf('lam%d', li));
+        subdir = fullfile(msweep1_dir, sprintf('lam%d', li));
         if ~isfolder(subdir), mkdir(subdir); end
         sub = ms1(ms1.lambda_base == li, :);
         writetable(sub, fullfile(subdir, 'summary.csv'));
@@ -97,6 +98,7 @@ function resume_0819_R9()
     cfg2 = cfg;
     cfg2.txop_mode = 'batch_M';
     cfg2.protocols = {'sf_cb','sb_cb','unslotted','s7_clean','s7_busy'};
+    cfg2.n_workers = 1;  % 内存紧张时单 worker，避免 sb_cb 内存溢出
     cfg2.output_dir = [];
     exp2 = run_experiment(cfg2);
 
@@ -125,10 +127,11 @@ function resume_0819_R9()
     override2 = struct('lambda_values', [15, 30], 'q_multi_basin_tuning', true);
     out2_msweep = run_delay_m_analysis('batch_M', ...
         fullfile(root, 'logic2', 'M_sweep'), false, override2);
+    msweep2_dir = fileparts(out2_msweep);
 
-    ms2 = readtable(fullfile(out2_msweep, 'summary.csv'),'VariableNamingRule','preserve');
+    ms2 = readtable(out2_msweep,'VariableNamingRule','preserve');
     for li = [15, 30]
-        subdir = fullfile(out2_msweep, sprintf('lam%d', li));
+        subdir = fullfile(msweep2_dir, sprintf('lam%d', li));
         if ~isfolder(subdir), mkdir(subdir); end
         sub = ms2(ms2.lambda_base == li, :);
         writetable(sub, fullfile(subdir, 'summary.csv'));
