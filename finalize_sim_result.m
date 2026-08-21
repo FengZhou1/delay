@@ -234,7 +234,7 @@
         'boundary_wait_us','difs_wait_us','probability_wait_us', ...
         'busy_nav_wait_us','collision_delay_us','control_delay_us', ...
         'data_delay_us','other_access_delay_us'};
-    if all(isfield(pkt,component_fields))
+    if all(has_component_fields(pkt,component_fields))
         other_sum = pkt.boundary_wait_us + pkt.difs_wait_us + ...
             pkt.probability_wait_us + pkt.collision_delay_us + ...
             pkt.control_delay_us + pkt.data_delay_us + pkt.other_access_delay_us;
@@ -255,7 +255,7 @@
     for i = 1:numel(component_fields)
         field = component_fields{i};
         summary_name = ['mean_' field];
-        if isfield(pkt,field)
+        if has_component_field(pkt,field)
             values = pkt.(field);
             if stable
                 summary.(summary_name) = safe_mean(values(eligible_cohort_completed));
@@ -286,6 +286,23 @@ function value = diagnostic_value(diagnostics, names, fallback)
             value = diagnostics.(names{i});
             return;
         end
+    end
+end
+
+function tf = has_component_field(pkt, field)
+    if istable(pkt)
+        tf = ismember(field, pkt.Properties.VariableNames);
+    else
+        tf = isfield(pkt, field);
+    end
+end
+
+function tf = has_component_fields(pkt, fields)
+%HAS_COMPONENT_FIELDS 兼容 struct 和 table 两种 packet_log
+    if istable(pkt)
+        tf = all(ismember(fields, pkt.Properties.VariableNames));
+    else
+        tf = all(isfield(pkt, fields));
     end
 end
 

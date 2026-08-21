@@ -317,6 +317,7 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
                     u = tx_nodes(still_tx(1));
                     ids_u = trace.packet_ids_by_node{u};
                     pid = ids_u(head(u));
+                    data_delay_us(pid) = conn_slot_us;
                     complete_packet(u, pid, pkt_end);
 
                     add_service_interval(pkt_start, pkt_end, 1);
