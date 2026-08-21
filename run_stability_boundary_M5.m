@@ -12,7 +12,7 @@ function run_stability_boundary_M5()
     cfg.txop_mode = 'ready_queue';
     cfg.protocols = protocols_all;
     cfg.M_values = 5;
-    cfg.lambda_values = [30, 35, 40, 45, 50, 60, 70, 80];
+    cfg.lambda_values = [30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 150, 200];
     cfg.load_modes = {'fixed_packet'};
     cfg.resume = true;
     cfg.run_preflight_tests = false;
