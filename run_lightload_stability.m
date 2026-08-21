@@ -19,7 +19,7 @@ function run_lightload_stability()
     cfg.load_modes = {'fixed_packet'};
     cfg.resume = true;
     cfg.run_preflight_tests = false;
-    cfg.n_eval_runs = 3;
+    cfg.n_eval_runs = 5;
     cfg.condition_timeout_s = 1800;
     cfg.n_workers = 2;
     cfg.q_multi_basin_tuning = true;
@@ -33,7 +33,8 @@ function run_lightload_stability()
     cfg.stability_censor_tolerance = 0.01;
     cfg.stability_slope_fraction = 0.05;
     cfg.stability_require_slope = true;
-    cfg.output_dir = fullfile('results_v2','R9_lightload_sweep');
+    cfg.eval_summary_stat = 'median';
+    cfg.output_dir = fullfile('results_v2','R9_lightload_sweep_v2');
     exp_ll = run_experiment(cfg);
     fprintf('轻负载扫描完成: %s\n', exp_ll.output_dir);
 
@@ -55,6 +56,9 @@ function run_lightload_stability()
     %% ===== 2. 稳定性边界扫描 =====
     fprintf('\n===== [2/2] 稳定性边界扫描 =====\n');
     cfg2 = cfg;
+    % 稳定性边界保持原统计口径（3 种子均值），不继承轻载的 5 种子中位数
+    cfg2.n_eval_runs = 3;
+    cfg2.eval_summary_stat = 'mean';
     cfg2.lambda_values = [30, 35, 40, 45, 50, 60, 70, 80];
     cfg2.output_dir = fullfile('results_v2','R9_stability_boundary');
     exp_sb = run_experiment(cfg2);

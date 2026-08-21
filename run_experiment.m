@@ -1128,9 +1128,21 @@ function condition = summarize_condition(protocol, load_mode, lambda_base, ...
         summaries = [run_structs.summary];
         row.stable_fraction = mean([summaries.stable]);
         metrics = condition_metric_names();
+        stat = 'mean';
+        if isfield(cfg,'eval_summary_stat') && ~isempty(cfg.eval_summary_stat)
+            stat = lower(char(cfg.eval_summary_stat));
+        end
         for i = 1:numel(metrics)
             values = [summaries.(metrics{i})];
-            row.(metrics{i}) = mean(values,'omitnan');
+            switch stat
+                case 'median'
+                    row.(metrics{i}) = median(values,'omitnan');
+                case 'mean'
+                    row.(metrics{i}) = mean(values,'omitnan');
+                otherwise
+                    error('run_experiment:BadSummaryStat', ...
+                        'Unknown eval_summary_stat "%s".',stat);
+            end
             row.([metrics{i} '_ci95']) = ci95(values);
         end
         if row.stable_fraction < 1
