@@ -12,7 +12,8 @@ function run_stability_boundary_M5()
     cfg.txop_mode = 'ready_queue';
     cfg.protocols = protocols_all;
     cfg.M_values = 5;
-    cfg.lambda_values = [30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 120, 150, 200];
+    cfg.lambda_values = [90, 100, 120, 150, 200];
+    cfg.condition_filter = {};  % 新目录只跑新增点
     cfg.load_modes = {'fixed_packet'};
     cfg.resume = true;
     cfg.run_preflight_tests = false;
@@ -30,13 +31,22 @@ function run_stability_boundary_M5()
     cfg.stability_censor_tolerance = 0.01;
     cfg.stability_slope_fraction = 0.05;
     cfg.stability_require_slope = true;
-    cfg.output_dir = fullfile('results_v2','R9_stability_boundary_M5');
+    cfg.output_dir = fullfile('results_v2','R9_stability_boundary_M5_ext');
     exp_sb = run_experiment(cfg);
     fprintf('稳定性边界 M=5 扫描完成: %s\n', exp_sb.output_dir);
 
     sb_dir = fullfile(root,'stability_boundary','M5');
     if ~isfolder(sb_dir), mkdir(sb_dir); end
-    sb_sum = readtable(fullfile(exp_sb.output_dir,'summary.csv'),'VariableNamingRule','preserve');
+    new_sum = readtable(fullfile(exp_sb.output_dir,'summary.csv'),'VariableNamingRule','preserve');
+    old_path = fullfile('results_v2','R9_stability_boundary_M5','summary.csv');
+    if isfile(old_path)
+        old_sum = readtable(old_path,'VariableNamingRule','preserve');
+        % 合并：旧(30~80) + 新(90~200)，去重按 (protocol,lambda)
+        sb_sum = [old_sum; new_sum];
+        sb_sum = unique(sb_sum,'rows','stable');
+    else
+        sb_sum = new_sum;
+    end
     writetable(sb_sum, fullfile(sb_dir,'summary.csv'));
 
     % 稳定边界表
