@@ -1,2 +1,0 @@
-load_mode,lambda_base,lambda_effective,M,Tp_us,n_nodes,q_opt,ps_opt,service_cycle_us,capacity_system_pkt_s,capacity_per_node_pkt_s,offered_aggregate_pkt_s,offered_normalized_units_s,rho,theory_stable
-fixed_packet,10,10,4,760,40,0.025,0.372546092192698,1270.00400750875,787.399090150596,19.6849772537649,400,1600,0.5080016030035,1

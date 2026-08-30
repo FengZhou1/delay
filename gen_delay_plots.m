@@ -101,8 +101,8 @@ function label = display_protocol(protocol)
         case 'sf_cb', label = 'SF-CB';
         case 'sb_cf', label = 'SB-CF';
         case 'sb_cb', label = 'SB-CB';
-        case 's7_clean', label = 'S7-AS (n_S=0)';
-        case 's7_busy', label = 'S7-AS (n_S=10)';
+        case 's7_clean', label = 'S7-AN (n_S=0)';
+        case 's7_busy', label = 'S7-AN (n_S=10)';
         otherwise, label = char(protocol);
     end
 end

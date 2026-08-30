@@ -1,1 +1,0 @@
-row_type,protocol,load_mode,lambda_base,lambda_effective,M,Tp_us,q,K,n_eval_runs,n_frames,n_success,empirical_ps,ci95_low,ci95_high,ci_method,theoretical_ps,theory_inside_ci95,attempts,attempt_bernoulli_trials,empirical_attempt_probability,approx_service_cycle_theory_us,approx_service_cycle_empirical_ps_us,empirical_intercompletion_us

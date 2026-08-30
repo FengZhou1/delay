@@ -1,2 +1,0 @@
-K,q,trials,successes,empirical_ps,theoretical_ps,ci_low,ci_high,probability_pass,empirical_service_cycle_us,theoretical_service_cycle_us,service_relative_error
-40,0.025,11465,4324,0.377147841255996,0.372546092192698,0.368318629377761,0.386059351160679,1,693.80985426787,700.00400750875,0.0088487396849692

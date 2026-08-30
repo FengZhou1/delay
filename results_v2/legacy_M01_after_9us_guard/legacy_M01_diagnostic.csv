@@ -1,5 +1,0 @@
-protocol,q,empirical_mean_delay_us,analytic_delay_us,completed_samples
-legacy_SB_CF,0.7,17.04,17.1428571428571,500
-legacy_SF_CF,0.9,29.25,29.7222222222222,500
-corrected_SB_CF_prediction,0.7,NaN,37.1428571428571,0
-corrected_SF_CF_prediction,0.9,NaN,29.7222222222222,0
