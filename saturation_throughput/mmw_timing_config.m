@@ -52,6 +52,9 @@ function timing = mmw_timing_config(cfg)
     timing.CTS_US = timing.CTS_SLOTS * timing.SLOT_US;
     timing.CONN_SLOT_SLOTS = timing.RTS_SLOTS + timing.SIFS_SLOTS + ...
         timing.N_SECTORS * timing.CTS_SLOTS + timing.SIFS_SLOTS;
+    % Legacy integer-slot reference (22 slots x 9 us = 198 us).  Saturation
+    % throughput must use scenario.MMW_REAL.CONN_OVERHEAD_US (162.5 us)
+    % everywhere; do NOT use CONN_SLOT_US for saturation frame length.
     timing.CONN_SLOT_US = timing.CONN_SLOT_SLOTS * timing.SLOT_US;
 end
 

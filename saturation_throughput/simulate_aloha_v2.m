@@ -83,16 +83,11 @@
     reservation_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
     if is_saturation
         payload_timing = saturation_payload_timing(cfg,M);
-        if strcmp(protocol,'sf_cb')
-            % sf_cb uses the exact 162.5-us connection slot.
-            Tp_us = reservation_us * double(M);
-            payload_timing.actual_payload_us = Tp_us;
-            payload_timing.nominal_payload_us = Tp_us;
-            payload_timing.effective_M = double(M);
-        else
-            % sf_cf keeps the legacy integer-slot payload quantization.
-            Tp_us = payload_timing.actual_payload_us;
-        end
+        % sf_cf and sf_cb both use the exact 162.5-us connection slot.
+        Tp_us = reservation_us * double(M);
+        payload_timing.actual_payload_us = Tp_us;
+        payload_timing.nominal_payload_us = Tp_us;
+        payload_timing.effective_M = double(M);
     else
         payload_timing = [];
         Tp_us = reservation_us * double(M);

@@ -35,6 +35,8 @@
     cfg.arrival_tick_us = cfg.mmw_slot_us;
     mmw_timing = mmw_timing_config(cfg);
     cfg.mmw_conn_slot_slots = mmw_timing.CONN_SLOT_SLOTS;
+    % Legacy integer-slot value (198 us).  Saturation uses
+    % cfg.mmw_real_conn_slot_us (162.5 us); do not use this for Tp.
     cfg.mmw_conn_slot_us = mmw_timing.CONN_SLOT_US;
     % Real-time (non slot-aligned) timing for sf_cb and sb_cb, matching
     % sf_cb_lightload_study/protocol_timing.m (plan section 2).  These are

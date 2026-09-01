@@ -14,11 +14,10 @@ function report = run_saturation_tests(output_dir)
     cfg1.n_sectors = 1;
     cfg1.warmup_us = 0;
     timing1 = mmw_timing_config(cfg1);
-    conn1_us = timing1.CONN_SLOT_US;             % legacy grid (n_sectors=1)
     real_conn1_us = cfg1.mmw_real_conn_slot_us;  % 162.5 us (sf_cb/sb_cb)
-    % sf_cf keeps the legacy slot; sf_cb uses the exact 162.5-us slot, so
-    % the single-node windows below are sized per protocol.
-    cfg1.measure_us = conn1_us*120;
+    % sf_cf and sf_cb both use the exact 162.5-us connection slot, so the
+    % single-node windows below are aligned to that slot.
+    cfg1.measure_us = real_conn1_us*120;
     cfg1.arrival_end_us = cfg1.measure_us;
     cfg1.sim_hard_end_us = cfg1.measure_us;
     cfg1.run_preflight_tests = false;
@@ -42,16 +41,16 @@ function report = run_saturation_tests(output_dir)
     rows(end+1) = check_close('single_node_sf_cb_airtime', ... %#ok<AGROW>
         sf_cb.summary.payload_airtime_fraction,2/3,1e-12);
 
-    % Fractional M is saturation-only. In the main eight-sector setup,
-    % M=0.1 maps to two 9-us DATA slots (not one complete 198-us connection
-    % slot), and throughput uses the actual integer-slot payload.
+    % Fractional M is saturation-only. All protocols use the exact
+    % 162.5-us connection slot, so M=0.1 is exactly 16.25 us of payload.
     cfg_default_sectors = default_saturation_config('smoke');
     fractional_default = saturation_payload_timing(cfg_default_sectors,0.1);
     rows(end+1) = check_close('fractional_M01_payload_slots_8sectors', ... %#ok<AGROW>
-        fractional_default.payload_slots,2,0);
+        fractional_default.payload_slots, ...
+        real_conn1_us*0.1/timing1.SLOT_US,0);
     rows(end+1) = check_close('fractional_M01_actual_Tp_8sectors', ... %#ok<AGROW>
-        fractional_default.actual_payload_us,2*timing1.SLOT_US,0);
-    fractional_M01_Tp = real_conn1_us * 0.1;   % 16.41 us exact
+        fractional_default.actual_payload_us,real_conn1_us*0.1,0);
+    fractional_M01_Tp = real_conn1_us * 0.1;   % 16.25 us exact
     fractional_cycle_us = real_conn1_us + fractional_M01_Tp;
     cfg_fractional = cfg1;
     cfg_fractional.measure_us = fractional_cycle_us*100;

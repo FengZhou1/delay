@@ -21,10 +21,9 @@ function cfg = default_saturation_config(profile)
     cfg.traffic_mode = 'saturation';
     cfg.protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
 
-    % Fractional points reproduce the short-payload portion of the legacy
-    % saturated-throughput sweep.  DATA airtime is quantized to an integer
-    % number of 9-us mmWave slots; effective payload is never promoted to a
-    % full 198-us connection slot.
+    % All saturation protocols share the exact 162.5-us connection slot
+    % (MMW_REAL.CONN_OVERHEAD_US).  Fractional M keeps the short-payload
+    % portion of the legacy sweep, and DATA airtime is exactly M*162.5 us.
     cfg.M_values = [1/10, 1/5, 2/5, 3/5, 1:6, 8, 10, 15, 20];
     cfg.warmup_us = 2e5;
     cfg.measure_us = 1e6;
