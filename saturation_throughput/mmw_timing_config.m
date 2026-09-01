@@ -9,7 +9,7 @@ function timing = mmw_timing_config(cfg)
     end
 
     timing.SLOT_US = scalar_field(cfg, 'mmw_slot_us', 9);
-    timing.DATA_RATE_BPS = scalar_field(cfg, 'mmw_data_rate_bps', 2.7e9);
+    timing.DATA_RATE_BPS = scalar_field(cfg, 'mmw_data_rate_bps', 2.2e9);
     timing.CONTROL_RATE_BPS = scalar_field(cfg, 'mmw_control_rate_bps', 260e6);
     timing.PHY_HEADER_SLOTS = scalar_field(cfg, 'mmw_phy_header_slots', 2);
     timing.SIFS_SLOTS = scalar_field(cfg, 'mmw_sifs_slots', 2);
