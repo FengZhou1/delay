@@ -1,0 +1,64 @@
+function scenario = prepare_scenario_v2(cfg, topology_seed)
+%PREPARE_SCENARIO_V2 Build one reusable topology and physical-layer cache.
+
+    if nargin < 2 || isempty(topology_seed)
+        topology_seed = cfg.topology_seed;
+    end
+    utils = sim_utils();
+    [SYS, PHY, MMW, SUB7, ~] = utils.get_common_params(cfg);
+    SYS.N_MLO = cfg.n_nodes;
+    SYS.N_SECTORS = cfg.n_sectors;
+
+    stream_state = rng;
+    cleanup = onCleanup(@() rng(stream_state));
+    rng(topology_seed, 'twister');
+    [node_pos, angles, sectors] = utils.generate_topology( ...
+        SYS.N_MLO, PHY.AP_POS, SYS.N_SECTORS);
+    clear cleanup;
+
+    PHY.RX_SENS_DBM = cfg.rx_sens_dbm;
+    PHY.NOISE_DBM = cfg.noise_dbm;
+    PHY.DATA_SINR_TH_DB = cfg.data_sinr_th_db;
+    PHY.CTS_SINR_TH_DB = cfg.cts_sinr_th_db;
+    PHY.CTRL_SINR_TH_DB = cfg.cts_sinr_th_db;
+    PHY.Int_Matrix = utils.precalc_interference_mmw(node_pos, angles, PHY);
+    PHY.AP_Rx_Matrix = utils.precalc_ap_rx_power_mmw(node_pos, PHY);
+    PHY.AP_Sector_Tx_Matrix = utils.precalc_ap_sector_tx_power_mmw( ...
+        node_pos, PHY, SYS.N_SECTORS);
+
+    MMW.DIFS_US = MMW.DIFS * MMW.SLOT_TIME_US;
+    MMW.SIFS_US = MMW.SIFS * MMW.SLOT_TIME_US;
+    MMW.RTS_US = MMW.N_RTS * MMW.SLOT_TIME_US;
+    MMW.CTS_US = MMW.N_CTS * MMW.SLOT_TIME_US;
+    MMW.CONN_OVERHEAD_US = MMW.conn_overhead * MMW.SLOT_TIME_US;
+
+    % Real-time (non slot-aligned) timing for sf_cb / sb_cb (and later
+    % sb_cf / s7), matching sf_cb_lightload_study/protocol_timing.m.
+    % These are NOT integer multiples of the 9 us mmWave slot.
+    MMW_REAL.SLOT_US = 9;                    % sensing/arrival granularity
+    MMW_REAL.RTS_US = cfg.mmw_real_rts_us;   % 14.5
+    MMW_REAL.SIFS_US = cfg.mmw_real_sifs_us; % 16
+    MMW_REAL.DIFS_US = cfg.mmw_real_difs_us; % 34
+    MMW_REAL.CTS_US = cfg.mmw_real_cts_us;   % 14.5
+    MMW_REAL.N_SECTORS = cfg.n_sectors;
+    MMW_REAL.CTS_SWEEP_US = cfg.mmw_real_cts_sweep_us;      % 116.0
+    MMW_REAL.CONN_OVERHEAD_US = cfg.mmw_real_conn_slot_us;  % 162.5
+    MMW_REAL.CTS_TIMEOUT_US = cfg.mmw_real_cts_timeout_us;  % 132.0
+    MMW_REAL.DIFS_TICKS = ceil(MMW_REAL.DIFS_US / MMW_REAL.SLOT_US);
+
+    % Real-time Sub-7 timings (already in us in sim_utils); keep the
+    % legacy slot-derived names for backwards compatibility.
+    SUB7.DIFS_US = SUB7.DIFS_US;
+    SUB7.SIFS_US = SUB7.SIFS_US;
+    SUB7.RTS_US  = SUB7.RTS_US;
+    SUB7.CTS_US  = SUB7.CTS_US;
+    SUB7.ICF_US  = SUB7.RTS_US;   % request frame = RTS
+    SUB7.ICR_US  = SUB7.CTS_US;   % response frame = CTS
+    SUB7.SLO_RTS_US = SUB7.RTS_US;
+    SUB7.SLO_CTS_US = SUB7.CTS_US;
+    SUB7.CTS_TIMEOUT_US = SUB7.SIFS_US + SUB7.CTS_US;
+
+    scenario = struct('SYS',SYS, 'PHY',PHY, 'MMW',MMW, 'MMW_REAL',MMW_REAL, ...
+        'SUB7',SUB7, 'node_pos',node_pos, 'angles',angles, ...
+        'sectors',sectors, 'topology_seed',topology_seed);
+end

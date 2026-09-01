@@ -1,5 +1,0 @@
-[FAIL] test_refined_q_grid_and_edge_expansion: A lower-bound coarse optimum did not expand the q range.
-{´íÎóÊ¹ÓÃ run_v2_tests
-1 test(s) failed: test_refined_q_grid_and_edge_expansion
-} 
-ERROR: MATLAB error Exit Status: 0x00000001

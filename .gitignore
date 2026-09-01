@@ -26,3 +26,10 @@ Desktop.ini
 Thumbs.db
 
 sf_cb_lightload_study/results/
+
+# R9 archive: raw experiment outputs and logs are too large / not needed in git
+R9_v1/raw_results/
+R9_v1/logs/
+
+# Standalone saturation folder: keep code only, results stay local
+saturation_throughput/results/
