@@ -24,7 +24,7 @@
     % New mmWave timing set. Protocol durations are expressed as integer
     % slot counts; microsecond values are derived by mmw_timing_config().
     cfg.mmw_slot_us = 9;
-    cfg.mmw_data_rate_bps = 2.7e9;
+    cfg.mmw_data_rate_bps = 2.2e9;
     cfg.mmw_control_rate_bps = 260e6;
     cfg.mmw_phy_header_slots = 2;
     cfg.mmw_sifs_slots = 2;
@@ -111,8 +111,8 @@
 
     cfg.cca_mode = 'directional';           % directional | oracle | disabled
     cfg.rx_sens_dbm = -62;
-    cfg.noise_dbm = -90;
-    cfg.data_sinr_th_db = 21;
+    cfg.noise_dbm = -81;
+    cfg.data_sinr_th_db = 20;
     cfg.cts_sinr_th_db = 6;
     % Deprecated compatibility alias. RTS now uses a classic collision
     % model; this threshold is used only for CTS decoding.

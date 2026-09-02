@@ -145,7 +145,7 @@ function[SYS, PHY_MMW, MMW, SUB7, SIM] = get_common_params(cfg)
     SYS.N_SECTORS = timing.N_SECTORS;
     
     PHY_MMW.FREQ         = 60e9;        
-    PHY_MMW.TX_POWER_DBM = 10;          
+    PHY_MMW.TX_POWER_DBM = 20;          
     PHY_MMW.RX_SENS_DBM  = -62;         
     PHY_MMW.Nt           = 4;          
     PHY_MMW.AP_POS       = [0, 0];      
