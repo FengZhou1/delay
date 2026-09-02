@@ -106,7 +106,7 @@
     cfg.cca_mode = 'directional';           % directional | oracle | disabled
     cfg.rx_sens_dbm = -62;
     cfg.noise_dbm = -81;
-    cfg.data_sinr_th_db = 18;
+    cfg.data_sinr_th_db = 21;
     cfg.cts_sinr_th_db = 6;
     % Deprecated compatibility alias. RTS now uses a classic collision
     % model; this threshold is used only for CTS decoding.

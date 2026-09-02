@@ -27,9 +27,9 @@ function output = plot_saturation_throughput_v2(output_dir)
             'No effective-payload throughput column was found.');
     end
 
-    protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy','unslotted'};
+    protocols = {'sf_cf','sf_cb','sb_cf','sb_cb','s7_clean','s7_busy'};
     display_names = {'SF-CF','SF-CB','SB-CF','SB-CB', ...
-        'S7-AS ($n_{S}=0$)','S7-AS ($n_{S}=10$)','Unslotted-SF-CB'};
+        'S7-AN ($n_{S}=0$)','S7-AN ($n_{S}=10$)'};
     styles = protocol_styles();
 
     figure_dir = fullfile(output_dir,'figures');
@@ -43,7 +43,8 @@ function output = plot_saturation_throughput_v2(output_dir)
     cleanup = onCleanup(@() close(fig));
     ax = axes(fig);
     hold(ax,'on');
-    ax.FontName = 'Arial';
+    ax.FontName = 'Times New Roman';
+    ax.TickLabelInterpreter = 'latex';
     ax.FontSize = 15;
     ax.LineWidth = 1.2;
     ax.TickDir = 'in';
@@ -89,7 +90,7 @@ function output = plot_saturation_throughput_v2(output_dir)
             'MarkerSize',10,'MarkerFaceColor','white', ...
             'MarkerEdgeColor',style.color,'LineWidth',2.0, ...
             'HandleVisibility','off');
-        % 创建图例句柄（同一对象同时包含线和标记，线宽与标记边缘同为 4.5�?
+        % 创建图例句柄（同�?对象同时包含线和标记，线宽与标记边缘同为 4.5�?
         handle = plot(ax,NaN,NaN, ...
             'Color',style.color,'LineStyle',style.line_style, ...
             'LineWidth',2.5,'Marker',style.marker, ...
@@ -117,16 +118,43 @@ function output = plot_saturation_throughput_v2(output_dir)
             'HandleVisibility','off');
     end
 
-    xlabel(ax,'$T_p$ ($\mu$s)','Interpreter','latex','FontSize',18);
-    ylabel(ax,'Maximum Throughput','FontSize',18);
-    xlim(ax,[0 4000]);
+    xlabel(ax,'$T_p$ ($\mu$s)','Interpreter','latex','FontName','Times New Roman','FontSize',18);
+    ylabel(ax,'Maximum Throughput','Interpreter','latex','FontName','Times New Roman','FontSize',18);
+    xlim(ax,[0 3300]);
     ylim(ax,[0 1]);
-    xticks(ax,0:1000:4000);
+    xticks(ax,[0:500:3000,3300]);
     grid(ax,'off');
-    if ~isempty(plotted_handles)
-        legend(ax,plotted_handles,plotted_names,'Interpreter','latex', ...
-            'Location','southeast','FontSize',13,'Box','on', ...
-            'NumColumns',1);
+    if numel(plotted_handles) >= 6
+        leg1_handles = plotted_handles(1:4);
+        leg1_names = {'SF-CF','SF-CB','SB-CF','SB-CB'};
+        legend_left = 0.58;
+        leg1 = legend(ax,leg1_handles,leg1_names, ...
+            'Interpreter','latex','FontName','Times New Roman','FontSize',11,'Box','on', ...
+            'Location','none','NumColumns',2);
+        leg1.Position = [legend_left 0.47 0.24 0.10];
+        leg1.LineWidth = 0.5;
+        leg1.ItemTokenSize = [30 6];
+
+        leg2_handles = plotted_handles(5:6);
+        leg2_names = {'$n_{S}=0$','$n_{S}=10$'};
+        ax2 = axes(fig,'Position',ax.Position,'Color','none', ...
+            'XColor','none','YColor','none','XTick',[],'YTick',[], ...
+            'HitTest','off','XLim',[0 1],'YLim',[0 1]);
+        ax2.Visible = 'off';
+        leg2 = legend(ax2,leg2_handles,leg2_names, ...
+            'Interpreter','latex','FontName','Times New Roman','FontSize',11,'Box','on', ...
+            'Location','none','NumColumns',1);
+        leg2.Position = [legend_left - 0.0046 0.17 0.16 0.08];
+        leg2.LineWidth = 0.5;
+        leg2.ItemTokenSize = [30 6];
+        annotation(fig,'textbox',[0.58 0.58 0.24 0.04], ...
+            'String','Direct mmWave Access', ...
+            'EdgeColor','none','Interpreter','latex','FontName','Times New Roman','FontSize',13, ...
+            'Margin',1,'HorizontalAlignment','center','VerticalAlignment','bottom');
+        annotation(fig,'textbox',[0.525 0.26 0.24 0.04], ...
+            'String','S7-AN', ...
+            'EdgeColor','none','Interpreter','latex','FontName','Times New Roman','FontSize',13, ...
+            'Margin',1,'HorizontalAlignment','center','VerticalAlignment','bottom');
     end
     drawnow;
     add_intersection_arrows(fig,ax,intersection_rows);
@@ -152,8 +180,6 @@ function styles = protocol_styles()
     styles.sb_cb = style(orange,'s',':');
     styles.s7_clean = style(green,'^','-');
     styles.s7_busy = style(green,'^',':');
-    red = [217 83 79]/255;
-    styles.unslotted = style(red,'d','-');
 end
 
 function value = style(color,marker,line_style)
@@ -222,7 +248,7 @@ function add_intersection_arrows(fig,ax,rows)
         label_y = max(0.002,position(2)-0.075);
         annotation(fig,'textarrow',[label_x target_x],[label_y target_y], ...
             'String',sprintf('%d',round(rows(i).Tp_us)), ...
-            'FontName','Arial','FontSize',13,'Color',[0.15 0.15 0.15], ...
+            'Interpreter','latex','FontName','Times New Roman','FontSize',13,'Color',[0.15 0.15 0.15], ...
             'LineWidth',1,'HeadLength',6,'HeadWidth',6, ...
             'HorizontalAlignment','center','VerticalAlignment','top');
     end

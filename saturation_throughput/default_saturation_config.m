@@ -52,7 +52,7 @@ function cfg = default_saturation_config(profile)
     cfg.protocol_q_grids.unslotted = unique([logspace(-5,log10(3e-2),15), 1e-3, 3e-3, 1e-2]);
 
     cfg.parallel = true;
-    cfg.n_workers = 4;
+    cfg.n_workers = 6;
     cfg.collect_packet_log = false;
     cfg.collect_diagnostics = true;
     cfg.collect_debug_trace = false;
