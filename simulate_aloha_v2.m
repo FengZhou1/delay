@@ -75,7 +75,13 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
             'scenario.MMW_REAL.CONN_OVERHEAD_US is required.');
     end
     conn_slot_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
-    txop_us = conn_slot_us * double(M);
+    if isfield(scenario.MMW_REAL,'DATA_SLOT_US') && ...
+            ~isempty(scenario.MMW_REAL.DATA_SLOT_US)
+        data_slot_us = double(scenario.MMW_REAL.DATA_SLOT_US);
+    else
+        data_slot_us = conn_slot_us;
+    end
+    txop_us = data_slot_us * double(M);
     batch_requests = strcmp(protocol, 'sf_cb') && ...
         is_batch_txop_mode(cfg) && ~is_saturation;
 
@@ -242,23 +248,23 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
                 for p = 1:n_send
                     ids_u = trace.packet_ids_by_node{u};
                     pid = ids_u(head(u));
-                    pkt_end = data_start + p * conn_slot_us;
+                    pkt_end = data_start + p * data_slot_us;
                     if p == 1
                         control_delay_us(pid) = conn_slot_us;
                     end
-                    data_delay_us(pid) = conn_slot_us;
+                    data_delay_us(pid) = data_slot_us;
                     complete_packet(u, pid, pkt_end);
                 end
                 if batch_requests
                     request_count(u) = max(0, request_count(u) - 1);
                 end
-                slot_dur = conn_slot_us + n_send * conn_slot_us;
-                add_service_interval(data_start, data_start + n_send * conn_slot_us, 1);
+                slot_dur = conn_slot_us + n_send * data_slot_us;
+                add_service_interval(data_start, data_start + n_send * data_slot_us, 1);
                 payload_success_overlap_us = payload_success_overlap_us + ...
-                    interval_overlap_us(data_start, data_start + n_send * conn_slot_us, ...
+                    interval_overlap_us(data_start, data_start + n_send * data_slot_us, ...
                         measure_left, measure_right);
                 payload_attempt_overlap_us = payload_attempt_overlap_us + ...
-                    interval_overlap_us(data_start, data_start + n_send * conn_slot_us, ...
+                    interval_overlap_us(data_start, data_start + n_send * data_slot_us, ...
                         measure_left, measure_right);
                 deferred = setdiff(active_nodes, tx_nodes);
                 for uu = deferred(:).'
@@ -296,15 +302,15 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
             end
         else
             % SF-CF: per-packet collision detection within TXOP
-            % Slot length is fixed = txop_us (M * conn_slot_us)
+            % Slot length is fixed = txop_us (M * data_slot_us)
             % Multiple nodes may transmit with different durations
             for pkt_idx = 1:M
                 % Nodes still transmitting in this packet period
                 still_tx = find(num_to_send >= pkt_idx);
                 n_still = numel(still_tx);
 
-                pkt_start = now_us + (pkt_idx - 1) * conn_slot_us;
-                pkt_end = pkt_start + conn_slot_us;
+                pkt_start = now_us + (pkt_idx - 1) * data_slot_us;
+                pkt_end = pkt_start + data_slot_us;
 
                 if pkt_end > hard_end_us
                     truncated = true;
@@ -317,7 +323,7 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
                     u = tx_nodes(still_tx(1));
                     ids_u = trace.packet_ids_by_node{u};
                     pid = ids_u(head(u));
-                    data_delay_us(pid) = conn_slot_us;
+                    data_delay_us(pid) = data_slot_us;
                     complete_packet(u, pid, pkt_end);
 
                     add_service_interval(pkt_start, pkt_end, 1);
@@ -328,10 +334,10 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
                 elseif n_still > 1
                     % Multiple transmitters 锟斤拷 all packets in this period collide
                     collision_slots = collision_slots + 1;
-                    collision_wasted_us = collision_wasted_us + conn_slot_us;
-                    collision_tx_airtime_us = collision_tx_airtime_us + n_still * conn_slot_us;
+                    collision_wasted_us = collision_wasted_us + data_slot_us;
+                    collision_tx_airtime_us = collision_tx_airtime_us + n_still * data_slot_us;
                     if now_us >= measure_left && now_us < measure_right
-                        collision_wasted_measure_us = collision_wasted_measure_us + conn_slot_us;
+                        collision_wasted_measure_us = collision_wasted_measure_us + data_slot_us;
                     end
                     payload_attempt_overlap_us = payload_attempt_overlap_us + ...
                         n_still * interval_overlap_us(pkt_start, pkt_end, measure_left, measure_right);
@@ -345,7 +351,7 @@ function result = simulate_aloha_v2(protocol, trace, scenario, cfg, M, q, seed)
                         if head(uu) <= tail(uu)
                             pid_uu = ids_uu(head(uu));
                             if ~isfinite(completion_us(pid_uu))
-                                collision_delay_us(pid_uu) = collision_delay_us(pid_uu) + conn_slot_us;
+                                collision_delay_us(pid_uu) = collision_delay_us(pid_uu) + data_slot_us;
                             end
                         end
                     end

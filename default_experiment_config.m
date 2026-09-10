@@ -14,7 +14,7 @@
     cfg.profile = lower(char(profile));
     cfg.protocols = {'sf_cf', 'sf_cb', 'sb_cf', 'sb_cb', ...
                      's7_clean', 's7_busy', 'unslotted'};
-    cfg.lambda_values = [16, 30];       % pkt/STA/s (fixed packet length = 1 conn_slot)
+    cfg.lambda_values = [16, 30];       % pkt/STA/s (fixed packet length = data slot)
     cfg.M_values = 1:6;
     cfg.load_modes = {'fixed_packet'};
     cfg.txop_mode = 'ready_queue';
@@ -50,6 +50,9 @@
     cfg.mmw_real_cts_sweep_us = cfg.mmw_real_cts_us * cfg.n_sectors;
     cfg.mmw_real_conn_slot_us = cfg.mmw_real_rts_us + cfg.mmw_real_sifs_us + ...
         cfg.mmw_real_cts_sweep_us + cfg.mmw_real_sifs_us;
+    % Data packet airtime is intentionally decoupled from the reservation
+    % conn-slot.  Default 162.5 us keeps legacy behavior unchanged.
+    cfg.mmw_data_slot_us = cfg.mmw_real_conn_slot_us;
     cfg.mmw_real_cts_timeout_us = cfg.mmw_real_sifs_us + ...
         cfg.mmw_real_cts_sweep_us;
     cfg.topology_seed = 20260325;

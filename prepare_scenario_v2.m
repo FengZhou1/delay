@@ -45,6 +45,11 @@
     MMW_REAL.CONN_OVERHEAD_US = cfg.mmw_real_conn_slot_us;  % 162.5
     MMW_REAL.CTS_TIMEOUT_US = cfg.mmw_real_cts_timeout_us;  % 132.0
     MMW_REAL.DIFS_TICKS = ceil(MMW_REAL.DIFS_US / MMW_REAL.SLOT_US);
+    if isfield(cfg,'mmw_data_slot_us') && ~isempty(cfg.mmw_data_slot_us)
+        MMW_REAL.DATA_SLOT_US = double(cfg.mmw_data_slot_us);
+    else
+        MMW_REAL.DATA_SLOT_US = MMW_REAL.CONN_OVERHEAD_US;
+    end
 
     % Real-time Sub-7 timings (already in us in sim_utils); keep the
     % legacy slot-derived names for backwards compatibility.

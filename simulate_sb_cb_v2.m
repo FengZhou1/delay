@@ -27,6 +27,11 @@
     cts_us = double(TR.CTS_US);             % 14.5
     cts_sweep_us = double(TR.CTS_SWEEP_US); % 116.0
     conn_slot_us = double(TR.CONN_OVERHEAD_US); % 162.5
+    if isfield(TR,'DATA_SLOT_US') && ~isempty(TR.DATA_SLOT_US)
+        data_slot_us = double(TR.DATA_SLOT_US);
+    else
+        data_slot_us = conn_slot_us;
+    end
     txop_n_packets = 1;  % default, overwritten on RTS success
     cts_timeout_us = double(TR.CTS_TIMEOUT_US); % 132.0
     difs_ticks = double(TR.DIFS_TICKS);
@@ -610,7 +615,7 @@
             else
                 txop_n_packets = max(1, min(queue_count(u), M));
             end
-            winner_data_end = winner_data_start + txop_n_packets * conn_slot_us;
+            winner_data_end = winner_data_start + txop_n_packets * data_slot_us;
             diagnostics.rts_success = diagnostics.rts_success + 1;
         else
             node_state(u) = ST_WAIT;
@@ -794,7 +799,7 @@
             case AP_SIFS_POST
                 ap_phase = AP_DATA;
                 ap_phase_start = t_now;
-                ap_phase_end = t_now + txop_n_packets * conn_slot_us;
+                ap_phase_end = t_now + txop_n_packets * data_slot_us;
                 data_failed = false;
                 if winner_cts_ok && winner_id > 0
                     data_tx_active = true;
@@ -870,8 +875,8 @@
                                 for pp = 1:n_ok
                                     if queue_count(winner_id) > 0
                                         cpid = head_packet_id(winner_id);
-                                        completion_us(cpid) = winner_data_start + pp * conn_slot_us;
-                                        data_delay_us(cpid) = conn_slot_us;
+                                        completion_us(cpid) = winner_data_start + pp * data_slot_us;
+                                        data_delay_us(cpid) = data_slot_us;
                                         if pp == 1
                                             control_delay_us(cpid) = conn_slot_us;
                                         else

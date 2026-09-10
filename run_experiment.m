@@ -1299,6 +1299,10 @@ function write_json(path, value)
     fwrite(fid, jsonencode(value, 'PrettyPrint', true), 'char');
 end
 function value = real_conn_slot_us(cfg)
+    if isfield(cfg,'mmw_data_slot_us') && ~isempty(cfg.mmw_data_slot_us)
+        value = double(cfg.mmw_data_slot_us);
+        return;
+    end
     if isfield(cfg,'mmw_real_conn_slot_us') && ~isempty(cfg.mmw_real_conn_slot_us)
         value = double(cfg.mmw_real_conn_slot_us);
     else

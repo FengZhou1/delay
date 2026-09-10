@@ -25,6 +25,11 @@
     cts_us = double(TR.CTS_US);
     cts_sweep_us = double(TR.CTS_SWEEP_US);
     conn_slot_us = double(TR.CONN_OVERHEAD_US);
+    if isfield(TR,'DATA_SLOT_US') && ~isempty(TR.DATA_SLOT_US)
+        data_slot_us = double(TR.DATA_SLOT_US);
+    else
+        data_slot_us = conn_slot_us;
+    end
     cts_timeout_us = double(TR.CTS_TIMEOUT_US);
     difs_ticks = double(TR.DIFS_TICKS);
     exp_rate_us = -log(1 - q) / slot_us;   % per microsecond
@@ -583,7 +588,7 @@
             else
                 txop_n_packets = max(1, min(queue_count(u), M));
             end
-            winner_data_end = winner_data_start + txop_n_packets * conn_slot_us;
+            winner_data_end = winner_data_start + txop_n_packets * data_slot_us;
             txop_first_fail = 0;
             diagnostics.rts_success = diagnostics.rts_success + 1;
         else
@@ -759,7 +764,7 @@
             case AP_SIFS_POST
                 ap_phase = AP_DATA;
                 ap_phase_start = t_now;
-                ap_phase_end = t_now + txop_n_packets * conn_slot_us;
+                ap_phase_end = t_now + txop_n_packets * data_slot_us;
                 data_failed = false;
                 if winner_cts_ok && winner_id > 0
                     data_tx_active = true;
@@ -833,8 +838,8 @@
                                     if queue_count(winner_id) > 0
                                         if ~is_saturation
                                             cpid = head_packet_id(winner_id);
-                                            completion_us(cpid) = winner_data_start + pp * conn_slot_us;
-                                            data_delay_us(cpid) = conn_slot_us;
+                                            completion_us(cpid) = winner_data_start + pp * data_slot_us;
+                                            data_delay_us(cpid) = data_slot_us;
                                             if pp == 1
                                                 control_delay_us(cpid) = conn_slot_us;
                                             else
@@ -974,7 +979,7 @@
             data_failed = true;
             elapsed = t_now - winner_data_start;
             if elapsed >= 0 && txop_n_packets > 0
-                pkt_idx = floor(elapsed / conn_slot_us) + 1;
+                pkt_idx = floor(elapsed / data_slot_us) + 1;
                 if pkt_idx >= 1 && pkt_idx <= txop_n_packets
                     if txop_first_fail == 0 || pkt_idx < txop_first_fail
                         txop_first_fail = pkt_idx;

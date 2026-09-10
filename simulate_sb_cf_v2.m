@@ -27,6 +27,11 @@
     sifs_us = double(TR.SIFS_US);              % 16 us
     difs_us = double(TR.DIFS_US);              % 34 us
     conn_slot_us = double(TR.CONN_OVERHEAD_US);% 162.5 us
+    if isfield(TR,'DATA_SLOT_US') && ~isempty(TR.DATA_SLOT_US)
+        data_slot_us = double(TR.DATA_SLOT_US);
+    else
+        data_slot_us = conn_slot_us;
+    end
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
     % Carrier-sensing mode: 'disabled' disables CCA (stations transmit
@@ -418,10 +423,10 @@
         node_state(u) = ST_TX;
         if is_saturation
             txop_n_packets_tx(u) = M;
-            tx_end(u) = t_now + M * conn_slot_us;
+            tx_end(u) = t_now + M * data_slot_us;
         else
             txop_n_packets_tx(u) = max(1, min(queue_count(u), M));
-            tx_end(u) = t_now + txop_n_packets_tx(u) * conn_slot_us;
+            tx_end(u) = t_now + txop_n_packets_tx(u) * data_slot_us;
         end
         tx_overlap(u) = false;
         ap_idle_at_start(u) = ap_phase == AP_IDLE;
@@ -446,8 +451,8 @@
         succeeded = ~tx_overlap(u) && ap_idle_at_start(u);
         if succeeded
             winner_id = u;
-            winner_data_start = t_now - txop_n_packets * conn_slot_us;
-            winner_data_end = winner_data_start + txop_n_packets * conn_slot_us;
+            winner_data_start = t_now - txop_n_packets * data_slot_us;
+            winner_data_end = winner_data_start + txop_n_packets * data_slot_us;
             % txop_n_packets computed above
             txop_first_fail = 0;
             data_tx_active = true;
@@ -471,19 +476,19 @@
                 diagnostics.rts_fail_collision = ...
                     diagnostics.rts_fail_collision + 1;
                 diagnostics.collision_waste_us = ...
-                    diagnostics.collision_waste_us + txop_n_packets * conn_slot_us;
+                    diagnostics.collision_waste_us + txop_n_packets * data_slot_us;
                 % The wasted interval is clipped to the hard horizon so a
                 % transmission truncated by the end of the simulation does
                 % not report airtime beyond it.
                 waste_end = min(t_now, hard_end_us);
                 diagnostics.collision_waste_measure_us = ...
                     diagnostics.collision_waste_measure_us + ...
-                    interval_overlap_us(t_now - txop_n_packets * conn_slot_us, waste_end, ...
+                    interval_overlap_us(t_now - txop_n_packets * data_slot_us, waste_end, ...
                         left_measure_us, right_measure_us);
                 if ~is_saturation && attempt_pid(u) > 0
                     pid = attempt_pid(u);
                     collision_delay_us(pid) = ...
-                        collision_delay_us(pid) + txop_n_packets * conn_slot_us;
+                        collision_delay_us(pid) + txop_n_packets * data_slot_us;
                     attempt_pid(u) = 0;
                     attempt_start(u) = nan;
                 end
@@ -549,8 +554,8 @@
                                 for pp = 1:n_ok
                                     if queue_count(winner_id) > 0
                                         cpid = head_packet_id(winner_id);
-                                        completion_us(cpid) = winner_data_start + pp * conn_slot_us;
-                                        data_delay_us(cpid) = conn_slot_us;
+                                        completion_us(cpid) = winner_data_start + pp * data_slot_us;
+                                        data_delay_us(cpid) = data_slot_us;
                                         if pp == 1
                                             control_delay_us(cpid) = 0;
                                         else
@@ -633,7 +638,7 @@
             data_failed = true;
             elapsed = t_now - winner_data_start;
             if elapsed >= 0 && txop_n_packets > 0
-                pkt_idx = floor(elapsed / conn_slot_us) + 1;
+                pkt_idx = floor(elapsed / data_slot_us) + 1;
                 if pkt_idx >= 1 && pkt_idx <= txop_n_packets
                     if txop_first_fail == 0 || pkt_idx < txop_first_fail
                         txop_first_fail = pkt_idx;

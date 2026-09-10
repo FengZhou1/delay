@@ -23,10 +23,16 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     n_mlo = cfg.n_nodes;
     n_total = n_mlo + n_slo;
     conn_slot_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
-    if is_saturation
-        tp_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US) * M;
+    if isfield(scenario.MMW_REAL,'DATA_SLOT_US') && ...
+            ~isempty(scenario.MMW_REAL.DATA_SLOT_US)
+        data_slot_us = double(scenario.MMW_REAL.DATA_SLOT_US);
     else
-        tp_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US) * M;
+        data_slot_us = conn_slot_us;
+    end
+    if is_saturation
+        tp_us = data_slot_us * M;
+    else
+        tp_us = data_slot_us * M;
     end
     slot_us = double(scenario.SUB7.SLOT_TIME_US);
     sifs_us = double(scenario.SUB7.SIFS_US);
@@ -189,7 +195,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                             qd_w = arrived_tail(w) - head_pos(w) + 1;
                             req_n_to_send_w = max(1, min(qd_w, M));
                         end
-                        data_end = response_end + req_n_to_send_w * conn_slot_us;
+                        data_end = response_end + req_n_to_send_w * data_slot_us;
                         other_mlo = (1:n_mlo)' ~= w;
                         nav_until(1:n_mlo) = max(nav_until(1:n_mlo), ...
                                                 data_end * double(other_mlo));
@@ -205,7 +211,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                             qd_w = arrived_tail(w) - head_pos(w) + 1;
                             req_n_to_send_w = max(1, min(qd_w, M));
                         end
-                        data_end = response_end + req_n_to_send_w * conn_slot_us;
+                        data_end = response_end + req_n_to_send_w * data_slot_us;
                         others = true(n_total,1); others(w) = false;
                         nav_until(others) = max(nav_until(others), data_end);
                         reserved_until = max(reserved_until, data_end);
@@ -247,7 +253,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     state(u) = TX_DATA_SLO;
                     qd_uu = arrived_tail(u) - head_pos(u) + 1;
                     n_uu = max(1, min(qd_uu, M));
-                    reserved_until = max(reserved_until, t + n_uu * conn_slot_us);
+                    reserved_until = max(reserved_until, t + n_uu * data_slot_us);
                 end
                 if is_saturation
                     n_u = M;
@@ -255,7 +261,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     qd_u = arrived_tail(u) - head_pos(u) + 1;
                     n_u = max(1, min(qd_u, M));
                 end
-                deadline(u) = t + n_u * conn_slot_us;
+                deadline(u) = t + n_u * data_slot_us;
                 req_n_to_send_stored(u) = n_u;
             end
 
@@ -276,7 +282,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                 diag.mlo_payload_success = diag.mlo_payload_success + 1;
                 n_to_send = req_n_to_send_stored(u);
                 payload_overlap = payload_overlap + interval_overlap_us( ...
-                    t - n_to_send * conn_slot_us, t, cfg.warmup_us, cfg.arrival_end_us);
+                    t - n_to_send * data_slot_us, t, cfg.warmup_us, cfg.arrival_end_us);
                 if is_saturation
                     for pp = 1:n_to_send
                         if t >= cfg.warmup_us && t < cfg.arrival_end_us
@@ -294,12 +300,12 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
                     for pp = 1:n_to_send
                         if head_pos(u) <= arrived_tail(u)
                             cpid = node_packets{u}(head_pos(u));
-                            pkt.completion_us(cpid) = t - n_to_send * conn_slot_us + pp * conn_slot_us;
-                            pkt.data_delay_us(cpid) = conn_slot_us;
+                            pkt.completion_us(cpid) = t - n_to_send * data_slot_us + pp * data_slot_us;
+                            pkt.data_delay_us(cpid) = data_slot_us;
                             if pp == 1
                                 pkt.control_delay_us(cpid) = req_us + resp_wait_us;
                             else
-                                pkt.hol_us(cpid) = t - n_to_send * conn_slot_us + (pp-1) * conn_slot_us;
+                                pkt.hol_us(cpid) = t - n_to_send * data_slot_us + (pp-1) * data_slot_us;
                             end
                             head_pos(u) = head_pos(u) + 1;
                             backlog = backlog - 1;
@@ -327,7 +333,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
             slo_done = ending(ending_state == TX_DATA_SLO);
             if ~isempty(slo_done)
                 diag.slo_payload_success = diag.slo_payload_success + numel(slo_done);
-                slo_overlap = interval_overlap_us(t - n_to_send * conn_slot_us,t, ...
+                slo_overlap = interval_overlap_us(t - n_to_send * data_slot_us,t, ...
                     cfg.warmup_us,cfg.arrival_end_us);
                 diag.slo_payload_overlap_us = ...
                     diag.slo_payload_overlap_us + numel(slo_done)*slo_overlap;
@@ -450,7 +456,7 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
     has_attempts = completed_mask & pkt.attempts > 0;
     pkt.control_delay_us(has_attempts) = req_us + resp_wait_us;
     pkt.data_delay_us = zeros(n_pkt,1);
-    pkt.data_delay_us(completed_mask) = conn_slot_us;
+    pkt.data_delay_us(completed_mask) = data_slot_us;
     component_sum = pkt.boundary_wait_us + pkt.difs_wait_us + ...
         pkt.probability_wait_us + pkt.collision_delay_us + ...
         pkt.control_delay_us + pkt.data_delay_us;
