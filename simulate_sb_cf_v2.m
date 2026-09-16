@@ -13,7 +13,7 @@
 % 9 us boundary and starts a real DATA frame of 162.5*M us.  A busy channel
 % resets the DIFS counter.  Overlapping DATA frames collide (classic model).
 % The AP receives the DATA omnidirectionally and judges success with the
-% directional SINR threshold (DATA threshold 21 dB), so a late frame can
+% configured directional DATA SINR threshold, so a late frame can
 % spoil the winner's DATA.
 %
 % CCA modes: directional (real sensing), disabled (no sensing / no NAV).

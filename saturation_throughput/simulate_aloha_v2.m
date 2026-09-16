@@ -81,16 +81,21 @@
             'scenario.MMW_REAL.CONN_OVERHEAD_US is required.');
     end
     reservation_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
+    if isfield(scenario.MMW_REAL,'DATA_SLOT_US') && ...
+            ~isempty(scenario.MMW_REAL.DATA_SLOT_US)
+        data_slot_us = double(scenario.MMW_REAL.DATA_SLOT_US);
+    else
+        data_slot_us = reservation_us;
+    end
     if is_saturation
         payload_timing = saturation_payload_timing(cfg,M);
-        % sf_cf and sf_cb both use the exact 162.5-us connection slot.
-        Tp_us = reservation_us * double(M);
+        Tp_us = data_slot_us * double(M);
         payload_timing.actual_payload_us = Tp_us;
         payload_timing.nominal_payload_us = Tp_us;
         payload_timing.effective_M = double(M);
     else
         payload_timing = [];
-        Tp_us = reservation_us * double(M);
+        Tp_us = data_slot_us * double(M);
     end
     if strcmp(protocol, 'sf_cf')
         contention_slot_us = Tp_us;

@@ -87,7 +87,7 @@
     cfg.tuning_rate_screen = true;
     cfg.common_arrivals_by_effective_rate = true;
     cfg.parallel = true;
-    cfg.n_workers = 4;
+    cfg.n_workers = 2;
     cfg.condition_timeout_s = 1800;
     cfg.tune_warmup_us = 0;
     cfg.tune_measure_us = 2e6;
@@ -104,9 +104,13 @@
     cfg.condition_filter = {};
 
     cfg.cca_mode = 'directional';           % directional | oracle | disabled
+    cfg.cts_mode = 'sector_sweep';
+    cfg.qo_peak_gain_db = 0;
+    cfg.qo_amplitude_taper = [1, 3, 3, 1];
+    cfg.data_failure_mode = 'txop';         % txop | packet
     cfg.rx_sens_dbm = -62;
     cfg.noise_dbm = -81;
-    cfg.data_sinr_th_db = 21;
+    cfg.data_sinr_th_db = 20;
     cfg.cts_sinr_th_db = 6;
     % Deprecated compatibility alias. RTS now uses a classic collision
     % model; this threshold is used only for CTS decoding.

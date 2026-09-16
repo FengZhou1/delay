@@ -33,3 +33,11 @@ R9_v1/logs/
 
 # Standalone saturation folder: keep code only, results stay local
 saturation_throughput/results/
+# R10 current-run outputs and local temporary data
+.codex-tmp/
+saturation_throughput/.codex-tmp/
+R10_results/
+saturation_throughput/results_R10_cts/
+
+# R10 run log
+run_R10_pkt650_log.txt

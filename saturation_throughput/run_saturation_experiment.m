@@ -433,9 +433,8 @@ function maybe_start_pool(cfg)
     if isempty(pool)
         parpool('local',cfg.n_workers);
     elseif pool.NumWorkers ~= cfg.n_workers
-        warning('run_saturation_experiment:WorkerCount', ...
-            'Using existing pool with %d workers (requested %d).', ...
-            pool.NumWorkers,cfg.n_workers);
+        delete(pool);
+        parpool('local',cfg.n_workers);
     end
 end
 

@@ -21,11 +21,13 @@ function result = simulate_s7_v2(protocol, trace, scenario, cfg, M, q, seed)
 
     n_mlo = cfg.n_nodes;
     n_total = n_mlo + n_slo;
-    if is_saturation
-        tp_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US) * M;
+    if isfield(scenario.MMW_REAL,'DATA_SLOT_US') && ...
+            ~isempty(scenario.MMW_REAL.DATA_SLOT_US)
+        data_slot_us = double(scenario.MMW_REAL.DATA_SLOT_US);
     else
-        tp_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US) * M;
+        data_slot_us = double(scenario.MMW_REAL.CONN_OVERHEAD_US);
     end
+    tp_us = data_slot_us * M;
     slot_us = double(scenario.SUB7.SLOT_TIME_US);
     sifs_us = double(scenario.SUB7.SIFS_US);
     difs_us = double(scenario.SUB7.DIFS_US);

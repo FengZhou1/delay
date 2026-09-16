@@ -13,7 +13,7 @@
 % 9 us boundary and starts a real DATA frame of 162.5*M us.  A busy channel
 % resets the DIFS counter.  Overlapping DATA frames collide (classic model).
 % The AP receives the DATA omnidirectionally and judges success with the
-% directional SINR threshold (DATA threshold 21 dB), so a late frame can
+% configured directional DATA SINR threshold, so a late frame can
 % spoil the winner's DATA.
 %
 % CCA modes: directional (real sensing), disabled (no sensing / no NAV).
@@ -27,13 +27,14 @@
     sifs_us = double(TR.SIFS_US);              % 16 us
     difs_us = double(TR.DIFS_US);              % 34 us
     conn_slot_us = double(TR.CONN_OVERHEAD_US);% 162.5 us
+    if isfield(TR,'DATA_SLOT_US') && ~isempty(TR.DATA_SLOT_US)
+        data_slot_us = double(TR.DATA_SLOT_US);
+    else
+        data_slot_us = conn_slot_us;
+    end
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
-    if is_saturation
-        tp_us = conn_slot_us * double(M);
-    else
-        tp_us = conn_slot_us * double(M);
-    end
+    tp_us = data_slot_us * double(M);
     % Carrier-sensing mode: 'disabled' disables CCA (stations transmit
     % after DIFS without sensing); otherwise the real channel is sensed.
     cca_mode = 'directional';

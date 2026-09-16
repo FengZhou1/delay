@@ -40,21 +40,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         cts_mode = lower(char(cfg.cts_mode));
     end
     quasi_omni_ideal = strcmp(cts_mode,'quasi_omni_ideal');
-    single_cts_mode = ismember(cts_mode,{'quasi_omni_ideal', ...
-        'quasi_omni_physical','quasi_omni_isotropic','directional_winner'});
-    if single_cts_mode
-        active_cts_us = cts_us;
-    else
-        active_cts_us = cts_sweep_us;
-    end
-    data_failure_mode = 'txop';
-    if isfield(cfg,'data_failure_mode') && ~isempty(cfg.data_failure_mode)
-        data_failure_mode = lower(char(cfg.data_failure_mode));
-    end
-    if ~ismember(data_failure_mode,{'txop','packet'})
-        error('simulate_sb_cb_v2:BadFailureMode', ...
-            'data_failure_mode must be txop or packet.');
-    end
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
     batch_requests = is_batch_txop_mode(cfg) && ~is_saturation;
@@ -86,15 +71,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     int_matrix = PHY.Int_Matrix;
     ap_rx = PHY.AP_Rx_Matrix;
     ap_sector_tx = PHY.AP_Sector_Tx_Matrix;
-    cts_tx_matrix = [];
-    if ismember(cts_mode,{'quasi_omni_physical','quasi_omni_isotropic', ...
-            'directional_winner'})
-        if ~isfield(PHY,'AP_CTS_Tx_Matrix') || isempty(PHY.AP_CTS_Tx_Matrix)
-            error('simulate_sb_cb_v2:MissingCtsMatrix', ...
-                'AP_CTS_Tx_Matrix is required for physical CTS modes.');
-        end
-        cts_tx_matrix = PHY.AP_CTS_Tx_Matrix;
-    end
     noise_w = 10.^((PHY.NOISE_DBM - 30) / 10);
     sens_w = 10.^((cfg.rx_sens_dbm - 30) / 10);
     cts_sinr_th = PHY.CTS_SINR_TH_DB;
@@ -146,8 +122,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     queue_head = ones(n_nodes,1);
     queue_tail = zeros(n_nodes,1);
     queue_count = zeros(n_nodes,1);
-    packet_delivered = false(n_packets,1);
-    txop_packet_ids = zeros(0,1);
     batch_fill = zeros(n_nodes,1);
     request_count = zeros(n_nodes,1);
     next_arrival = 1;
@@ -163,8 +137,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     winner_data_end = 0;
     data_tx_active = false;
     data_failed = false;
-    data_interferer_start = nan(n_nodes,1);
-    data_intervals = zeros(0,2);
 
     system_area_measure_us = 0;
     service_area_measure_us = 0;
@@ -226,8 +198,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     diagnostics.cts_winner_fail_sinr = 0;
     diagnostics.collision_waste_measure_us = 0;
     diagnostics.payload_success_overlap_us = 0;
-    diagnostics.data_failure_mode = data_failure_mode;
-    diagnostics.packet_mode_partial_success = 0;
     diagnostics.txop_mode = txop_mode(cfg);
     diagnostics.batch_requests = batch_requests;
 
@@ -339,13 +309,9 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     end
     diagnostics.sim_end_us = sim_end_us;
     diagnostics.cca_mode = 'directional';
-    diagnostics.rts_reception_model = 'classic_collision';
     diagnostics.cts_mode = cts_mode;
-    if single_cts_mode
-        diagnostics.cts_reception_model = cts_mode;
-    else
-        diagnostics.cts_reception_model = 'sector_scan_half_duplex_plus_sinr';
-    end
+    diagnostics.rts_reception_model = 'classic_collision';
+    diagnostics.cts_reception_model = 'sector_scan_half_duplex_plus_sinr';
     diagnostics.data_reception_model = 'directional_sinr';
     diagnostics.cts_sinr_th_db = cts_sinr_th;
     diagnostics.data_sinr_th_db = data_sinr_th;
@@ -424,37 +390,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     end
 
     function pid = head_packet_id(u)
-        pid = 0;
-        if u < 1 || u > n_nodes || queue_head(u) > queue_tail(u)
-            return;
-        end
-        ids = trace.packet_ids_by_node{u};
-        for idx = queue_head(u):queue_tail(u)
-            candidate = ids(idx);
-            if ~packet_delivered(candidate)
-                pid = candidate;
-                return;
-            end
-        end
-    end
-
-    function [ids,n] = select_txop_packets(u,max_packets)
-        ids = zeros(0,1);
-        if u < 1 || u > n_nodes || queue_head(u) > queue_tail(u)
-            n = 0;
-            return;
-        end
-        all_ids = trace.packet_ids_by_node{u};
-        for idx = queue_head(u):queue_tail(u)
-            pid = all_ids(idx);
-            if ~packet_delivered(pid)
-                ids(end+1,1) = pid; %#ok<AGROW>
-                if numel(ids) >= max_packets
-                    break;
-                end
-            end
-        end
-        n = numel(ids);
+        pid = trace.packet_ids_by_node{u}(queue_head(u));
     end
 
     function enqueue_until(limit_us)
@@ -644,7 +580,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         end
         if ap_phase == AP_DATA && data_tx_active
             eval_data_sinr();
-            data_interferer_start(u) = t_now;
         end
 
         hearers = find( (node_state == ST_SENSE | node_state == ST_READY) & ...
@@ -668,13 +603,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 
     function process_rts_end(u, t_now)
         rts_end(u) = inf;
-        if isfinite(data_interferer_start(u))
-            data_intervals(end+1,:) = [data_interferer_start(u),t_now]; %#ok<AGROW>
-            data_interferer_start(u) = nan;
-            if ap_phase == AP_DATA && data_tx_active
-                eval_data_sinr();
-            end
-        end
         succeeded = ~rts_overlap(u) && ap_idle_at_start(u) && ...
             ap_phase == AP_IDLE;
         if succeeded
@@ -685,12 +613,13 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             ap_phase = AP_SIFS_PRE;
             ap_phase_start = t_now;
             ap_phase_end = t_now + sifs_us;
-            winner_data_start = t_now + sifs_us + active_cts_us + sifs_us;
+            winner_data_start = t_now + sifs_us + cts_sweep_us + sifs_us;
             if is_saturation
                 txop_n_packets = M;
-                txop_packet_ids = zeros(0,1);
+            elseif batch_requests
+                txop_n_packets = M;
             else
-                [txop_packet_ids,txop_n_packets] = select_txop_packets(u,M);
+                txop_n_packets = max(1, min(queue_count(u), M));
             end
             winner_data_end = winner_data_start + txop_n_packets * data_slot_us;
             diagnostics.rts_success = diagnostics.rts_success + 1;
@@ -831,7 +760,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                 nav_until <= t_now);
                 for v = hearers.'
                     node_state(v) = ST_SENSE;
-    
+
                     sense_count(v) = 0;
                     nb = ceil(t_now / slot_us) * slot_us;
                     if nb <= t_now; nb = t_now + slot_us; end
@@ -842,56 +771,18 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         end
     end
 
-    function process_single_cts_end(t_now)
-        if quasi_omni_ideal
-            winner_cts_ok = winner_id > 0;
-        else
-            winner_cts_ok = winner_id > 0 && ...
-                cts_min_sinr(winner_id) >= cts_sinr_th;
-        end
-        if winner_cts_ok
-            diagnostics.cts_decoded_winner = ...
-                diagnostics.cts_decoded_winner + 1;
-        else
-            diagnostics.cts_miss_winner = ...
-                diagnostics.cts_miss_winner + 1;
-        end
-
-        for v = 1:n_nodes
-            if v == winner_id || node_state(v) == ST_RTS
-                continue;
-            end
-            if ~sense_enabled
-                continue;
-            end
-            decoded = quasi_omni_ideal || cts_min_sinr(v) >= cts_sinr_th;
-            if decoded
-                nav_until(v) = max(nav_until(v),winner_data_end);
-                diagnostics.nav_set = diagnostics.nav_set + 1;
-                if ismember(node_state(v),[ST_WAIT,ST_SENSE,ST_READY,ST_NAV])
-                    node_state(v) = ST_NAV;
-                    sense_count(v) = 0;
-                    next_tick(v) = winner_data_end;
-                    if next_tick(v) <= t_now
-                        next_tick(v) = t_now + slot_us;
-                    end
-                end
-            end
-        end
-    end
-
     function process_ap_phase_end(t_now)
         switch ap_phase
             case AP_SIFS_PRE
                 ap_phase = AP_CTS;
                 ap_phase_start = t_now;
-                ap_phase_end = t_now + active_cts_us;
+                ap_phase_end = t_now + cts_sweep_us;
                 current_sector = 1;
                 cts_sector_start = t_now;
                 cts_min_sinr(:) = inf;
                 tx_in_sector(:) = false;
-                update_cts_sinr(t_now);
-                if ~single_cts_mode
+                if ~quasi_omni_ideal
+                    update_cts_sinr(t_now);
                     hearers = find( ...
                         (node_state == ST_SENSE | node_state == ST_READY) & ...
                         ap_sector_tx(:, 1) > sens_w & nav_until <= t_now);
@@ -908,8 +799,34 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                         end
                 end
             case AP_CTS
-                if single_cts_mode
-                    process_single_cts_end(t_now);
+                if quasi_omni_ideal
+                    winner_cts_ok = winner_id > 0;
+                    if winner_cts_ok
+                        diagnostics.cts_decoded_winner = ...
+                            diagnostics.cts_decoded_winner + 1;
+                    end
+                    if sense_enabled
+                        targets = (1:n_nodes).';
+                        targets = targets(targets ~= winner_id);
+                        for v = targets.'
+                            if node_state(v) == ST_RTS
+                                continue;
+                            end
+                            nav_until(v) = max(nav_until(v), winner_data_end);
+                            diagnostics.nav_set = diagnostics.nav_set + 1;
+                            if node_state(v) == ST_WAIT || ...
+                                    node_state(v) == ST_SENSE || ...
+                                    node_state(v) == ST_READY || ...
+                                    node_state(v) == ST_NAV
+                                node_state(v) = ST_NAV;
+                                sense_count(v) = 0;
+                                next_tick(v) = winner_data_end;
+                                if next_tick(v) <= t_now
+                                    next_tick(v) = t_now + slot_us;
+                                end
+                            end
+                        end
+                    end
                 elseif current_sector >= 1 && current_sector <= n_sectors
                     process_cts_sector_end(t_now);
                 end
@@ -920,8 +837,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                 ap_phase_start = t_now;
                 ap_phase_end = t_now + txop_n_packets * data_slot_us;
                 data_failed = false;
-                data_intervals = zeros(0,2);
-                data_interferer_start = nan(n_nodes,1);
                 if winner_cts_ok && winner_id > 0
                     data_tx_active = true;
                     diagnostics.data_reservations = ...
@@ -934,7 +849,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                         nav_until <= t_now);
                         for v = hearers.'
                             node_state(v) = ST_SENSE;
-            
+
                             sense_count(v) = 0;
                             sense_start(v) = winner_data_end;
                             nb = ceil(t_now / slot_us) * slot_us;
@@ -949,33 +864,10 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                         diagnostics.data_no_cts + 1;
                 end
             case AP_DATA
-                ongoing = find(isfinite(data_interferer_start)).';
-                for uu = ongoing
-                    data_intervals(end+1,:) = [ ...
-                        data_interferer_start(uu),min(rts_end(uu),t_now)]; %#ok<AGROW>
-                    data_interferer_start(uu) = nan;
-                end
-                n_ok = 0;
-                success_mask = false;
-                if winner_cts_ok
-                    if strcmp(data_failure_mode,'packet')
-                        [n_ok,mask] = packet_success_mask(winner_data_start, ...
-                            data_slot_us,txop_n_packets,data_intervals);
-                        success_mask = mask;
-                    elseif ~data_failed
-                        if is_saturation
-                            success_mask = true;
-                            n_ok = txop_n_packets;
-                        else
-                            success_mask = true(1,numel(txop_packet_ids));
-                            n_ok = sum(success_mask);
-                        end
-                    end
-                end
-                transaction_success = n_ok > 0;
+                transaction_success = winner_cts_ok && ~data_failed;
                 if transaction_success
                     if is_saturation
-                        for pp_sat = 1:n_ok
+                        for pp_sat = 1:txop_n_packets
                             if t_now >= left_measure_us && ...
                                     t_now < right_measure_us
                                 saturation_per_node_completions(winner_id) = ...
@@ -989,11 +881,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                             left_measure_us, right_measure_us);
                     diagnostics.data_success = ...
                         diagnostics.data_success + 1;
-                    if strcmp(data_failure_mode,'packet') && ...
-                            n_ok < txop_n_packets
-                        diagnostics.packet_mode_partial_success = ...
-                            diagnostics.packet_mode_partial_success + 1;
-                    end
                 else
                     if winner_cts_ok
                         diagnostics.data_fail_sinr = ...
@@ -1020,7 +907,20 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
                             if transaction_success && ~isempty( ...
                                     trace.packet_ids_by_node{winner_id}) && ...
                                     queue_count(winner_id) > 0
-                                complete_successful_packets(success_mask,t_now);
+                                n_ok = max(1, min(txop_n_packets, queue_count(winner_id)));
+                                for pp = 1:n_ok
+                                    if queue_count(winner_id) > 0
+                                        cpid = head_packet_id(winner_id);
+                                        completion_us(cpid) = winner_data_start + pp * data_slot_us;
+                                        data_delay_us(cpid) = data_slot_us;
+                                        if pp == 1
+                                            control_delay_us(cpid) = conn_slot_us;
+                                        else
+                                            hol_us(cpid) = winner_data_start;
+                                        end
+                                        pop_head(winner_id, t_now);
+                                    end
+                                end
                                 if batch_requests
                                     request_count(winner_id) = ...
                                         max(0, request_count(winner_id) - 1);
@@ -1057,45 +957,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         end
     end
 
-    function complete_successful_packets(success_mask,t_now)
-        if isscalar(success_mask) && numel(txop_packet_ids) > 1
-            success_mask = repmat(logical(success_mask),1,numel(txop_packet_ids));
-        end
-        for pp = 1:numel(txop_packet_ids)
-            if ~success_mask(pp)
-                continue;
-            end
-            pid = txop_packet_ids(pp);
-            packet_delivered(pid) = true;
-            completion_us(pid) = winner_data_start + pp*data_slot_us;
-            data_delay_us(pid) = data_slot_us;
-            if pp == 1
-                control_delay_us(pid) = conn_slot_us;
-            else
-                hol_us(pid) = winner_data_start + (pp-1)*data_slot_us;
-            end
-            queue_count(winner_id) = max(0,queue_count(winner_id)-1);
-        end
-        advance_head(winner_id);
-    end
-
-    function advance_head(u)
-        ids = trace.packet_ids_by_node{u};
-        while queue_head(u) <= queue_tail(u)
-            pid = ids(queue_head(u));
-            if ~packet_delivered(pid)
-                break;
-            end
-            queue_head(u) = queue_head(u) + 1;
-        end
-        if queue_head(u) <= queue_tail(u)
-            next_pid = ids(queue_head(u));
-            if isnan(hol_us(next_pid))
-                hol_us(next_pid) = max(t,arrival_us(next_pid));
-            end
-        end
-    end
-
     function pop_head(u, t_now)
         % Monotone head/tail pointers; see simulate_slotted_lightload.
         queue_head(u) = queue_head(u) + 1;
@@ -1116,16 +977,9 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         end
         if ap_phase == AP_CTS && current_sector >= 1 && ...
                 current_sector <= n_sectors
-            if quasi_omni_ideal
-                cts_power = inf;
-            elseif single_cts_mode && winner_id > 0
-                cts_power = cts_tx_matrix(winner_id,u);
-            else
-                cts_power = ap_sector_tx(u, current_sector);
-            end
-            if cts_power > sens_w
+            if ap_sector_tx(u, current_sector) > sens_w
                 busy = true;
-                busy_end = min(busy_end, cts_sector_start + active_cts_us);
+                busy_end = min(busy_end, cts_sector_start + cts_us);
             end
         end
         if data_tx_active && winner_id > 0 && winner_id ~= u
@@ -1144,39 +998,8 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
     end
 
     function update_cts_sinr(t_now)
-        if ap_phase ~= AP_CTS
-            return;
-        end
-        interferers = find(node_state == ST_RTS).';
-        if single_cts_mode
-            if winner_id <= 0
-                return;
-            end
-            for u = 1:n_nodes
-                if node_state(u) == ST_RTS
-                    cts_min_sinr(u) = -inf;
-                    continue;
-                end
-                if quasi_omni_ideal
-                    sinr_db = inf;
-                else
-                    if isempty(cts_tx_matrix)
-                        error('simulate_sb_cb_v2:MissingCtsMatrix', ...
-                            'AP_CTS_Tx_Matrix is required for physical CTS.');
-                    end
-                    desired = cts_tx_matrix(winner_id,u);
-                    interf = 0;
-                    if ~isempty(interferers)
-                        interf = sum(int_matrix(interferers,u));
-                    end
-                    sinr_db = 10*log10(desired / (noise_w + interf + eps));
-                end
-                cts_min_sinr(u) = min(cts_min_sinr(u),sinr_db);
-            end
-            return;
-        end
-
-        if current_sector < 1 || current_sector > n_sectors
+        if ap_phase ~= AP_CTS || current_sector < 1 || ...
+                current_sector > n_sectors
             return;
         end
         s = current_sector;
@@ -1184,6 +1007,7 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         if isempty(targets)
             return;
         end
+        interferers = find(node_state == ST_RTS).';
         for u = targets
             if node_state(u) == ST_RTS
                 tx_in_sector(u) = true;
@@ -1191,11 +1015,11 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
             end
             interf = 0;
             if ~isempty(interferers)
-                interf = sum(int_matrix(interferers,u));
+                interf = sum(int_matrix(interferers, u));
             end
-            desired = ap_sector_tx(u,s);
+            desired = ap_sector_tx(u, s);
             sinr_db = 10*log10(desired / (noise_w + interf + eps));
-            cts_min_sinr(u) = min(cts_min_sinr(u),sinr_db);
+            cts_min_sinr(u) = min(cts_min_sinr(u), sinr_db);
         end
     end
 
@@ -1212,13 +1036,6 @@ function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
         sinr_db = 10*log10(desired / (noise_w + interf + eps));
         if sinr_db < data_sinr_th
             data_failed = true;
-            if strcmp(data_failure_mode,'packet')
-                for v = interferers
-                    if isnan(data_interferer_start(v))
-                        data_interferer_start(v) = t;
-                    end
-                end
-            end
         end
     end
 end

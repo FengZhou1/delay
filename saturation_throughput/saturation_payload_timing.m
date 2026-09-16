@@ -11,7 +11,7 @@ function payload = saturation_payload_timing(cfg, M)
             'Saturation M must be a finite positive scalar.');
     end
 
-    conn_us = real_conn_slot_us(cfg);
+    conn_us = payload_unit_us(cfg);
     timing = mmw_timing_config(cfg);
     actual_us = double(M) * conn_us;
     payload_slots = actual_us / timing.SLOT_US;
@@ -23,11 +23,13 @@ function payload = saturation_payload_timing(cfg, M)
     payload.actual_payload_us = actual_us;
     payload.effective_M = double(M);
     payload.quantization_error_us = 0;
-    payload.rounding_rule = 'exact_162p5_conn_slot';
+    payload.rounding_rule = 'exact_payload_unit';
 end
 
-function value = real_conn_slot_us(cfg)
-    if isfield(cfg,'mmw_real_conn_slot_us') && ~isempty(cfg.mmw_real_conn_slot_us)
+function value = payload_unit_us(cfg)
+    if isfield(cfg,'mmw_data_slot_us') && ~isempty(cfg.mmw_data_slot_us)
+        value = double(cfg.mmw_data_slot_us);
+    elseif isfield(cfg,'mmw_real_conn_slot_us') && ~isempty(cfg.mmw_real_conn_slot_us)
         value = double(cfg.mmw_real_conn_slot_us);
     else
         value = 14.5 + 16 + 8*14.5 + 16;   % 162.5 us

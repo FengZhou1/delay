@@ -113,6 +113,10 @@
     cfg.condition_filter = {};
 
     cfg.cca_mode = 'directional';           % directional | oracle | disabled
+    cfg.cts_mode = 'sector_sweep';
+    cfg.qo_peak_gain_db = 0;
+    cfg.qo_amplitude_taper = [1, 3, 3, 1];
+    cfg.data_failure_mode = 'txop';         % txop | packet
     cfg.rx_sens_dbm = -62;
     cfg.noise_dbm = -81;
     cfg.data_sinr_th_db = 20;

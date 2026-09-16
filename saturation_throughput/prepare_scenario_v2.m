@@ -25,6 +25,26 @@ function scenario = prepare_scenario_v2(cfg, topology_seed)
     PHY.AP_Rx_Matrix = utils.precalc_ap_rx_power_mmw(node_pos, PHY);
     PHY.AP_Sector_Tx_Matrix = utils.precalc_ap_sector_tx_power_mmw( ...
         node_pos, PHY, SYS.N_SECTORS);
+    cts_mode = 'sector_sweep';
+    if isfield(cfg,'cts_mode') && ~isempty(cfg.cts_mode)
+        cts_mode = lower(char(cfg.cts_mode));
+    end
+    PHY.CTS_MODE = cts_mode;
+    PHY.AP_CTS_Tx_Matrix = [];
+    if ismember(cts_mode,{'quasi_omni_physical','quasi_omni_isotropic', ...
+            'directional_winner'})
+        qo_peak_gain_db = 0;
+        qo_taper = [1, 3, 3, 1];
+        if isfield(cfg,'qo_peak_gain_db') && ~isempty(cfg.qo_peak_gain_db)
+            qo_peak_gain_db = double(cfg.qo_peak_gain_db);
+        end
+        if isfield(cfg,'qo_amplitude_taper') && ...
+                ~isempty(cfg.qo_amplitude_taper)
+            qo_taper = double(cfg.qo_amplitude_taper);
+        end
+        PHY.AP_CTS_Tx_Matrix = precalc_ap_cts_tx_power_mmw( ...
+            node_pos,PHY,cts_mode,qo_peak_gain_db,qo_taper);
+    end
 
     MMW.DIFS_US = MMW.DIFS * MMW.SLOT_TIME_US;
     MMW.SIFS_US = MMW.SIFS * MMW.SLOT_TIME_US;
@@ -45,6 +65,11 @@ function scenario = prepare_scenario_v2(cfg, topology_seed)
     MMW_REAL.CONN_OVERHEAD_US = cfg.mmw_real_conn_slot_us;  % 162.5
     MMW_REAL.CTS_TIMEOUT_US = cfg.mmw_real_cts_timeout_us;  % 132.0
     MMW_REAL.DIFS_TICKS = ceil(MMW_REAL.DIFS_US / MMW_REAL.SLOT_US);
+    if isfield(cfg,'mmw_data_slot_us') && ~isempty(cfg.mmw_data_slot_us)
+        MMW_REAL.DATA_SLOT_US = double(cfg.mmw_data_slot_us);
+    else
+        MMW_REAL.DATA_SLOT_US = MMW_REAL.CONN_OVERHEAD_US;
+    end
 
     % Real-time Sub-7 timings (already in us in sim_utils); keep the
     % legacy slot-derived names for backwards compatibility.

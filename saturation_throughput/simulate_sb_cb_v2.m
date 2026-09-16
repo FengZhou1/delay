@@ -1,4 +1,4 @@
-﻿function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
+function result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 %SIMULATE_SB_CB_V2 Sensing-based connection protocol (event-driven).
 %   result = simulate_sb_cb_v2(trace, scenario, cfg, M, q, seed)
 %
@@ -11,7 +11,7 @@
 % the 9 us boundary and starts a real 14.5 us RTS.  After RTS success the
 % CTS sweep and DATA follow at exact SIFS spacing without slot alignment.
 % RTS reception uses the classic overlap model.  CTS and DATA use the full
-% directional SINR model (CTS threshold 6 dB, DATA threshold 21 dB), with
+% directional SINR model using the configured CTS and DATA thresholds, with
 % NAV from decoded CTS, half-duplex CTS loss, late-RTS interference and
 % retry after the SIFS+CTS-sweep timeout.
 %
@@ -29,12 +29,33 @@
     conn_slot_us = double(TR.CONN_OVERHEAD_US); % 162.5
     cts_timeout_us = double(TR.CTS_TIMEOUT_US); % 132.0
     difs_ticks = double(TR.DIFS_TICKS);
+    if isfield(TR,'DATA_SLOT_US') && ~isempty(TR.DATA_SLOT_US)
+        payload_unit_us = double(TR.DATA_SLOT_US);
+    else
+        payload_unit_us = conn_slot_us;
+    end
+    cts_mode = 'sector_sweep';
+    if isfield(cfg,'cts_mode') && ~isempty(cfg.cts_mode)
+        cts_mode = lower(char(cfg.cts_mode));
+    end
+    quasi_omni_ideal = strcmp(cts_mode,'quasi_omni_ideal');
+    single_cts_mode = ismember(cts_mode,{'quasi_omni_ideal', ...
+        'quasi_omni_physical','quasi_omni_isotropic','directional_winner'});
+    if single_cts_mode
+        active_cts_us = cts_us;
+    else
+        active_cts_us = cts_sweep_us;
+    end
+    data_failure_mode = 'txop';
+    if isfield(cfg,'data_failure_mode') && ~isempty(cfg.data_failure_mode)
+        data_failure_mode = lower(char(cfg.data_failure_mode));
+    end
     is_saturation = isfield(cfg,'traffic_mode') && ...
         strcmpi(char(cfg.traffic_mode),'saturation');
     if is_saturation
-        tp_us = conn_slot_us * double(M);
+        tp_us = payload_unit_us * double(M);
     else
-        tp_us = conn_slot_us * double(M);
+        tp_us = payload_unit_us * double(M);
     end
     % Carrier-sensing mode: 'disabled' disables CCA (stations transmit
     % after DIFS without sensing); 'directional'/'oracle' sense the real
@@ -64,6 +85,15 @@
     int_matrix = PHY.Int_Matrix;
     ap_rx = PHY.AP_Rx_Matrix;
     ap_sector_tx = PHY.AP_Sector_Tx_Matrix;
+    cts_tx_matrix = [];
+    if ismember(cts_mode,{'quasi_omni_physical','quasi_omni_isotropic', ...
+            'directional_winner'})
+        if ~isfield(PHY,'AP_CTS_Tx_Matrix') || isempty(PHY.AP_CTS_Tx_Matrix)
+            error('simulate_sb_cb_v2:MissingCtsMatrix', ...
+                'AP_CTS_Tx_Matrix is required for physical CTS modes.');
+        end
+        cts_tx_matrix = PHY.AP_CTS_Tx_Matrix;
+    end
     noise_w = 10.^((PHY.NOISE_DBM - 30) / 10);
     sens_w = 10.^((cfg.rx_sens_dbm - 30) / 10);
     cts_sinr_th = PHY.CTS_SINR_TH_DB;
@@ -127,6 +157,8 @@
     winner_data_end = 0;
     data_tx_active = false;
     data_failed = false;
+    data_interferer_start = nan(n_nodes,1);
+    data_intervals = zeros(0,2);
 
     system_area_measure_us = 0;
     service_area_measure_us = 0;
@@ -168,6 +200,8 @@
     diagnostics.cca_eligible_rts_harm = 0;
     diagnostics.data_partial_collision_events = 0;
     diagnostics.data_failure_transaction_delay_us = 0;
+    diagnostics.data_failure_mode = data_failure_mode;
+    diagnostics.packet_mode_partial_success = 0;
     diagnostics.rts_start_times_us = zeros(0,1);
     diagnostics.rts_start_nodes = zeros(0,1);
     diagnostics.rts_success = 0;
@@ -294,7 +328,12 @@
     diagnostics.sim_end_us = sim_end_us;
     diagnostics.cca_mode = 'directional';
     diagnostics.rts_reception_model = 'classic_collision';
-    diagnostics.cts_reception_model = 'sector_scan_half_duplex_plus_sinr';
+    diagnostics.cts_mode = cts_mode;
+    if single_cts_mode
+        diagnostics.cts_reception_model = cts_mode;
+    else
+        diagnostics.cts_reception_model = 'sector_scan_half_duplex_plus_sinr';
+    end
     diagnostics.data_reception_model = 'directional_sinr';
     diagnostics.cts_sinr_th_db = cts_sinr_th;
     diagnostics.data_sinr_th_db = data_sinr_th;
@@ -515,6 +554,7 @@
         end
         if ap_phase == AP_DATA && data_tx_active
             eval_data_sinr();
+            data_interferer_start(u) = t_now;
         end
 
         hearers = find( (node_state == ST_SENSE | node_state == ST_READY) & ...
@@ -538,6 +578,13 @@
 
     function process_rts_end(u, t_now)
         rts_end(u) = inf;
+        if isfinite(data_interferer_start(u))
+            data_intervals(end+1,:) = [data_interferer_start(u),t_now]; %#ok<AGROW>
+            data_interferer_start(u) = nan;
+            if ap_phase == AP_DATA && data_tx_active
+                eval_data_sinr();
+            end
+        end
         succeeded = ~rts_overlap(u) && ap_idle_at_start(u) && ...
             ap_phase == AP_IDLE;
         if succeeded
@@ -548,7 +595,7 @@
             ap_phase = AP_SIFS_PRE;
             ap_phase_start = t_now;
             ap_phase_end = t_now + sifs_us;
-            winner_data_start = t_now + sifs_us + cts_sweep_us + sifs_us;
+            winner_data_start = t_now + sifs_us + active_cts_us + sifs_us;
             winner_data_end = winner_data_start + tp_us;
             diagnostics.rts_success = diagnostics.rts_success + 1;
         else
@@ -699,33 +746,71 @@
         end
     end
 
+    function process_single_cts_end(t_now)
+        if quasi_omni_ideal
+            winner_cts_ok = winner_id > 0;
+        else
+            winner_cts_ok = winner_id > 0 && ...
+                cts_min_sinr(winner_id) >= cts_sinr_th;
+        end
+        if winner_cts_ok
+            diagnostics.cts_decoded_winner = ...
+                diagnostics.cts_decoded_winner + 1;
+        else
+            diagnostics.cts_miss_winner = ...
+                diagnostics.cts_miss_winner + 1;
+        end
+        for v = 1:n_nodes
+            if v == winner_id || node_state(v) == ST_RTS || ~sense_enabled
+                continue;
+            end
+            decoded = quasi_omni_ideal || cts_min_sinr(v) >= cts_sinr_th;
+            if decoded
+                nav_until(v) = max(nav_until(v),winner_data_end);
+                diagnostics.nav_set = diagnostics.nav_set + 1;
+                if ismember(node_state(v),[ST_WAIT,ST_SENSE,ST_READY,ST_NAV])
+                    node_state(v) = ST_NAV;
+                    sense_count(v) = 0;
+                    next_tick(v) = winner_data_end;
+                    if next_tick(v) <= t_now
+                        next_tick(v) = t_now + slot_us;
+                    end
+                end
+            end
+        end
+    end
+
     function process_ap_phase_end(t_now)
         switch ap_phase
             case AP_SIFS_PRE
                 ap_phase = AP_CTS;
                 ap_phase_start = t_now;
-                ap_phase_end = t_now + cts_sweep_us;
+                ap_phase_end = t_now + active_cts_us;
                 current_sector = 1;
                 cts_sector_start = t_now;
                 cts_min_sinr(:) = inf;
                 tx_in_sector(:) = false;
                 update_cts_sinr(t_now);
-                hearers = find( ...
-                    (node_state == ST_SENSE | node_state == ST_READY) & ...
-                    ap_sector_tx(:, 1) > sens_w & nav_until <= t_now);
-                    for v = hearers.'
-                        node_state(v) = ST_SENSE;
-        
-                        sense_count(v) = 0;
-                        sense_start(v) = t_now + cts_us;
-                        nb = ceil(t_now / slot_us) * slot_us;
-                        if nb <= t_now; nb = t_now + slot_us; end
-                        if nb < next_tick(v)
-                            next_tick(v) = nb;
+                if ~single_cts_mode
+                    hearers = find( ...
+                        (node_state == ST_SENSE | node_state == ST_READY) & ...
+                        ap_sector_tx(:, 1) > sens_w & nav_until <= t_now);
+                        for v = hearers.'
+                            node_state(v) = ST_SENSE;
+
+                            sense_count(v) = 0;
+                            sense_start(v) = t_now + cts_us;
+                            nb = ceil(t_now / slot_us) * slot_us;
+                            if nb <= t_now; nb = t_now + slot_us; end
+                            if nb < next_tick(v)
+                                next_tick(v) = nb;
+                            end
                         end
-                    end
+                end
             case AP_CTS
-                if current_sector >= 1 && current_sector <= n_sectors
+                if single_cts_mode
+                    process_single_cts_end(t_now);
+                elseif current_sector >= 1 && current_sector <= n_sectors
                     process_cts_sector_end(t_now);
                 end
                 ap_phase = AP_SIFS_POST;
@@ -735,6 +820,8 @@
                 ap_phase_start = t_now;
                 ap_phase_end = t_now + tp_us;
                 data_failed = false;
+                data_intervals = zeros(0,2);
+                data_interferer_start = nan(n_nodes,1);
                 if winner_cts_ok && winner_id > 0
                     data_tx_active = true;
                     diagnostics.data_reservations = ...
@@ -762,26 +849,50 @@
                         diagnostics.data_no_cts + 1;
                 end
             case AP_DATA
-                transaction_success = winner_cts_ok && ~data_failed;
+                ongoing = find(isfinite(data_interferer_start)).';
+                for uu = ongoing
+                    data_intervals(end+1,:) = [ ...
+                        data_interferer_start(uu),min(rts_end(uu),t_now)]; %#ok<AGROW>
+                    data_interferer_start(uu) = nan;
+                end
+                success_airtime_us = 0;
+                if winner_cts_ok
+                    if strcmp(data_failure_mode,'packet')
+                        success_airtime_us = max(0,tp_us - ...
+                            overlapping_interval_length(data_intervals, ...
+                            winner_data_start,t_now));
+                    elseif ~data_failed
+                        success_airtime_us = tp_us;
+                    end
+                end
+                transaction_success = success_airtime_us > 1e-9;
                 if transaction_success
                     if is_saturation
                         if t_now >= left_measure_us && ...
                                 t_now < right_measure_us
                             saturation_per_node_completions(winner_id) = ...
-                                saturation_per_node_completions(winner_id) + 1;
+                                saturation_per_node_completions(winner_id) + ...
+                                min(1,success_airtime_us/tp_us);
                         end
-                    elseif attempt_pid(winner_id) > 0
+                    elseif success_airtime_us >= tp_us - 1e-9 && ...
+                            attempt_pid(winner_id) > 0
                         pid = attempt_pid(winner_id);
                         completion_us(pid) = t_now;
                         control_delay_us(pid) = conn_slot_us;
                         data_delay_us(pid) = tp_us;
                     end
                     payload_success_overlap_us = ...
-                        payload_success_overlap_us + ...
-                        interval_overlap_us(winner_data_start, t_now, ...
-                            left_measure_us, right_measure_us);
+                        payload_success_overlap_us + success_airtime_us * ...
+                        interval_overlap_us(winner_data_start,t_now, ...
+                            left_measure_us,right_measure_us) / ...
+                        max(t_now-winner_data_start,eps);
                     diagnostics.data_success = ...
                         diagnostics.data_success + 1;
+                    if strcmp(data_failure_mode,'packet') && ...
+                            success_airtime_us < tp_us - 1e-9
+                        diagnostics.packet_mode_partial_success = ...
+                            diagnostics.packet_mode_partial_success + 1;
+                    end
                 else
                     if winner_cts_ok
                         diagnostics.data_fail_sinr = ...
@@ -861,9 +972,16 @@
         end
         if ap_phase == AP_CTS && current_sector >= 1 && ...
                 current_sector <= n_sectors
-            if ap_sector_tx(u, current_sector) > sens_w
+            if quasi_omni_ideal
+                cts_power = inf;
+            elseif single_cts_mode && winner_id > 0
+                cts_power = cts_tx_matrix(winner_id,u);
+            else
+                cts_power = ap_sector_tx(u, current_sector);
+            end
+            if cts_power > sens_w
                 busy = true;
-                busy_end = min(busy_end, cts_sector_start + cts_us);
+                busy_end = min(busy_end, cts_sector_start + active_cts_us);
             end
         end
         if data_tx_active && winner_id > 0 && winner_id ~= u
@@ -881,9 +999,68 @@
         end
     end
 
+    function value = overlapping_interval_length(intervals,left,right)
+        value = 0;
+        if isempty(intervals) || right <= left
+            return;
+        end
+        clipped = zeros(size(intervals));
+        for ii = 1:size(intervals,1)
+            clipped(ii,1) = max(left,intervals(ii,1));
+            clipped(ii,2) = min(right,intervals(ii,2));
+        end
+        clipped = clipped(clipped(:,2) > clipped(:,1),:);
+        if isempty(clipped)
+            return;
+        end
+        clipped = sortrows(clipped,1);
+        seg_start = clipped(1,1);
+        seg_end = clipped(1,2);
+        for ii = 2:size(clipped,1)
+            if clipped(ii,1) <= seg_end + 1e-9
+                seg_end = max(seg_end,clipped(ii,2));
+            else
+                value = value + (seg_end-seg_start);
+                seg_start = clipped(ii,1);
+                seg_end = clipped(ii,2);
+            end
+        end
+        value = value + (seg_end-seg_start);
+    end
+
     function update_cts_sinr(t_now)
-        if ap_phase ~= AP_CTS || current_sector < 1 || ...
-                current_sector > n_sectors
+        if ap_phase ~= AP_CTS
+            return;
+        end
+        interferers = find(node_state == ST_RTS).';
+        if single_cts_mode
+            if winner_id <= 0
+                return;
+            end
+            for u = 1:n_nodes
+                if node_state(u) == ST_RTS
+                    cts_min_sinr(u) = -inf;
+                    continue;
+                end
+                if quasi_omni_ideal
+                    sinr_db = inf;
+                else
+                    if isempty(cts_tx_matrix)
+                        error('simulate_sb_cb_v2:MissingCtsMatrix', ...
+                            'AP_CTS_Tx_Matrix is required for physical CTS.');
+                    end
+                    desired = cts_tx_matrix(winner_id,u);
+                    interf = 0;
+                    if ~isempty(interferers)
+                        interf = sum(int_matrix(interferers,u));
+                    end
+                    sinr_db = 10*log10(desired / (noise_w + interf + eps));
+                end
+                cts_min_sinr(u) = min(cts_min_sinr(u),sinr_db);
+            end
+            return;
+        end
+        if current_sector < 1 || current_sector > n_sectors
             return;
         end
         s = current_sector;
@@ -891,7 +1068,6 @@
         if isempty(targets)
             return;
         end
-        interferers = find(node_state == ST_RTS).';
         for u = targets
             if node_state(u) == ST_RTS
                 tx_in_sector(u) = true;
@@ -899,11 +1075,11 @@
             end
             interf = 0;
             if ~isempty(interferers)
-                interf = sum(int_matrix(interferers, u));
+                interf = sum(int_matrix(interferers,u));
             end
-            desired = ap_sector_tx(u, s);
+            desired = ap_sector_tx(u,s);
             sinr_db = 10*log10(desired / (noise_w + interf + eps));
-            cts_min_sinr(u) = min(cts_min_sinr(u), sinr_db);
+            cts_min_sinr(u) = min(cts_min_sinr(u),sinr_db);
         end
     end
 
@@ -920,6 +1096,13 @@
         sinr_db = 10*log10(desired / (noise_w + interf + eps));
         if sinr_db < data_sinr_th
             data_failed = true;
+            if strcmp(data_failure_mode,'packet')
+                for v = interferers
+                    if isnan(data_interferer_start(v))
+                        data_interferer_start(v) = t;
+                    end
+                end
+            end
         end
     end
 end

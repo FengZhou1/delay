@@ -13,7 +13,7 @@ function run_R10_lambda_sweep_pkt650()
 
     n_sta = 40;
     pkt_us = 650;
-    loads = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8];
+    loads = [0.1, 0.2, 0.3, 0.5, 0.6];   % keep in sync with run_R10_cts_mode
     lambda_values = loads / (n_sta * pkt_us * 1e-6);
 
     cb_protocols = {'sf_cb','sb_cb','unslotted','s7_clean','s7_busy'};
